@@ -94,7 +94,8 @@ def source_digest(root: Path, files: Iterable[Path]) -> str:
     for relative in files:
         digest.update(normalize_path(relative).encode("utf-8"))
         digest.update(b"\0")
-        digest.update((root / relative).read_bytes())
+        source = (root / relative).read_bytes()
+        digest.update(source.replace(b"\r\n", b"\n").replace(b"\r", b"\n"))
         digest.update(b"\0")
     return f"sha256:{digest.hexdigest()}"
 

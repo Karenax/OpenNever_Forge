@@ -68,6 +68,17 @@ class ArchitectureGraphTests(unittest.TestCase):
         second = architecture_graph.graph_bytes(architecture_graph.build_graph(root))
         self.assertEqual(first, second)
 
+    def test_generation_is_stable_across_line_endings(self) -> None:
+        root = self.make_repository()
+        app = root / "apps/desktop/src/App.tsx"
+        app.write_bytes(app.read_bytes().replace(b"\r\n", b"\n"))
+        with_lf = architecture_graph.graph_bytes(architecture_graph.build_graph(root))
+
+        app.write_bytes(app.read_bytes().replace(b"\n", b"\r\n"))
+        with_crlf = architecture_graph.graph_bytes(architecture_graph.build_graph(root))
+
+        self.assertEqual(with_lf, with_crlf)
+
     def test_check_detects_a_modified_source_without_writing(self) -> None:
         root = self.make_repository()
         output = Path("docs/architecture/graph.json")
