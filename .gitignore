@@ -1,0 +1,32 @@
+.tmp/
+
+# JavaScript
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+apps/desktop/vite.config.js
+apps/desktop/vite.config.d.ts
+apps/desktop/vitest.config.js
+apps/desktop/vitest.config.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Rust / Tauri
+target/
+apps/desktop/src-tauri/gen/
+
+# Local project data and NWN resources
+*.nwnproject
+*.sqlite
+*.sqlite3
+*.db
+local-data/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

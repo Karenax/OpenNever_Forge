@@ -1,0 +1,23 @@
+flowchart LR
+  layer_0["Types et erreurs (16)"]
+  layer_1["Domaine NWN (19)"]
+  layer_2["Index SQLite (5)"]
+  layer_3["Interface React (29)"]
+  layer_4["Projets et jobs (15)"]
+  layer_5["API Tauri (25)"]
+  layer_6["Tests (19)"]
+  layer_7["Outillage (1)"]
+  layer_1 -->|"imports"| layer_0
+  layer_2 -->|"imports"| layer_0
+  layer_3 -->|"invokes_command"| layer_5
+  layer_4 -->|"imports"| layer_0
+  layer_4 -->|"imports"| layer_1
+  layer_5 -->|"imports"| layer_0
+  layer_5 -->|"imports"| layer_2
+  layer_5 -->|"imports"| layer_4
+  layer_6 -->|"tests"| layer_0
+  layer_6 -->|"tests"| layer_1
+  layer_6 -->|"tests"| layer_2
+  layer_6 -->|"imports"| layer_3
+  layer_6 -->|"tests"| layer_4
+  layer_6 -->|"tests"| layer_5

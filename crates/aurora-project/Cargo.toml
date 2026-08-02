@@ -1,0 +1,17 @@
+[package]
+name = "aurora-project"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aurora-core = { path = "../aurora-core" }
+aurora-erf = { path = "../aurora-erf" }
+aurora-gff = { path = "../aurora-gff" }
+hex.workspace = true
+serde.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,2213 @@
+{
+  "edges": [
+    {
+      "evidence": {
+        "line": 74,
+        "path": "apps/desktop/src/App.test.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.test.tsx:renderApp",
+      "target": "file:apps/desktop/src/App.test.tsx"
+    },
+    {
+      "evidence": {
+        "line": 157,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:analyzeModule",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 147,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:browse",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 555,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:localizedPrimary",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 134,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:pushError",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 551,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:resourceName",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 178,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:stopJob",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 130,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:updateField",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 117,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:cancelJob",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 100,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:getAppStatus",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 112,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:getJob",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 161,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:isAppError",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 138,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:normalizeAppError",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 150,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:requireTauri",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 132,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:selectDirectory",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 122,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:selectModule",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 107,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/lib/tauri.ts:startModuleAnalysis",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 7,
+        "path": "apps/desktop/src/store/uiStore.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/store/uiStore.ts:useUiStore",
+      "target": "file:apps/desktop/src/store/uiStore.ts"
+    },
+    {
+      "evidence": {
+        "line": 69,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/App.tsx:App",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 486,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/App.tsx:InventoryView",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 465,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/App.tsx:JobProgress",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 542,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/App.tsx:Metric",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 445,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/App.tsx:PathField",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 559,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/App.tsx:Property",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 13,
+        "path": "apps/desktop/src-tauri/src/commands.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:apps/desktop/src-tauri/src/commands.rs:AppStatus",
+      "target": "file:apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "evidence": {
+        "line": 38,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:apps/desktop/src-tauri/src/jobs.rs:JobRegistry",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 22,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:apps/desktop/src-tauri/src/jobs.rs:JobSnapshot",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 11,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:apps/desktop/src-tauri/src/jobs.rs:JobState",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 5,
+        "path": "apps/desktop/src-tauri/src/state.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:apps/desktop/src-tauri/src/state.rs:AppState",
+      "target": "file:apps/desktop/src-tauri/src/state.rs"
+    },
+    {
+      "evidence": {
+        "line": 15,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-core/src/errors.rs:AppError",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 6,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-core/src/errors.rs:ErrorSeverity",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 43,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-erf/src/lib.rs:ContainerInventory",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 52,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-erf/src/lib.rs:ContainerReader",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 24,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-erf/src/lib.rs:ContainerResource",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 58,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-erf/src/lib.rs:ErfReader",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 17,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-erf/src/lib.rs:ResourceKey",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 34,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-erf/src/lib.rs:ResourceTypeSummary",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 25,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-gff/src/lib.rs:LocalizedString",
+      "target": "file:crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 18,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-gff/src/lib.rs:LocalizedValue",
+      "target": "file:crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 42,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-gff/src/lib.rs:ModuleInfo",
+      "target": "file:crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 10,
+        "path": "crates/aurora-index/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-index/src/lib.rs:DatabaseInfo",
+      "target": "file:crates/aurora-index/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 11,
+        "path": "crates/aurora-project/src/analysis.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-project/src/analysis.rs:ModuleAnalysis",
+      "target": "file:crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "evidence": {
+        "line": 13,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-project/src/hashing.rs:HashProgress",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 21,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-project/src/hashing.rs:ModuleFingerprint",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 8,
+        "path": "crates/aurora-project/src/project.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-project/src/project.rs:ReadonlyProjectDraft",
+      "target": "file:crates/aurora-project/src/project.rs"
+    },
+    {
+      "evidence": {
+        "line": 17,
+        "path": "crates/aurora-project/src/project.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-project/src/project.rs:ValidatedProjectPaths",
+      "target": "file:crates/aurora-project/src/project.rs"
+    },
+    {
+      "evidence": {
+        "line": 3,
+        "path": "apps/desktop/src-tauri/src/commands.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/commands.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 4,
+        "path": "apps/desktop/src-tauri/src/commands.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/commands.rs",
+      "target": "crate:aurora-project"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/jobs.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 2,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/jobs.rs",
+      "target": "crate:aurora-project"
+    },
+    {
+      "evidence": {
+        "line": 5,
+        "path": "apps/desktop/src-tauri/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/lib.rs",
+      "target": "crate:aurora-index"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "apps/desktop/src-tauri/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/lib.rs",
+      "target": "file:apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "evidence": {
+        "line": 2,
+        "path": "apps/desktop/src-tauri/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/lib.rs",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 3,
+        "path": "apps/desktop/src-tauri/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/lib.rs",
+      "target": "file:apps/desktop/src-tauri/src/logging.rs"
+    },
+    {
+      "evidence": {
+        "line": 4,
+        "path": "apps/desktop/src-tauri/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/lib.rs",
+      "target": "file:apps/desktop/src-tauri/src/state.rs"
+    },
+    {
+      "evidence": {
+        "line": 2,
+        "path": "apps/desktop/src-tauri/src/state.rs"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src-tauri/src/state.rs",
+      "target": "crate:aurora-index"
+    },
+    {
+      "evidence": {
+        "line": 4,
+        "path": "apps/desktop/src/App.test.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/App.test.tsx",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 5,
+        "path": "apps/desktop/src/App.test.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/App.test.tsx",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 34,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/App.tsx",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 35,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/App.tsx",
+      "target": "file:apps/desktop/src/store/uiStore.ts"
+    },
+    {
+      "evidence": {
+        "line": 120,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "invokes_command",
+      "source": "file:apps/desktop/src/lib/tauri.ts",
+      "target": "tauri_command:cancel_job"
+    },
+    {
+      "evidence": {
+        "line": 105,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "invokes_command",
+      "source": "file:apps/desktop/src/lib/tauri.ts",
+      "target": "tauri_command:get_app_status"
+    },
+    {
+      "evidence": {
+        "line": 115,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "invokes_command",
+      "source": "file:apps/desktop/src/lib/tauri.ts",
+      "target": "tauri_command:get_job"
+    },
+    {
+      "evidence": {
+        "line": 110,
+        "path": "apps/desktop/src/lib/tauri.ts"
+      },
+      "kind": "invokes_command",
+      "source": "file:apps/desktop/src/lib/tauri.ts",
+      "target": "tauri_command:start_module_analysis"
+    },
+    {
+      "evidence": {
+        "line": 4,
+        "path": "apps/desktop/src/main.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/main.tsx",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-core/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-core/src/lib.rs",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-erf/examples/inventory.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-erf/examples/inventory.rs",
+      "target": "crate:aurora-erf"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-erf/src/lib.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-gff/src/lib.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-index/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-index/src/lib.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-project/examples/analyze_module.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/examples/analyze_module.rs",
+      "target": "crate:aurora-project"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-project/examples/hash_module.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/examples/hash_module.rs",
+      "target": "crate:aurora-project"
+    },
+    {
+      "evidence": {
+        "line": 2,
+        "path": "crates/aurora-project/src/analysis.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/analysis.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 3,
+        "path": "crates/aurora-project/src/analysis.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/analysis.rs",
+      "target": "crate:aurora-erf"
+    },
+    {
+      "evidence": {
+        "line": 4,
+        "path": "crates/aurora-project/src/analysis.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/analysis.rs",
+      "target": "crate:aurora-gff"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/hashing.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-project/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/lib.rs",
+      "target": "file:crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "evidence": {
+        "line": 2,
+        "path": "crates/aurora-project/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/lib.rs",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 3,
+        "path": "crates/aurora-project/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/lib.rs",
+      "target": "file:crates/aurora-project/src/project.rs"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-project/src/project.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/src/project.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
+        "line": 104,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/jobs.rs:cancel",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 85,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/jobs.rs:complete",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 43,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/jobs.rs:create_analysis_job",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 93,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/jobs.rs:fail",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 69,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/jobs.rs:get",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 81,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/jobs.rs:set_progress",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 77,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/jobs.rs:set_running",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 11,
+        "path": "apps/desktop/src-tauri/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/lib.rs:run",
+      "target": "file:apps/desktop/src-tauri/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 5,
+        "path": "apps/desktop/src-tauri/src/logging.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/logging.rs:initialize",
+      "target": "file:apps/desktop/src-tauri/src/logging.rs"
+    },
+    {
+      "evidence": {
+        "line": 13,
+        "path": "apps/desktop/src-tauri/src/state.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:apps/desktop/src-tauri/src/state.rs:new",
+      "target": "file:apps/desktop/src-tauri/src/state.rs"
+    },
+    {
+      "evidence": {
+        "line": 92,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:database",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 46,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:invalid_path",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 80,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:io",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 70,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:job_cancelled",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 58,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:module_not_found",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 28,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:new",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 118,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:with_cause",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 113,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:with_import_stage",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 108,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:with_resource",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 103,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:with_source",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 123,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-core/src/errors.rs:with_suggestion",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 74,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-erf/src/lib.rs:read_resource",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 394,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-erf/src/lib.rs:resource_extension",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 71,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-erf/src/lib.rs:with_max_entries",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 31,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-gff/src/lib.rs:primary_text",
+      "target": "file:crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 51,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-gff/src/lib.rs:read_module_info",
+      "target": "file:crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 14,
+        "path": "crates/aurora-index/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-index/src/lib.rs:initialize_database",
+      "target": "file:crates/aurora-index/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 16,
+        "path": "crates/aurora-project/src/analysis.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-project/src/analysis.rs:analyze_module_file",
+      "target": "file:crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "evidence": {
+        "line": 25,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-project/src/hashing.rs:hash_module_file",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 27,
+        "path": "crates/aurora-project/src/project.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-project/src/project.rs:validate",
+      "target": "file:crates/aurora-project/src/project.rs"
+    },
+    {
+      "evidence": {
+        "line": 83,
+        "path": "apps/desktop/src-tauri/src/commands.rs"
+      },
+      "kind": "defined_in",
+      "source": "tauri_command:cancel_job",
+      "target": "file:apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "evidence": {
+        "line": 19,
+        "path": "apps/desktop/src-tauri/src/commands.rs"
+      },
+      "kind": "defined_in",
+      "source": "tauri_command:get_app_status",
+      "target": "file:apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "evidence": {
+        "line": 78,
+        "path": "apps/desktop/src-tauri/src/commands.rs"
+      },
+      "kind": "defined_in",
+      "source": "tauri_command:get_job",
+      "target": "file:apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "evidence": {
+        "line": 28,
+        "path": "apps/desktop/src-tauri/src/commands.rs"
+      },
+      "kind": "defined_in",
+      "source": "tauri_command:start_module_analysis",
+      "target": "file:apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "evidence": {
+        "line": 138,
+        "path": "apps/desktop/src-tauri/src/jobs.rs"
+      },
+      "kind": "tests",
+      "source": "test:apps/desktop/src-tauri/src/jobs.rs:cancelling_a_running_job_sets_the_flag_and_state",
+      "target": "file:apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "evidence": {
+        "line": 157,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-core/src/errors.rs:serializes_for_the_typescript_contract",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 144,
+        "path": "crates/aurora-core/src/errors.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-core/src/errors.rs:structured_error_keeps_stable_code_and_context",
+      "target": "file:crates/aurora-core/src/errors.rs"
+    },
+    {
+      "evidence": {
+        "line": 520,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-erf/src/lib.rs:observes_cancellation_before_reading_tables",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 463,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-erf/src/lib.rs:reads_metadata_without_loading_resource_payloads",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 533,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-erf/src/lib.rs:reads_one_bounded_resource_on_demand",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 482,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-erf/src/lib.rs:rejects_a_resource_outside_the_file",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 498,
+        "path": "crates/aurora-erf/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-erf/src/lib.rs:rejects_unsupported_versions_and_entry_bombs",
+      "target": "file:crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 659,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-gff/src/lib.rs:reads_the_minimal_module_info_contract",
+      "target": "file:crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 673,
+        "path": "crates/aurora-gff/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-gff/src/lib.rs:rejects_a_section_outside_the_resource",
+      "target": "file:crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 110,
+        "path": "crates/aurora-index/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-index/src/lib.rs:initializes_and_reopens_the_database",
+      "target": "file:crates/aurora-index/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 87,
+        "path": "crates/aurora-project/src/analysis.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-project/src/analysis.rs:rejects_a_container_without_module_info",
+      "target": "file:crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "evidence": {
+        "line": 95,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-project/src/hashing.rs:hashes_a_file_in_streaming_mode",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 115,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-project/src/hashing.rs:observes_cancellation_before_reading",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 120,
+        "path": "crates/aurora-project/src/project.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-project/src/project.rs:rejects_a_writable_phase_one_project",
+      "target": "file:crates/aurora-project/src/project.rs"
+    },
+    {
+      "evidence": {
+        "line": 95,
+        "path": "crates/aurora-project/src/project.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-project/src/project.rs:validates_a_readonly_project",
+      "target": "file:crates/aurora-project/src/project.rs"
+    }
+  ],
+  "metadata": {
+    "schema_version": 1,
+    "source_digest": "sha256:b9be9f9d8afed88b2c9f217baf5a6486afcbe33f41d72d83e96265e43ca4f3a3",
+    "source_file_count": 28
+  },
+  "nodes": [
+    {
+      "id": "client_operation:apps/desktop/src/App.test.tsx:renderApp",
+      "kind": "client_operation",
+      "layer": "tests",
+      "line": 74,
+      "name": "renderApp",
+      "path": "apps/desktop/src/App.test.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:analyzeModule",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 157,
+      "name": "analyzeModule",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:browse",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 147,
+      "name": "browse",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:localizedPrimary",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 555,
+      "name": "localizedPrimary",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:pushError",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 134,
+      "name": "pushError",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:resourceName",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 551,
+      "name": "resourceName",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:stopJob",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 178,
+      "name": "stopJob",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:updateField",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 130,
+      "name": "updateField",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:cancelJob",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 117,
+      "name": "cancelJob",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:getAppStatus",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 100,
+      "name": "getAppStatus",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:getJob",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 112,
+      "name": "getJob",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:isAppError",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 161,
+      "name": "isAppError",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:normalizeAppError",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 138,
+      "name": "normalizeAppError",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:requireTauri",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 150,
+      "name": "requireTauri",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectDirectory",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 132,
+      "name": "selectDirectory",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectModule",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 122,
+      "name": "selectModule",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/lib/tauri.ts:startModuleAnalysis",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 107,
+      "name": "startModuleAnalysis",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/store/uiStore.ts:useUiStore",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 7,
+      "name": "useUiStore",
+      "path": "apps/desktop/src/store/uiStore.ts"
+    },
+    {
+      "id": "component:apps/desktop/src/App.tsx:App",
+      "kind": "component",
+      "layer": "interface",
+      "line": 69,
+      "name": "App",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/App.tsx:InventoryView",
+      "kind": "component",
+      "layer": "interface",
+      "line": 486,
+      "name": "InventoryView",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/App.tsx:JobProgress",
+      "kind": "component",
+      "layer": "interface",
+      "line": 465,
+      "name": "JobProgress",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/App.tsx:Metric",
+      "kind": "component",
+      "layer": "interface",
+      "line": 542,
+      "name": "Metric",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/App.tsx:PathField",
+      "kind": "component",
+      "layer": "interface",
+      "line": 445,
+      "name": "PathField",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/App.tsx:Property",
+      "kind": "component",
+      "layer": "interface",
+      "line": 559,
+      "name": "Property",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "crate:aurora-core",
+      "kind": "crate",
+      "layer": "core",
+      "line": 1,
+      "name": "aurora-core",
+      "path": "crates/aurora-core/Cargo.toml"
+    },
+    {
+      "id": "crate:aurora-erf",
+      "kind": "crate",
+      "layer": "domain",
+      "line": 1,
+      "name": "aurora-erf",
+      "path": "crates/aurora-erf/Cargo.toml"
+    },
+    {
+      "id": "crate:aurora-gff",
+      "kind": "crate",
+      "layer": "domain",
+      "line": 1,
+      "name": "aurora-gff",
+      "path": "crates/aurora-gff/Cargo.toml"
+    },
+    {
+      "id": "crate:aurora-index",
+      "kind": "crate",
+      "layer": "index",
+      "line": 1,
+      "name": "aurora-index",
+      "path": "crates/aurora-index/Cargo.toml"
+    },
+    {
+      "id": "crate:aurora-project",
+      "kind": "crate",
+      "layer": "project",
+      "line": 1,
+      "name": "aurora-project",
+      "path": "crates/aurora-project/Cargo.toml"
+    },
+    {
+      "id": "domain_type:apps/desktop/src-tauri/src/commands.rs:AppStatus",
+      "kind": "domain_type",
+      "layer": "tauri",
+      "line": 13,
+      "name": "AppStatus",
+      "path": "apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "id": "domain_type:apps/desktop/src-tauri/src/jobs.rs:JobRegistry",
+      "kind": "domain_type",
+      "layer": "tauri",
+      "line": 38,
+      "name": "JobRegistry",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "domain_type:apps/desktop/src-tauri/src/jobs.rs:JobSnapshot",
+      "kind": "domain_type",
+      "layer": "tauri",
+      "line": 22,
+      "name": "JobSnapshot",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "domain_type:apps/desktop/src-tauri/src/jobs.rs:JobState",
+      "kind": "domain_type",
+      "layer": "tauri",
+      "line": 11,
+      "name": "JobState",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "domain_type:apps/desktop/src-tauri/src/state.rs:AppState",
+      "kind": "domain_type",
+      "layer": "tauri",
+      "line": 5,
+      "name": "AppState",
+      "path": "apps/desktop/src-tauri/src/state.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-core/src/errors.rs:AppError",
+      "kind": "domain_type",
+      "layer": "core",
+      "line": 15,
+      "name": "AppError",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-core/src/errors.rs:ErrorSeverity",
+      "kind": "domain_type",
+      "layer": "core",
+      "line": 6,
+      "name": "ErrorSeverity",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-erf/src/lib.rs:ContainerInventory",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 43,
+      "name": "ContainerInventory",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-erf/src/lib.rs:ContainerReader",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 52,
+      "name": "ContainerReader",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-erf/src/lib.rs:ContainerResource",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 24,
+      "name": "ContainerResource",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-erf/src/lib.rs:ErfReader",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 58,
+      "name": "ErfReader",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-erf/src/lib.rs:ResourceKey",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 17,
+      "name": "ResourceKey",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-erf/src/lib.rs:ResourceTypeSummary",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 34,
+      "name": "ResourceTypeSummary",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-gff/src/lib.rs:LocalizedString",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 25,
+      "name": "LocalizedString",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-gff/src/lib.rs:LocalizedValue",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 18,
+      "name": "LocalizedValue",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-gff/src/lib.rs:ModuleInfo",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 42,
+      "name": "ModuleInfo",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-index/src/lib.rs:DatabaseInfo",
+      "kind": "domain_type",
+      "layer": "index",
+      "line": 10,
+      "name": "DatabaseInfo",
+      "path": "crates/aurora-index/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-project/src/analysis.rs:ModuleAnalysis",
+      "kind": "domain_type",
+      "layer": "project",
+      "line": 11,
+      "name": "ModuleAnalysis",
+      "path": "crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-project/src/hashing.rs:HashProgress",
+      "kind": "domain_type",
+      "layer": "project",
+      "line": 13,
+      "name": "HashProgress",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-project/src/hashing.rs:ModuleFingerprint",
+      "kind": "domain_type",
+      "layer": "project",
+      "line": 21,
+      "name": "ModuleFingerprint",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-project/src/project.rs:ReadonlyProjectDraft",
+      "kind": "domain_type",
+      "layer": "project",
+      "line": 8,
+      "name": "ReadonlyProjectDraft",
+      "path": "crates/aurora-project/src/project.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-project/src/project.rs:ValidatedProjectPaths",
+      "kind": "domain_type",
+      "layer": "project",
+      "line": 17,
+      "name": "ValidatedProjectPaths",
+      "path": "crates/aurora-project/src/project.rs"
+    },
+    {
+      "id": "file:apps/desktop/src-tauri/src/commands.rs",
+      "kind": "file",
+      "layer": "tauri",
+      "line": 1,
+      "name": "commands.rs",
+      "path": "apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "id": "file:apps/desktop/src-tauri/src/jobs.rs",
+      "kind": "file",
+      "layer": "tauri",
+      "line": 1,
+      "name": "jobs.rs",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "file:apps/desktop/src-tauri/src/lib.rs",
+      "kind": "file",
+      "layer": "tauri",
+      "line": 1,
+      "name": "lib.rs",
+      "path": "apps/desktop/src-tauri/src/lib.rs"
+    },
+    {
+      "id": "file:apps/desktop/src-tauri/src/logging.rs",
+      "kind": "file",
+      "layer": "tauri",
+      "line": 1,
+      "name": "logging.rs",
+      "path": "apps/desktop/src-tauri/src/logging.rs"
+    },
+    {
+      "id": "file:apps/desktop/src-tauri/src/main.rs",
+      "kind": "file",
+      "layer": "tauri",
+      "line": 1,
+      "name": "main.rs",
+      "path": "apps/desktop/src-tauri/src/main.rs"
+    },
+    {
+      "id": "file:apps/desktop/src-tauri/src/state.rs",
+      "kind": "file",
+      "layer": "tauri",
+      "line": 1,
+      "name": "state.rs",
+      "path": "apps/desktop/src-tauri/src/state.rs"
+    },
+    {
+      "id": "file:apps/desktop/src/App.test.tsx",
+      "kind": "test",
+      "layer": "tests",
+      "line": 1,
+      "name": "App.test.tsx",
+      "path": "apps/desktop/src/App.test.tsx"
+    },
+    {
+      "id": "file:apps/desktop/src/App.tsx",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "App.tsx",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "file:apps/desktop/src/lib/tauri.ts",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "tauri.ts",
+      "path": "apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "id": "file:apps/desktop/src/main.tsx",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "main.tsx",
+      "path": "apps/desktop/src/main.tsx"
+    },
+    {
+      "id": "file:apps/desktop/src/store/uiStore.ts",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "uiStore.ts",
+      "path": "apps/desktop/src/store/uiStore.ts"
+    },
+    {
+      "id": "file:apps/desktop/src/test/setup.ts",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "setup.ts",
+      "path": "apps/desktop/src/test/setup.ts"
+    },
+    {
+      "id": "file:apps/desktop/src/vite-env.d.ts",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "vite-env.d.ts",
+      "path": "apps/desktop/src/vite-env.d.ts"
+    },
+    {
+      "id": "file:crates/aurora-core/src/errors.rs",
+      "kind": "file",
+      "layer": "core",
+      "line": 1,
+      "name": "errors.rs",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "file:crates/aurora-core/src/lib.rs",
+      "kind": "file",
+      "layer": "core",
+      "line": 1,
+      "name": "lib.rs",
+      "path": "crates/aurora-core/src/lib.rs"
+    },
+    {
+      "id": "file:crates/aurora-erf/examples/inventory.rs",
+      "kind": "file",
+      "layer": "domain",
+      "line": 1,
+      "name": "inventory.rs",
+      "path": "crates/aurora-erf/examples/inventory.rs"
+    },
+    {
+      "id": "file:crates/aurora-erf/src/lib.rs",
+      "kind": "file",
+      "layer": "domain",
+      "line": 1,
+      "name": "lib.rs",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "file:crates/aurora-gff/src/lib.rs",
+      "kind": "file",
+      "layer": "domain",
+      "line": 1,
+      "name": "lib.rs",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "file:crates/aurora-index/migrations/0001_initial.sql",
+      "kind": "migration",
+      "layer": "index",
+      "line": 1,
+      "name": "0001_initial.sql",
+      "path": "crates/aurora-index/migrations/0001_initial.sql"
+    },
+    {
+      "id": "file:crates/aurora-index/src/lib.rs",
+      "kind": "file",
+      "layer": "index",
+      "line": 1,
+      "name": "lib.rs",
+      "path": "crates/aurora-index/src/lib.rs"
+    },
+    {
+      "id": "file:crates/aurora-project/examples/analyze_module.rs",
+      "kind": "file",
+      "layer": "project",
+      "line": 1,
+      "name": "analyze_module.rs",
+      "path": "crates/aurora-project/examples/analyze_module.rs"
+    },
+    {
+      "id": "file:crates/aurora-project/examples/hash_module.rs",
+      "kind": "file",
+      "layer": "project",
+      "line": 1,
+      "name": "hash_module.rs",
+      "path": "crates/aurora-project/examples/hash_module.rs"
+    },
+    {
+      "id": "file:crates/aurora-project/src/analysis.rs",
+      "kind": "file",
+      "layer": "project",
+      "line": 1,
+      "name": "analysis.rs",
+      "path": "crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "id": "file:crates/aurora-project/src/hashing.rs",
+      "kind": "file",
+      "layer": "project",
+      "line": 1,
+      "name": "hashing.rs",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "file:crates/aurora-project/src/lib.rs",
+      "kind": "file",
+      "layer": "project",
+      "line": 1,
+      "name": "lib.rs",
+      "path": "crates/aurora-project/src/lib.rs"
+    },
+    {
+      "id": "file:crates/aurora-project/src/project.rs",
+      "kind": "file",
+      "layer": "project",
+      "line": 1,
+      "name": "project.rs",
+      "path": "crates/aurora-project/src/project.rs"
+    },
+    {
+      "id": "file:scripts/architecture_graph.py",
+      "kind": "file",
+      "layer": "tooling",
+      "line": 1,
+      "name": "architecture_graph.py",
+      "path": "scripts/architecture_graph.py"
+    },
+    {
+      "id": "file:tests/test_architecture_graph.py",
+      "kind": "test",
+      "layer": "tests",
+      "line": 1,
+      "name": "test_architecture_graph.py",
+      "path": "tests/test_architecture_graph.py"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:cancel",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 104,
+      "name": "cancel",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:complete",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 85,
+      "name": "complete",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:create_analysis_job",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 43,
+      "name": "create_analysis_job",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:fail",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 93,
+      "name": "fail",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:get",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 69,
+      "name": "get",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:set_progress",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 81,
+      "name": "set_progress",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:set_running",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 77,
+      "name": "set_running",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/lib.rs:run",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 11,
+      "name": "run",
+      "path": "apps/desktop/src-tauri/src/lib.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/logging.rs:initialize",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 5,
+      "name": "initialize",
+      "path": "apps/desktop/src-tauri/src/logging.rs"
+    },
+    {
+      "id": "rust_function:apps/desktop/src-tauri/src/state.rs:new",
+      "kind": "rust_function",
+      "layer": "tauri",
+      "line": 13,
+      "name": "new",
+      "path": "apps/desktop/src-tauri/src/state.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:database",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 92,
+      "name": "database",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:invalid_path",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 46,
+      "name": "invalid_path",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:io",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 80,
+      "name": "io",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:job_cancelled",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 70,
+      "name": "job_cancelled",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:module_not_found",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 58,
+      "name": "module_not_found",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:new",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 28,
+      "name": "new",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:with_cause",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 118,
+      "name": "with_cause",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:with_import_stage",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 113,
+      "name": "with_import_stage",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:with_resource",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 108,
+      "name": "with_resource",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:with_source",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 103,
+      "name": "with_source",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-core/src/errors.rs:with_suggestion",
+      "kind": "rust_function",
+      "layer": "core",
+      "line": 123,
+      "name": "with_suggestion",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-erf/src/lib.rs:read_resource",
+      "kind": "rust_function",
+      "layer": "domain",
+      "line": 74,
+      "name": "read_resource",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-erf/src/lib.rs:resource_extension",
+      "kind": "rust_function",
+      "layer": "domain",
+      "line": 394,
+      "name": "resource_extension",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-erf/src/lib.rs:with_max_entries",
+      "kind": "rust_function",
+      "layer": "domain",
+      "line": 71,
+      "name": "with_max_entries",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-gff/src/lib.rs:primary_text",
+      "kind": "rust_function",
+      "layer": "domain",
+      "line": 31,
+      "name": "primary_text",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-gff/src/lib.rs:read_module_info",
+      "kind": "rust_function",
+      "layer": "domain",
+      "line": 51,
+      "name": "read_module_info",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-index/src/lib.rs:initialize_database",
+      "kind": "rust_function",
+      "layer": "index",
+      "line": 14,
+      "name": "initialize_database",
+      "path": "crates/aurora-index/src/lib.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-project/src/analysis.rs:analyze_module_file",
+      "kind": "rust_function",
+      "layer": "project",
+      "line": 16,
+      "name": "analyze_module_file",
+      "path": "crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-project/src/hashing.rs:hash_module_file",
+      "kind": "rust_function",
+      "layer": "project",
+      "line": 25,
+      "name": "hash_module_file",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-project/src/project.rs:validate",
+      "kind": "rust_function",
+      "layer": "project",
+      "line": 27,
+      "name": "validate",
+      "path": "crates/aurora-project/src/project.rs"
+    },
+    {
+      "id": "tauri_command:cancel_job",
+      "kind": "tauri_command",
+      "layer": "tauri",
+      "line": 83,
+      "name": "cancel_job",
+      "path": "apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "id": "tauri_command:get_app_status",
+      "kind": "tauri_command",
+      "layer": "tauri",
+      "line": 19,
+      "name": "get_app_status",
+      "path": "apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "id": "tauri_command:get_job",
+      "kind": "tauri_command",
+      "layer": "tauri",
+      "line": 78,
+      "name": "get_job",
+      "path": "apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "id": "tauri_command:start_module_analysis",
+      "kind": "tauri_command",
+      "layer": "tauri",
+      "line": 28,
+      "name": "start_module_analysis",
+      "path": "apps/desktop/src-tauri/src/commands.rs"
+    },
+    {
+      "id": "test:apps/desktop/src-tauri/src/jobs.rs:cancelling_a_running_job_sets_the_flag_and_state",
+      "kind": "test",
+      "layer": "tests",
+      "line": 138,
+      "name": "cancelling_a_running_job_sets_the_flag_and_state",
+      "path": "apps/desktop/src-tauri/src/jobs.rs"
+    },
+    {
+      "id": "test:crates/aurora-core/src/errors.rs:serializes_for_the_typescript_contract",
+      "kind": "test",
+      "layer": "tests",
+      "line": 157,
+      "name": "serializes_for_the_typescript_contract",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "test:crates/aurora-core/src/errors.rs:structured_error_keeps_stable_code_and_context",
+      "kind": "test",
+      "layer": "tests",
+      "line": 144,
+      "name": "structured_error_keeps_stable_code_and_context",
+      "path": "crates/aurora-core/src/errors.rs"
+    },
+    {
+      "id": "test:crates/aurora-erf/src/lib.rs:observes_cancellation_before_reading_tables",
+      "kind": "test",
+      "layer": "tests",
+      "line": 520,
+      "name": "observes_cancellation_before_reading_tables",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-erf/src/lib.rs:reads_metadata_without_loading_resource_payloads",
+      "kind": "test",
+      "layer": "tests",
+      "line": 463,
+      "name": "reads_metadata_without_loading_resource_payloads",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-erf/src/lib.rs:reads_one_bounded_resource_on_demand",
+      "kind": "test",
+      "layer": "tests",
+      "line": 533,
+      "name": "reads_one_bounded_resource_on_demand",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-erf/src/lib.rs:rejects_a_resource_outside_the_file",
+      "kind": "test",
+      "layer": "tests",
+      "line": 482,
+      "name": "rejects_a_resource_outside_the_file",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-erf/src/lib.rs:rejects_unsupported_versions_and_entry_bombs",
+      "kind": "test",
+      "layer": "tests",
+      "line": 498,
+      "name": "rejects_unsupported_versions_and_entry_bombs",
+      "path": "crates/aurora-erf/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-gff/src/lib.rs:reads_the_minimal_module_info_contract",
+      "kind": "test",
+      "layer": "tests",
+      "line": 659,
+      "name": "reads_the_minimal_module_info_contract",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-gff/src/lib.rs:rejects_a_section_outside_the_resource",
+      "kind": "test",
+      "layer": "tests",
+      "line": 673,
+      "name": "rejects_a_section_outside_the_resource",
+      "path": "crates/aurora-gff/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-index/src/lib.rs:initializes_and_reopens_the_database",
+      "kind": "test",
+      "layer": "tests",
+      "line": 110,
+      "name": "initializes_and_reopens_the_database",
+      "path": "crates/aurora-index/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-project/src/analysis.rs:rejects_a_container_without_module_info",
+      "kind": "test",
+      "layer": "tests",
+      "line": 87,
+      "name": "rejects_a_container_without_module_info",
+      "path": "crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "id": "test:crates/aurora-project/src/hashing.rs:hashes_a_file_in_streaming_mode",
+      "kind": "test",
+      "layer": "tests",
+      "line": 95,
+      "name": "hashes_a_file_in_streaming_mode",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "test:crates/aurora-project/src/hashing.rs:observes_cancellation_before_reading",
+      "kind": "test",
+      "layer": "tests",
+      "line": 115,
+      "name": "observes_cancellation_before_reading",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "test:crates/aurora-project/src/project.rs:rejects_a_writable_phase_one_project",
+      "kind": "test",
+      "layer": "tests",
+      "line": 120,
+      "name": "rejects_a_writable_phase_one_project",
+      "path": "crates/aurora-project/src/project.rs"
+    },
+    {
+      "id": "test:crates/aurora-project/src/project.rs:validates_a_readonly_project",
+      "kind": "test",
+      "layer": "tests",
+      "line": 95,
+      "name": "validates_a_readonly_project",
+      "path": "crates/aurora-project/src/project.rs"
+    }
+  ]
+}

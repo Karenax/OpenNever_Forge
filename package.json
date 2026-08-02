@@ -1,0 +1,15 @@
+{
+  "name": "opennever-forge",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "dev": "pnpm --filter @opennever/desktop dev",
+    "tauri": "pnpm --filter @opennever/desktop tauri",
+    "build": "pnpm --filter @opennever/desktop build",
+    "lint": "pnpm --filter @opennever/desktop lint",
+    "test": "pnpm --filter @opennever/desktop test",
+    "test:run": "pnpm --filter @opennever/desktop test:run",
+    "check:graph": "python scripts/architecture_graph.py check"
+  }
+}
