@@ -7,8 +7,13 @@ rust-version.workspace = true
 
 [dependencies]
 aurora-core = { path = "../aurora-core" }
+aurora-dialogue = { path = "../aurora-dialogue" }
+aurora-world = { path = "../aurora-world" }
+aurora-resource = { path = "../aurora-resource" }
+aurora-nwscript = { path = "../aurora-nwscript" }
 rusqlite.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

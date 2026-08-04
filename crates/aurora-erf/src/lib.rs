@@ -1,4 +1,5 @@
 use aurora_core::{AppError, AppResult, ErrorSeverity};
+pub use aurora_core::{ResourceKey, resource_extension};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -11,13 +12,6 @@ const ERF_KEY_SIZE: u64 = 24;
 const ERF_RESOURCE_SIZE: u64 = 8;
 const DEFAULT_MAX_ENTRIES: u32 = 250_000;
 const DEFAULT_MAX_RESOURCE_BYTES: u64 = 16 * 1024 * 1024;
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct ResourceKey {
-    pub resref: String,
-    pub resource_type: u16,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -167,10 +161,7 @@ impl ContainerReader for ErfReader {
 
             let extension = resource_extension(resource_type).map(str::to_owned);
             resources.push(ContainerResource {
-                key: ResourceKey {
-                    resref: decode_resref(&key[..16]),
-                    resource_type,
-                },
+                key: ResourceKey::new(decode_resref(&key[..16]), resource_type),
                 resource_id,
                 extension: extension.clone(),
                 offset,
@@ -390,68 +381,6 @@ fn decode_resref(bytes: &[u8]) -> String {
             }
         })
         .collect()
-}
-
-pub fn resource_extension(resource_type: u16) -> Option<&'static str> {
-    match resource_type {
-        0 => Some("res"),
-        1 => Some("bmp"),
-        3 => Some("tga"),
-        4 => Some("wav"),
-        6 => Some("plt"),
-        7 => Some("ini"),
-        8 => Some("bmu"),
-        10 => Some("txt"),
-        2002 => Some("mdl"),
-        2005 => Some("fnt"),
-        2007 => Some("lua"),
-        2009 => Some("nss"),
-        2010 => Some("ncs"),
-        2011 => Some("mod"),
-        2012 => Some("are"),
-        2013 => Some("set"),
-        2014 => Some("ifo"),
-        2015 => Some("bic"),
-        2016 => Some("wok"),
-        2017 => Some("2da"),
-        2018 => Some("tlk"),
-        2022 => Some("txi"),
-        2023 => Some("git"),
-        2025 => Some("uti"),
-        2027 => Some("utc"),
-        2029 => Some("dlg"),
-        2030 => Some("itp"),
-        2032 => Some("utt"),
-        2033 => Some("dds"),
-        2035 => Some("uts"),
-        2036 => Some("ltr"),
-        2037 => Some("gff"),
-        2038 => Some("fac"),
-        2040 => Some("ute"),
-        2042 => Some("utd"),
-        2044 => Some("utp"),
-        2045 => Some("dft"),
-        2046 => Some("gic"),
-        2047 => Some("gui"),
-        2051 => Some("utm"),
-        2052 => Some("dwk"),
-        2053 => Some("pwk"),
-        2055 => Some("utg"),
-        2056 => Some("jrl"),
-        2058 => Some("utw"),
-        2059 => Some("4pc"),
-        2060 => Some("ssf"),
-        2061 => Some("hak"),
-        2062 => Some("nwm"),
-        2063 => Some("bik"),
-        2064 => Some("ndb"),
-        2065 => Some("ptm"),
-        2066 => Some("ptt"),
-        9997 => Some("erf"),
-        9998 => Some("bif"),
-        9999 => Some("key"),
-        _ => None,
-    }
 }
 
 #[cfg(test)]

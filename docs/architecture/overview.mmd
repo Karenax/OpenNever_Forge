@@ -1,23 +1,26 @@
 flowchart LR
-  layer_0["Types et erreurs (16)"]
-  layer_1["Domaine NWN (19)"]
-  layer_2["Index SQLite (5)"]
-  layer_3["Interface React (29)"]
-  layer_4["Projets et jobs (15)"]
-  layer_5["API Tauri (25)"]
-  layer_6["Tests (19)"]
-  layer_7["Outillage (1)"]
+  layer_0["Types et erreurs (24)"]
+  layer_1["Domaine NWN (169)"]
+  layer_2["Index SQLite (13)"]
+  layer_3["Interface React (77)"]
+  layer_4["Autres (1)"]
+  layer_5["Projets et jobs (52)"]
+  layer_6["API Tauri (53)"]
+  layer_7["Tests (62)"]
+  layer_8["Outillage (2)"]
   layer_1 -->|"imports"| layer_0
   layer_2 -->|"imports"| layer_0
-  layer_3 -->|"invokes_command"| layer_5
-  layer_4 -->|"imports"| layer_0
-  layer_4 -->|"imports"| layer_1
+  layer_2 -->|"imports"| layer_1
+  layer_3 -->|"invokes_command"| layer_6
   layer_5 -->|"imports"| layer_0
-  layer_5 -->|"imports"| layer_2
-  layer_5 -->|"imports"| layer_4
-  layer_6 -->|"tests"| layer_0
-  layer_6 -->|"tests"| layer_1
-  layer_6 -->|"tests"| layer_2
-  layer_6 -->|"imports"| layer_3
-  layer_6 -->|"tests"| layer_4
-  layer_6 -->|"tests"| layer_5
+  layer_5 -->|"imports"| layer_1
+  layer_6 -->|"imports"| layer_0
+  layer_6 -->|"imports"| layer_1
+  layer_6 -->|"imports"| layer_2
+  layer_6 -->|"imports"| layer_5
+  layer_7 -->|"tests"| layer_0
+  layer_7 -->|"tests"| layer_1
+  layer_7 -->|"tests"| layer_2
+  layer_7 -->|"imports"| layer_3
+  layer_7 -->|"tests"| layer_5
+  layer_7 -->|"tests"| layer_6

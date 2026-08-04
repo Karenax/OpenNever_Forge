@@ -9,9 +9,16 @@ rust-version.workspace = true
 aurora-core = { path = "../aurora-core" }
 aurora-erf = { path = "../aurora-erf" }
 aurora-gff = { path = "../aurora-gff" }
+aurora-nwscript = { path = "../aurora-nwscript" }
+aurora-resource = { path = "../aurora-resource" }
+aurora-tlk = { path = "../aurora-tlk" }
+aurora-2da = { path = "../aurora-2da" }
+aurora-dialogue = { path = "../aurora-dialogue" }
+aurora-mdl = { path = "../aurora-mdl" }
+aurora-world = { path = "../aurora-world" }
 hex.workspace = true
+png.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 sha2.workspace = true
-
-[dev-dependencies]
 tempfile.workspace = true

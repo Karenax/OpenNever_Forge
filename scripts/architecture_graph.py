@@ -24,6 +24,7 @@ SOURCE_ROOTS = (
     Path("scripts"),
     Path("tests"),
     Path("fixtures/synthetic"),
+    Path("tools/compare-oracles"),
 )
 SOURCE_SUFFIXES = {".py", ".rs", ".sql", ".ts", ".tsx"}
 EXCLUDED_PARTS = {

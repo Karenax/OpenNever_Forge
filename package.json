@@ -10,6 +10,10 @@
     "lint": "pnpm --filter @opennever/desktop lint",
     "test": "pnpm --filter @opennever/desktop test",
     "test:run": "pnpm --filter @opennever/desktop test:run",
+    "validate:glb": "node tools/validate-glb.mjs",
     "check:graph": "python scripts/architecture_graph.py check"
+  },
+  "devDependencies": {
+    "gltf-validator": "2.0.0-dev.3.10"
   }
 }

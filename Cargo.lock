@@ -77,11 +77,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "aurora-2da"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "serde",
+]
+
+[[package]]
 name = "aurora-core"
 version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "aurora-dialogue"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-gff",
+ "serde",
 ]
 
 [[package]]
@@ -106,22 +123,88 @@ name = "aurora-index"
 version = "0.1.0"
 dependencies = [
  "aurora-core",
+ "aurora-dialogue",
+ "aurora-nwscript",
+ "aurora-resource",
+ "aurora-world",
  "rusqlite",
  "serde",
+ "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "aurora-mdl"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "aurora-nwscript"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "hex",
+ "serde",
+ "sha2",
 ]
 
 [[package]]
 name = "aurora-project"
 version = "0.1.0"
 dependencies = [
+ "aurora-2da",
  "aurora-core",
+ "aurora-dialogue",
  "aurora-erf",
  "aurora-gff",
+ "aurora-mdl",
+ "aurora-nwscript",
+ "aurora-resource",
+ "aurora-tlk",
+ "aurora-world",
+ "hex",
+ "png 0.18.1",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
+name = "aurora-resource"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-erf",
  "hex",
  "serde",
  "sha2",
  "tempfile",
+]
+
+[[package]]
+name = "aurora-tlk"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "serde",
+ "tempfile",
+]
+
+[[package]]
+name = "aurora-world"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-gff",
+ "aurora-mdl",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -2147,11 +2230,16 @@ checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 name = "opennever-forge-desktop"
 version = "0.1.0"
 dependencies = [
+ "aurora-2da",
  "aurora-core",
+ "aurora-gff",
  "aurora-index",
  "aurora-project",
+ "aurora-tlk",
+ "hex",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",

@@ -1,0 +1,13 @@
+[package]
+name = "aurora-nwscript"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aurora-core = { path = "../aurora-core" }
+hex.workspace = true
+serde.workspace = true
+sha2.workspace = true
+

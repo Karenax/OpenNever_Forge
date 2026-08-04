@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "fixture": "lot1_custom_tlk",
+  "license": "CC0-1.0",
+  "generator": "scripts/generate_lot1_fixture.py",
+  "expected": {
+    "moduleName": "OpenNever Forge Lot 1",
+    "moduleTag": "OPENNEVER_LOT1",
+    "entryArea": "startarea",
+    "hakFiles": [
+      "forge_assets"
+    ],
+    "customTlk": "forge_dialog",
+    "customTlkText": "OpenNever Forge synthetic custom TLK",
+    "resolvedDependencies": 2,
+    "scripts": 2,
+    "nss": 2,
+    "ncs": 1
+  },
+  "files": [
+    {
+      "path": "module/forge_lot1.mod",
+      "sha256": "BD59C6FD0174867A4FF81FC1E0771A50166FC7B5CA6A5C7B29AEFDE2BD9D2C35",
+      "sizeBytes": 911
+    },
+    {
+      "path": "user/hak/forge_assets.hak",
+      "sha256": "AD68F9F21B297394F2CEA253EACD38B9AE053DF845403D442D8685BE33AB0D27",
+      "sizeBytes": 160
+    },
+    {
+      "path": "user/tlk/forge_dialog.tlk",
+      "sha256": "CD0E50DBFA2E02EFC5D9C740714C63CC329D44768047A9A18EE940FAB0349114",
+      "sizeBytes": 96
+    }
+  ]
+}

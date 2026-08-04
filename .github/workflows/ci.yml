@@ -39,7 +39,7 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test Rust
         run: cargo test --workspace
-      - name: Test architecture graph
-        run: python -m unittest tests/test_architecture_graph.py
+      - name: Test Python tooling and synthetic fixtures
+        run: python -m unittest discover -s tests -v
       - name: Check architecture graph freshness
         run: python scripts/architecture_graph.py check

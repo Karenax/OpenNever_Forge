@@ -27,6 +27,8 @@ erreurs conservent un code stable, la source et l'étape d'import.
 - l'inventaire ERF ne copie jamais les contenus des ressources ;
 - `module.ifo` est la seule ressource chargée pendant ce parcours ;
 - le lecteur GFF n'est pas encore un inspecteur générique et ne doit pas être présenté comme tel ;
+- `Mod_MinGameVer` reste facultatif pour accepter les modules officiels anciens qui ne le
+  renseignent pas ; l'absence est exposée comme une valeur inconnue et non inventée ;
 - les chaînes occidentales non UTF-8 utilisent temporairement un repli octet vers Unicode ; les
   codepages dépendantes de la langue seront traitées avec la résolution TLK ;
 - toute extraction future passe par le cache et ajoute une protection contre la traversée de chemin.

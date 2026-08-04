@@ -1,5 +1,6 @@
-use aurora_core::{AppError, AppResult, ErrorSeverity};
+use aurora_core::{AppError, AppResult, ErrorSeverity, decode_nwn_text};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 const GFF_HEADER_SIZE: u64 = 56;
 const STRUCT_SIZE: u64 = 12;
@@ -7,11 +8,72 @@ const FIELD_SIZE: u64 = 12;
 const LABEL_SIZE: u64 = 16;
 const MAX_STRUCTS: u32 = 250_000;
 const MAX_FIELDS: u32 = 1_000_000;
+const MAX_DEPTH: usize = 128;
 
+const FIELD_BYTE: u32 = 0;
+const FIELD_CHAR: u32 = 1;
+const FIELD_WORD: u32 = 2;
+const FIELD_SHORT: u32 = 3;
+const FIELD_DWORD: u32 = 4;
+const FIELD_INT: u32 = 5;
+const FIELD_DWORD64: u32 = 6;
+const FIELD_INT64: u32 = 7;
+const FIELD_FLOAT: u32 = 8;
+const FIELD_DOUBLE: u32 = 9;
 const FIELD_CEXOSTRING: u32 = 10;
 const FIELD_RESREF: u32 = 11;
 const FIELD_CEXOLOCSTRING: u32 = 12;
+const FIELD_VOID: u32 = 13;
+const FIELD_STRUCT: u32 = 14;
 const FIELD_LIST: u32 = 15;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GenericGff {
+    pub file_type: String,
+    pub file_version: String,
+    pub source: String,
+    pub struct_count: u32,
+    pub field_count: u32,
+    pub root: GenericStruct,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GenericStruct {
+    pub index: u32,
+    pub struct_type: u32,
+    pub fields: Vec<GenericField>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GenericField {
+    pub label: String,
+    pub field_type: u32,
+    pub value: GenericValue,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
+pub enum GenericValue {
+    Byte(u8),
+    Char(i8),
+    Word(u16),
+    Short(i16),
+    Dword(u32),
+    Int(i32),
+    Dword64(u64),
+    Int64(i64),
+    Float(f32),
+    Double(f64),
+    String(String),
+    ResRef(String),
+    LocalizedString(LocalizedString),
+    Void(Vec<u8>),
+    Struct(Box<GenericStruct>),
+    List(Vec<GenericStruct>),
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -43,7 +105,7 @@ pub struct ModuleInfo {
     pub name: LocalizedString,
     pub description: LocalizedString,
     pub tag: String,
-    pub minimum_game_version: String,
+    pub minimum_game_version: Option<String>,
     pub custom_tlk: Option<String>,
     pub entry_area: String,
     pub hak_files: Vec<String>,
@@ -71,7 +133,9 @@ pub fn read_module_info(bytes: &[u8], source: &str) -> AppResult<ModuleInfo> {
             values: Vec::new(),
         });
     let tag = document.required_string(&root, "Mod_Tag")?;
-    let minimum_game_version = document.required_string(&root, "Mod_MinGameVer")?;
+    let minimum_game_version = document
+        .optional_string(&root, "Mod_MinGameVer")?
+        .filter(|value| !value.is_empty());
     let custom_tlk = document
         .optional_string(&root, "Mod_CustomTlk")?
         .filter(|value| !value.is_empty());
@@ -86,6 +150,20 @@ pub fn read_module_info(bytes: &[u8], source: &str) -> AppResult<ModuleInfo> {
         custom_tlk,
         entry_area,
         hak_files,
+    })
+}
+
+pub fn parse_gff(bytes: &[u8], source: &str) -> AppResult<GenericGff> {
+    let document = GffDocument::parse(bytes, source)?;
+    let mut stack = BTreeSet::new();
+    let root = document.generic_struct(0, 0, &mut stack)?;
+    Ok(GenericGff {
+        file_type: document.header.file_type.clone(),
+        file_version: "V3.2".to_owned(),
+        source: source.to_owned(),
+        struct_count: document.header.struct_count,
+        field_count: document.header.field_count,
+        root,
     })
 }
 
@@ -264,6 +342,250 @@ impl<'a> GffDocument<'a> {
             .into_iter()
             .map(|field_index| self.field(field_index))
             .collect()
+    }
+
+    fn generic_struct(
+        &self,
+        struct_index: u32,
+        depth: usize,
+        stack: &mut BTreeSet<u32>,
+    ) -> AppResult<GenericStruct> {
+        if depth > MAX_DEPTH {
+            return Err(gff_error(
+                self.source,
+                "GFF_DEPTH_LIMIT_EXCEEDED",
+                format!("Struct nesting exceeds {MAX_DEPTH}"),
+            ));
+        }
+        if !stack.insert(struct_index) {
+            return Err(gff_error(
+                self.source,
+                "GFF_STRUCT_CYCLE",
+                format!("Struct {struct_index} recursively references itself"),
+            ));
+        }
+        if struct_index >= self.header.struct_count {
+            return Err(gff_error(
+                self.source,
+                "GFF_STRUCT_INDEX_INVALID",
+                format!("Struct index {struct_index} is outside the struct table"),
+            ));
+        }
+        let base = self.header.struct_offset + u64::from(struct_index) * STRUCT_SIZE;
+        let struct_type = self.u32_at(base)?;
+        let mut result = Vec::new();
+        for field in self.struct_fields(struct_index)? {
+            result.push(GenericField {
+                label: self.label(field.label_index)?,
+                field_type: field.field_type,
+                value: self.generic_value(field, depth + 1, stack)?,
+            });
+        }
+        stack.remove(&struct_index);
+        Ok(GenericStruct {
+            index: struct_index,
+            struct_type,
+            fields: result,
+        })
+    }
+
+    fn generic_value(
+        &self,
+        field: FieldRecord,
+        depth: usize,
+        stack: &mut BTreeSet<u32>,
+    ) -> AppResult<GenericValue> {
+        let data_offset = self.header.field_data_offset + u64::from(field.data);
+        match field.field_type {
+            FIELD_BYTE => Ok(GenericValue::Byte(field.data as u8)),
+            FIELD_CHAR => Ok(GenericValue::Char(field.data as u8 as i8)),
+            FIELD_WORD => Ok(GenericValue::Word(field.data as u16)),
+            FIELD_SHORT => Ok(GenericValue::Short(field.data as u16 as i16)),
+            FIELD_DWORD => Ok(GenericValue::Dword(field.data)),
+            FIELD_INT => Ok(GenericValue::Int(field.data as i32)),
+            FIELD_DWORD64 => Ok(GenericValue::Dword64(self.field_u64_at(data_offset)?)),
+            FIELD_INT64 => Ok(GenericValue::Int64(self.field_u64_at(data_offset)? as i64)),
+            FIELD_FLOAT => Ok(GenericValue::Float(f32::from_bits(field.data))),
+            FIELD_DOUBLE => Ok(GenericValue::Double(f64::from_bits(
+                self.field_u64_at(data_offset)?,
+            ))),
+            FIELD_CEXOSTRING => Ok(GenericValue::String(self.string_at(data_offset)?)),
+            FIELD_RESREF => Ok(GenericValue::ResRef(self.resref_at(data_offset)?)),
+            FIELD_CEXOLOCSTRING => Ok(GenericValue::LocalizedString(
+                self.locstring_at(data_offset)?,
+            )),
+            FIELD_VOID => {
+                let size = u64::from(self.u32_at(data_offset)?);
+                ensure_subrange(
+                    self.source,
+                    "GFF_VOID_OUT_OF_BOUNDS",
+                    data_offset + 4,
+                    size,
+                    self.header.field_data_offset,
+                    self.header.field_data_size,
+                )?;
+                Ok(GenericValue::Void(
+                    self.slice(data_offset + 4, size)?.to_vec(),
+                ))
+            }
+            FIELD_STRUCT => Ok(GenericValue::Struct(Box::new(
+                self.generic_struct(field.data, depth, stack)?,
+            ))),
+            FIELD_LIST => {
+                let start = self.header.list_indices_offset + u64::from(field.data);
+                ensure_subrange(
+                    self.source,
+                    "GFF_LIST_INDICES_OUT_OF_BOUNDS",
+                    start,
+                    4,
+                    self.header.list_indices_offset,
+                    self.header.list_indices_size,
+                )?;
+                let count = self.u32_at(start)?;
+                let bytes = u64::from(count).checked_mul(4).ok_or_else(|| {
+                    gff_error(
+                        self.source,
+                        "GFF_LIST_SIZE_OVERFLOW",
+                        format!("List count {count} overflows"),
+                    )
+                })?;
+                ensure_subrange(
+                    self.source,
+                    "GFF_LIST_INDICES_OUT_OF_BOUNDS",
+                    start + 4,
+                    bytes,
+                    self.header.list_indices_offset,
+                    self.header.list_indices_size,
+                )?;
+                let mut values = Vec::with_capacity(count as usize);
+                for index in 0..count {
+                    values.push(self.generic_struct(
+                        self.u32_at(start + 4 + u64::from(index) * 4)?,
+                        depth,
+                        stack,
+                    )?);
+                }
+                Ok(GenericValue::List(values))
+            }
+            value => Err(gff_error(
+                self.source,
+                "GFF_FIELD_TYPE_UNSUPPORTED",
+                format!("Unknown field type {value}"),
+            )),
+        }
+    }
+
+    fn string_at(&self, start: u64) -> AppResult<String> {
+        ensure_subrange(
+            self.source,
+            "GFF_STRING_OUT_OF_BOUNDS",
+            start,
+            4,
+            self.header.field_data_offset,
+            self.header.field_data_size,
+        )?;
+        let size = u64::from(self.u32_at(start)?);
+        ensure_subrange(
+            self.source,
+            "GFF_STRING_OUT_OF_BOUNDS",
+            start + 4,
+            size,
+            self.header.field_data_offset,
+            self.header.field_data_size,
+        )?;
+        Ok(text(self.slice(start + 4, size)?))
+    }
+
+    fn resref_at(&self, start: u64) -> AppResult<String> {
+        ensure_subrange(
+            self.source,
+            "GFF_RESREF_OUT_OF_BOUNDS",
+            start,
+            1,
+            self.header.field_data_offset,
+            self.header.field_data_size,
+        )?;
+        let size = u64::from(self.slice(start, 1)?[0]);
+        ensure_subrange(
+            self.source,
+            "GFF_RESREF_OUT_OF_BOUNDS",
+            start + 1,
+            size,
+            self.header.field_data_offset,
+            self.header.field_data_size,
+        )?;
+        Ok(text(self.slice(start + 1, size)?))
+    }
+
+    fn locstring_at(&self, start: u64) -> AppResult<LocalizedString> {
+        ensure_subrange(
+            self.source,
+            "GFF_LOCSTRING_OUT_OF_BOUNDS",
+            start,
+            12,
+            self.header.field_data_offset,
+            self.header.field_data_size,
+        )?;
+        let payload_size = u64::from(self.u32_at(start)?);
+        ensure_subrange(
+            self.source,
+            "GFF_LOCSTRING_OUT_OF_BOUNDS",
+            start + 4,
+            payload_size,
+            self.header.field_data_offset,
+            self.header.field_data_size,
+        )?;
+        let string_ref = self.u32_at(start + 4)?;
+        let count = self.u32_at(start + 8)?;
+        let end = start + 4 + payload_size;
+        let mut cursor = start + 12;
+        let mut values = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            if cursor + 8 > end {
+                return Err(gff_error(
+                    self.source,
+                    "GFF_LOCSTRING_OUT_OF_BOUNDS",
+                    format!("Localized string header at {cursor} exceeds {end}"),
+                ));
+            }
+            let language_id = self.u32_at(cursor)?;
+            let size = u64::from(self.u32_at(cursor + 4)?);
+            if cursor + 8 + size > end {
+                return Err(gff_error(
+                    self.source,
+                    "GFF_LOCSTRING_OUT_OF_BOUNDS",
+                    format!("Localized value exceeds payload ending at {end}"),
+                ));
+            }
+            values.push(LocalizedValue {
+                language_id,
+                text: text(self.slice(cursor + 8, size)?),
+            });
+            cursor += 8 + size;
+        }
+        Ok(LocalizedString {
+            string_ref: (string_ref != u32::MAX).then_some(string_ref),
+            values,
+        })
+    }
+
+    fn u64_at(&self, offset: u64) -> AppResult<u64> {
+        let bytes = self.slice(offset, 8)?;
+        Ok(u64::from_le_bytes(
+            bytes.try_into().expect("eight-byte slice"),
+        ))
+    }
+
+    fn field_u64_at(&self, offset: u64) -> AppResult<u64> {
+        ensure_subrange(
+            self.source,
+            "GFF_FIELD_DATA_OUT_OF_BOUNDS",
+            offset,
+            8,
+            self.header.field_data_offset,
+            self.header.field_data_size,
+        )?;
+        self.u64_at(offset)
     }
 
     fn field(&self, field_index: u32) -> AppResult<FieldRecord> {
@@ -632,10 +954,7 @@ fn little_u32(bytes: &[u8], offset: usize) -> u32 {
 }
 
 fn text(bytes: &[u8]) -> String {
-    match std::str::from_utf8(bytes) {
-        Ok(value) => value.to_owned(),
-        Err(_) => bytes.iter().map(|byte| char::from(*byte)).collect(),
-    }
+    decode_nwn_text(bytes)
 }
 
 fn gff_error(source: &str, code: &str, detail: String) -> Box<AppError> {
@@ -664,10 +983,24 @@ mod tests {
         assert_eq!(info.name.primary_text(), Some("Forge Test"));
         assert_eq!(info.description.primary_text(), Some("Synthetic module"));
         assert_eq!(info.tag, "MODULE");
-        assert_eq!(info.minimum_game_version, "1.69");
+        assert_eq!(info.minimum_game_version.as_deref(), Some("1.69"));
         assert_eq!(info.custom_tlk.as_deref(), Some("forge_dialog"));
         assert_eq!(info.entry_area, "startarea");
         assert_eq!(info.hak_files, vec!["forge_assets"]);
+    }
+
+    #[test]
+    fn generic_reader_preserves_field_order_types_and_nested_lists() {
+        let document = parse_gff(&synthetic_ifo(), "fixture.mod::module.ifo").expect("generic GFF");
+        assert_eq!(document.file_type, "IFO ");
+        assert_eq!(document.root.fields.len(), 7);
+        assert_eq!(document.root.fields[0].label, "Mod_MinGameVer");
+        assert_eq!(document.root.fields[0].field_type, FIELD_CEXOSTRING);
+        let GenericValue::List(values) = &document.root.fields[6].value else {
+            panic!("HAK list")
+        };
+        assert_eq!(values.len(), 1);
+        assert_eq!(values[0].fields[0].label, "Mod_Hak");
     }
 
     #[test]
@@ -678,6 +1011,17 @@ mod tests {
         let error = read_module_info(&bytes, "broken.ifo").expect_err("invalid field data");
 
         assert_eq!(error.code, "GFF_FIELD_DATA_OUT_OF_BOUNDS");
+    }
+
+    #[test]
+    fn accepts_legacy_module_info_without_minimum_game_version() {
+        let mut bytes = synthetic_ifo();
+        let label_offset = little_u32(&bytes, 24) as usize;
+        bytes[label_offset..label_offset + 14].copy_from_slice(b"UnusedMinVerxx");
+
+        let info = read_module_info(&bytes, "legacy.mod::module.ifo").expect("legacy module info");
+
+        assert_eq!(info.minimum_game_version, None);
     }
 
     fn synthetic_ifo() -> Vec<u8> {

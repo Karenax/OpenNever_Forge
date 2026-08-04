@@ -1,0 +1,13 @@
+[package]
+name = "aurora-tlk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aurora-core = { path = "../aurora-core" }
+serde.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

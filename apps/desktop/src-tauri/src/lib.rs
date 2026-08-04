@@ -21,7 +21,11 @@ pub fn run() {
                 schema_version = database.schema_version,
                 "OpenNever Forge application state initialized"
             );
-            app.manage(AppState::new(database, log_guard));
+            app.manage(AppState::new(
+                database,
+                app_data_dir.join("asset-cache"),
+                log_guard,
+            ));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -29,6 +33,19 @@ pub fn run() {
             commands::start_module_analysis,
             commands::get_job,
             commands::cancel_job,
+            commands::query_resources,
+            commands::inspect_resource,
+            commands::query_scripts,
+            commands::inspect_script,
+            commands::query_dialogues,
+            commands::inspect_dialogue,
+            commands::inspect_world,
+            commands::inspect_narrative,
+            commands::inspect_scene,
+            commands::model_preview_glb,
+            commands::resolve_texture,
+            commands::asset_preview_bytes,
+            commands::diagnostic_report,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenNever Forge");

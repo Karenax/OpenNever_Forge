@@ -26,7 +26,7 @@ pub struct ModuleFingerprint {
 pub fn hash_module_file<F>(
     path: &Path,
     cancelled: &AtomicBool,
-    mut on_progress: F,
+    on_progress: F,
 ) -> AppResult<ModuleFingerprint>
 where
     F: FnMut(HashProgress),
@@ -35,6 +35,17 @@ where
         return Err(AppError::module_not_found(path.display().to_string()).into());
     }
 
+    hash_existing_file(path, cancelled, on_progress)
+}
+
+pub(crate) fn hash_existing_file<F>(
+    path: &Path,
+    cancelled: &AtomicBool,
+    mut on_progress: F,
+) -> AppResult<ModuleFingerprint>
+where
+    F: FnMut(HashProgress),
+{
     let file = File::open(path)
         .map_err(|error| AppError::io("open", path.display().to_string(), &error))?;
     let total_bytes = file

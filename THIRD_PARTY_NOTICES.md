@@ -11,9 +11,17 @@ par `pnpm-lock.yaml` et `Cargo.lock`.
 | TypeScript | Typage frontend | Apache-2.0 | Développement |
 | TanStack Query | État asynchrone | MIT | Inclus |
 | Zustand | État local UI | MIT | Inclus |
+| Monaco Editor / `@monaco-editor/react` | Source NWScript en lecture seule | MIT | Inclus localement, sans CDN |
+| React Flow / `@xyflow/react` | Graphe complet des dialogues | MIT | Inclus localement |
+| Babylon.js / `@babylonjs/core` / `@babylonjs/loaders` | Vues 3D, GLB et textures | Apache-2.0 | Inclus localement, chargé à la demande |
+| `png` | Encodage local des aperçus PLT | MIT OR Apache-2.0 | Inclus côté Rust |
+| Khronos `gltf-validator` | Validation GLB de développement | Apache-2.0 | Développement uniquement |
+| xoreos-docs `NWN1MDL.bt` | Description du format MDL NWN1 | CC0-1.0 | Référence de spécification, aucun code embarqué |
 | rusqlite / libsqlite3-sys | Index SQLite côté Rust | MIT | Inclus |
 | SQLite embarqué | Base locale | Domaine public | Inclus via `rusqlite/bundled` |
 | nwn-lib-rs | Oracle ERF/GFF/TLK/2DA éventuel | LGPL-3.0-or-later | Non lié, non copié |
 
-Babylon.js, Monaco Editor et React Flow ont des licences compatibles, mais ne seront ajoutés qu'aux
-lots qui les utilisent réellement.
+Babylon.js est isolé derrière le manifeste de scène Rust : il ne lit pas directement les ressources
+NWN et n'introduit aucune seconde logique de résolution. Le lecteur `aurora-mdl` a été écrit
+indépendamment à partir de la description CC0 publiée dans xoreos-docs ; aucun code GPL de xoreos,
+`nwnrs-types` ou `nwn-lib-d` n'est lié, copié ou distribué.

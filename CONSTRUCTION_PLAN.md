@@ -117,6 +117,9 @@ Charge indicative : **3 à 5 semaines-personne**.
 
 ### Lot 2 — Resource Manager et explorateur brut
 
+**Statut au 3 août 2026 : terminé et accepté.** Voir
+`docs/validation/lot2-lot3-exit-review.md`.
+
 Objectif : établir la source de vérité de toutes les résolutions de ressources.
 
 Travaux :
@@ -137,6 +140,9 @@ Charge indicative : **6 à 10 semaines-personne**. Risque élevé.
 
 ### Lot 3 — GFF, TLK, 2DA et premiers objets métier
 
+**Statut au 3 août 2026 : terminé et accepté.** Voir
+`docs/validation/lot2-lot3-exit-review.md`.
+
 Objectif : passer d'une liste de ressources à des données NWN compréhensibles.
 
 Travaux :
@@ -156,6 +162,9 @@ Charge indicative : **7 à 11 semaines-personne**. Risque élevé.
 
 ### Lot 4 — scripts en lecture
 
+**Statut au 3 août 2026 : terminé et accepté.** Voir
+`docs/validation/lot4-exit-review.md`.
+
 Objectif : naviguer entre un objet et ses scripts sans supposer que les sources existent.
 
 Travaux :
@@ -174,6 +183,9 @@ Charge indicative : **4 à 6 semaines-personne**.
 
 ### Lot 5 — dialogues
 
+**Statut au 3 août 2026 : terminé et accepté.** Voir
+`docs/validation/lot5-exit-review.md`.
+
 Objectif : représenter fidèlement les DLG, y compris leurs structures non arborescentes.
 
 Travaux :
@@ -189,6 +201,9 @@ Porte de sortie : dialogues simples, ramifiés, cycliques et partagés affichés
 Charge indicative : **5 à 8 semaines-personne**.
 
 ### Lot 6 — journal, quêtes et factions
+
+**Statut au 3 août 2026 : terminé et accepté.** Voir
+docs/validation/lot6-lot10-exit-review.md.
 
 Objectif : reconstituer la structure narrative observable du module.
 
@@ -207,6 +222,9 @@ Charge indicative : **3 à 5 semaines-personne**.
 
 ### Lot 7 — carte 2D des zones
 
+**Statut au 3 août 2026 : terminé et accepté.** Voir
+docs/validation/lot6-lot10-exit-review.md.
+
 Objectif : offrir une navigation spatiale fiable, indépendante du renderer 3D.
 
 Travaux :
@@ -223,6 +241,11 @@ Porte de sortie : toutes les instances GIT du corpus sont retrouvables sur la ca
 Charge indicative : **5 à 8 semaines-personne**.
 
 ### Lot 8 — modèles, textures et animations
+
+**Statut au 4 août 2026 : terminé et accepté.** Le lecteur interne Apache-2.0 couvre les MDL
+binaires et ASCII, les supermodèles, références, skins, animations et AABB ; il produit un cache
+GLB versionné consommé par Babylon.js. Les textures directes et les PLT disposent d'un aperçu local,
+et les limites TXI/MTR restent explicites. Voir docs/validation/lot6-lot10-exit-review.md.
 
 Objectif : valider le pipeline d'assets avant l'assemblage de zones 3D.
 
@@ -243,6 +266,12 @@ Charge indicative : **10 à 18 semaines-personne**. Risque très élevé.
 
 ### Lot 9 — vue 3D des zones
 
+**Statut au 4 août 2026 : terminé et accepté.** Le manifeste résout les tuiles depuis les SET, les
+portes/placeables depuis leurs blueprints et 2DA, et les créatures composites depuis leurs pièces
+UTC. Babylon.js instancie les GLB de façon progressive avec budget mémoire, annulation au démontage,
+picking, surbrillance, vues orbitale/Aurora, overlays, walkmeshes et mode filaire. Voir
+docs/validation/lot6-lot10-exit-review.md.
+
 Objectif : assembler les données déjà validées sans introduire une seconde logique de résolution.
 
 Travaux :
@@ -262,6 +291,9 @@ Charge indicative : **8 à 14 semaines-personne**. Risque très élevé.
 
 ### Lot 10 — graphe global et validation
 
+**Statut au 3 août 2026 : terminé et accepté.** Voir
+docs/validation/lot6-lot10-exit-review.md.
+
 Objectif : prouver que l'éditeur comprend les relations du module.
 
 Travaux :
@@ -279,6 +311,11 @@ Porte de sortie : rapport reproductible sur l'état d'un module, navigation jusq
 Charge indicative : **5 à 8 semaines-personne**.
 
 ### Gate Phase 1 — autorisation d'éditer
+
+**Statut au 4 août 2026 : critères de lecture satisfaits.** Les Lots 0 à 10 sont acceptés sur le
+corpus local et la vue 3D assemble désormais les GLB résolus. Aucune fonction d'édition n'est activée
+automatiquement : le passage à la Phase 2 nécessite une décision explicite et conservera les flux
+Toolset compiler → vérifier → sauvegarder ainsi que le déploiement `development` séparé.
 
 La Phase 2 reste bloquée tant que les points suivants ne sont pas démontrés sur le corpus local :
 
@@ -418,4 +455,6 @@ Ces choix ne bloquent pas la rédaction du plan mais bloquent certains commits :
 
 ## 12. Prochaine action recommandée
 
-Exécuter uniquement le **Lot 0**, en commençant par les décisions 1 à 6 et les unités 1 à 5 du backlog. Ne pas intégrer de parser NWN, de Babylon.js, de Monaco ou de React Flow avant que leur premier usage fonctionnel soit planifié dans le lot correspondant.
+Préparer la première unité de **Phase 2** sans l'activer implicitement : commandes transactionnelles,
+copie de travail, compilation NSS → NCS, contrôle avant sauvegarde Toolset et déploiement explicite
+dans `development`. Jusqu'à cette décision, l'application reste strictement en lecture seule.
