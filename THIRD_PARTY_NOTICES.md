@@ -20,6 +20,7 @@ par `pnpm-lock.yaml` et `Cargo.lock`.
 | rusqlite / libsqlite3-sys | Index SQLite côté Rust | MIT | Inclus |
 | SQLite embarqué | Base locale | Domaine public | Inclus via `rusqlite/bundled` |
 | nwn-lib-rs | Oracle ERF/GFF/TLK/2DA éventuel | LGPL-3.0-or-later | Non lié, non copié |
+| nwneetools `nwnsc` | Compilation externe NSS → NCS | MIT/BSD permissive | Exécutable choisi par l'utilisateur, non distribué |
 
 Babylon.js est isolé derrière le manifeste de scène Rust : il ne lit pas directement les ressources
 NWN et n'introduit aucune seconde logique de résolution. Le lecteur `aurora-mdl` a été écrit

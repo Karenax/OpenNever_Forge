@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App from "./App";
-import { startModuleAnalysis } from "./lib/tauri";
+import App, { WalkmeshWorkbench } from "./App";
+import { buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, saveWorkspaceWalkmesh, selectModuleOutput, startModuleAnalysis, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
 
 vi.mock("@monaco-editor/react", () => ({ default: ({ value }: { value: string }) => <pre data-testid="monaco-readonly">{value}</pre> }));
 vi.mock("@xyflow/react", () => ({ ReactFlow: ({ nodes, edges, children }: { nodes: Array<{id:string}>; edges:Array<{id:string}>; children: React.ReactNode }) => <div data-testid="dialogue-flow">{nodes.length} nodes · {edges.length} edges{children}</div>, Background:()=>null, Controls:()=>null, MiniMap:()=>null }));
@@ -11,6 +11,7 @@ vi.mock("./lib/tauri", () => ({
   getAppStatus: vi.fn().mockResolvedValue({
     appVersion: "0.1.0-test",
     readOnly: true,
+    editingAvailable: true,
     databaseSchemaVersion: 6,
   }),
   getJob: vi.fn().mockResolvedValue({
@@ -67,7 +68,7 @@ vi.mock("./lib/tauri", () => ({
         fileVersion: "V1.0",
         buildYear: 2026,
         buildDay: 213,
-        resourceCount: 2,
+        resourceCount: 3,
         resources: [
           {
             key: { resref: "module", resourceType: 2014 },
@@ -83,10 +84,18 @@ vi.mock("./lib/tauri", () => ({
             offset: 352,
             size: 160,
           },
+          {
+            key: { resref: "ambience", resourceType: 2035 },
+            resourceId: 2,
+            extension: "uts",
+            offset: 512,
+            size: 96,
+          },
         ],
         typeSummaries: [
           { resourceType: 2009, extension: "nss", count: 1, totalSize: 160 },
           { resourceType: 2014, extension: "ifo", count: 1, totalSize: 128 },
+          { resourceType: 2035, extension: "uts", count: 1, totalSize: 96 },
         ],
       },
       resourceCatalog: {
@@ -124,16 +133,22 @@ vi.mock("./lib/tauri", () => ({
             },
             shadowed: [],
           },
+          {
+            key: { resref: "ambience", resourceType: 2035 },
+            selected: { key: { resref: "ambience", resourceType: 2035 }, sourceKind: "module", sourceName: "module", sourcePath: "C:/module.mod", priority: 20, offset: 512, size: 96, sha256: null, location: { kind: "erf", path: "C:/module.mod", offset: 512, size: 96 } },
+            shadowed: [],
+          },
         ],
       },
       resourceCatalogSummary: {
-        resourceCount: 2,
-        versionCount: 2,
+        resourceCount: 3,
+        versionCount: 3,
         shadowedCount: 0,
         diagnosticCount: 0,
         typeCounts: [
           { resourceType: 2009, count: 1 },
           { resourceType: 2014, count: 1 },
+          { resourceType: 2035, count: 1 },
         ],
         sourceCounts: [{ source: "module", count: 2 }],
       },
@@ -166,7 +181,7 @@ vi.mock("./lib/tauri", () => ({
     progress: { bytesRead: 0, totalBytes: 0, percent: 0 },
   }),
   cancelJob: vi.fn(),
-  inspectResource: vi.fn(),
+  inspectResource: vi.fn().mockResolvedValue({ kind: "gff", value: { fileType: "UTS ", fileVersion: "V3.2", source: "ambience.uts", structCount: 1, fieldCount: 3, root: { index: 0, structType: 4294967295, fields: [{ label: "Tag", fieldType: 10, value: { kind: "string", value: "Ambience" } }, { label: "TemplateResRef", fieldType: 11, value: { kind: "res_ref", value: "ambience" } }, { label: "Sounds", fieldType: 15, value: { kind: "list", value: [] } }] } } }),
   queryResources: vi.fn((request: { query?: string; resourceTypes?: number[]; offset?: number; limit?: number }) => {
     const entries = [
       {
@@ -177,6 +192,11 @@ vi.mock("./lib/tauri", () => ({
       {
         key: { resref: "start", resourceType: 2009 },
         selected: { key: { resref: "start", resourceType: 2009 }, sourceKind: "module", sourceName: "module", sourcePath: "C:/module.mod", priority: 20, offset: 352, size: 160, sha256: null, location: { kind: "erf", path: "C:/module.mod", offset: 352, size: 160 } },
+        shadowed: [],
+      },
+      {
+        key: { resref: "ambience", resourceType: 2035 },
+        selected: { key: { resref: "ambience", resourceType: 2035 }, sourceKind: "module", sourceName: "module", sourcePath: "C:/module.mod", priority: 20, offset: 512, size: 96, sha256: null, location: { kind: "erf", path: "C:/module.mod", offset: 512, size: 96 } },
         shadowed: [],
       },
     ];
@@ -204,6 +224,34 @@ vi.mock("./lib/tauri", () => ({
     links: [{ id: "entry:0:reply:0:0", source: "entry:0", target: "reply:0", conditionScript: "check", actionScript: null, comment: null, isChild: false, broken: false }, { id: "reply:0:entry:0:0", source: "reply:0", target: "entry:0", conditionScript: null, actionScript: null, comment: null, isChild: true, broken: false }],
     roots: ["entry:0"], sharedNodes: ["entry:0"], unreachableNodes: [], cycles: [["entry:0", "reply:0", "entry:0"]], diagnostics: [{ code: "DLG_CYCLE_DETECTED", message: "Cycle", nodeId: "entry:0", linkId: null }], references: [{ resource: { resref: "creature", resourceType: 2027 }, fieldPath: "root.Conversation", source: "C:/module.mod" }], tree: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: false, children: [{ nodeId: "reply:0", kind: "reply", displayText: "Au revoir", repeated: false, cycle: false, children: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: true, children: [] }] }] }], raw: { fileType: "DLG ", fileVersion: "V3.2" },
   }),
+  editDialogueField: vi.fn(),
+  editDialogueStructure: vi.fn(),
+  editJournalStructure: vi.fn(),
+  editBlueprintStructure: vi.fn().mockResolvedValue({
+    workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "ambience", resourceType: 2035 }, sourceSha256: "OLD", outputSha256: "NEW", sizeBytes: 128, relativePath: "resources/ambience.uts" }], deletedResources: [], journalEvents: 4, values: {} },
+    document: { fileType: "UTS ", fileVersion: "V3.2", source: "workspace::ambience.uts", structCount: 2, fieldCount: 4, root: { index: 0, structType: 4294967295, fields: [
+      { label: "Tag", fieldType: 10, value: { kind: "string", value: "Ambience" } },
+      { label: "TemplateResRef", fieldType: 11, value: { kind: "res_ref", value: "ambience" } },
+      { label: "Sounds", fieldType: 15, value: { kind: "list", value: [
+        { index: 1, structType: 0, fields: [{ label: "Sound", fieldType: 11, value: { kind: "res_ref", value: "as_test" } }] },
+      ] } },
+    ] } },
+  }),
+  editFactionStructure: vi.fn().mockResolvedValue({ schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "repute", resourceType: 2038 }, sourceSha256: "OLD", outputSha256: "NEW", sizeBytes: 256, relativePath: "resources/repute.fac" }], deletedResources: [], journalEvents: 4, values: {} }),
+  inspectNarrativeDocuments: vi.fn().mockResolvedValue({
+    model: { categories: [], factions: [{ id: 0, name: "PC", parentId: null, global: true }, { id: 1, name: "Hostile", parentId: null, global: true }], reputations: [{ sourceId: 0, targetId: 1, value: 0 }, { sourceId: 1, targetId: 1, value: 100 }], relations: [], diagnostics: [] },
+    journal: null,
+    factions: {
+      resource: { resref: "repute", resourceType: 2038 },
+      raw: { fileType: "FAC ", fileVersion: "V3.2", source: "repute.fac", structCount: 5, fieldCount: 12, root: { index: 0, structType: 4294967295, fields: [
+        { label: "FactionList", fieldType: 15, value: { kind: "list", value: [
+          { index: 1, structType: 0, fields: [{ label: "FactionParentID", fieldType: 4, value: { kind: "dword", value: 4294967295 } }, { label: "FactionName", fieldType: 10, value: { kind: "string", value: "PC" } }, { label: "FactionGlobal", fieldType: 2, value: { kind: "word", value: 1 } }] },
+          { index: 2, structType: 1, fields: [{ label: "FactionParentID", fieldType: 4, value: { kind: "dword", value: 4294967295 } }, { label: "FactionName", fieldType: 10, value: { kind: "string", value: "Hostile" } }, { label: "FactionGlobal", fieldType: 2, value: { kind: "word", value: 1 } }] },
+        ] } },
+        { label: "RepList", fieldType: 15, value: { kind: "list", value: [] } },
+      ] } },
+    },
+  }),
   inspectWorld: vi.fn().mockResolvedValue({
     narrative: {
       categories: [{ tag: "main_quest", name: { stringRef: null, text: "Quête principale" }, priority: 1, xp: 100, entries: [{ id: 1, text: { stringRef: null, text: "Trouver le trésor" }, finalState: true, delay: 0 }], source: "module.jrl" }],
@@ -211,7 +259,7 @@ vi.mock("./lib/tauri", () => ({
       reputations: [{ sourceId: 0, targetId: 0, value: 100 }],
       relations: [], diagnostics: [],
     },
-    areas: [{ resref: "startarea", name: { stringRef: null, text: "Zone de départ" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 12, orientation: 1 }], instances: [{ id: "startarea:Creature List:0", category: "creature", tag: "guard", templateResref: "guard", x: 4, y: 5, z: 0, bearing: 0, transitionDestination: null, sourcePath: "startarea.git::Creature List[0]" }], diagnostics: [], areSource: "startarea.are", gitSource: "startarea.git", gicSource: null }],
+    areas: [{ resref: "startarea", name: { stringRef: null, text: "Zone de départ" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 12, orientation: 1 }], instances: [{ id: "startarea:Creature List:0", category: "creature", tag: "guard", templateResref: "guard", x: 4, y: 5, z: 0, bearing: 0, appearance: null, transitionDestination: null, transitionFlags: null, loadScreenId: null, geometry: [], spawnPoints: [], inventory: [], sourcePath: "startarea.git::Creature List[0]" }, { id: "startarea:TriggerList:0", category: "trigger", tag: "exit", templateResref: "newtransition", x: 2, y: 2, z: 0, bearing: 0, appearance: null, transitionDestination: "wp_exit", transitionFlags: 2, loadScreenId: 7, geometry: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }], spawnPoints: [], inventory: [], sourcePath: "startarea.git::TriggerList[0]" }], diagnostics: [], areSource: "startarea.are", gitSource: "startarea.git", gicSource: null }],
     assets: { assets: [{ key: { resref: "guard", resourceType: 2002 }, source: "guard.mdl", format: "mdl_ascii", support: "preview", width: null, height: null, modelNodes: ["trimesh"], animations: ["walk"], textures: ["guard_diff"], referencedModels: [], supermodel: null, meshCount: 1, triangleCount: 12, skinCount: 0, walkmeshCount: 0, glbPreview: true, sha256: "ABC", diagnostics: [] }] },
     scenes: [{ area: "startarea", width: 1, height: 1, tileset: "tno01", objects: [{ id: "tile:0:0", kind: "tile", label: "Tuile 12", x: 5, y: 0, z: 5, rotation: 0, marker: true, sourcePath: "startarea.are" }, { id: "guard", kind: "creature", label: "guard", x: 4, y: 0, z: 5, rotation: 0, marker: false, sourcePath: "startarea.git" }], overlays: [], missingAssets: 0, memoryBudgetBytes: 268435456, diagnostics: [] }],
     graphNodes: [{ id: "area:startarea", kind: "area", label: "Zone de départ", resource: "startarea.are" }, { id: "instance:guard", kind: "creature", label: "guard", resource: "guard" }, { id: "journal:main_quest", kind: "journal", label: "Quête principale", resource: null }],
@@ -220,6 +268,43 @@ vi.mock("./lib/tauri", () => ({
     summary: { journalCategories: 1, journalEntries: 1, factions: 1, factionRelations: 1, areas: 1, tiles: 1, instances: 1, transitions: 0, assets: 1, previewableAssets: 1, sceneObjects: 2, graphNodes: 3, graphEdges: 2, diagnostics: 1 },
   }),
   diagnosticReport: vi.fn().mockResolvedValue({ report: {}, json: "{}", html: "<!doctype html>" }),
+  createEditWorkspace: vi.fn().mockResolvedValue({ schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 1, cursor: 1, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "module", resourceType: 2014 }, sourceSha256: "OLD", outputSha256: "NEW", sizeBytes: 128, relativePath: "resources/module.ifo" }], deletedResources: [], journalEvents: 3, values: {} }),
+  undoEditCommand: vi.fn().mockResolvedValue({ schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 1, cursor: 0, canUndo: false, canRedo: true, modifiedResources: [], deletedResources: [], journalEvents: 4, values: {} }),
+  redoEditCommand: vi.fn(),
+  selectModuleOutput: vi.fn().mockResolvedValue("C:/output.mod"),
+  buildWorkspaceModule: vi.fn().mockResolvedValue({ outputPath: "C:/output.mod", sha256: "BUILT", sizeBytes: 1024, resourceCount: 3, modifiedResources: 1, deletedResources: 0, sourceIntact: true }),
+  buildWorkspaceHak: vi.fn(),
+  exportWorkspaceSources: vi.fn(),
+  deployWorkspaceDevelopment: vi.fn().mockResolvedValue({ workspaceId: "workspace-1", developmentPath: "C:/NWN/development", files: [{ name: "module.ifo", sha256: "NEW", sizeBytes: 128 }] }),
+  cleanWorkspaceDevelopment: vi.fn(),
+  createWorkspaceArea: vi.fn().mockResolvedValue({ workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "newarea", resourceType: 2012 }, sourceSha256: null, outputSha256: "ARE", sizeBytes: 128, relativePath: "resources/newarea.are" }, { resource: { resref: "newarea", resourceType: 2023 }, sourceSha256: null, outputSha256: "GIT", sizeBytes: 128, relativePath: "resources/newarea.git" }, { resource: { resref: "newarea", resourceType: 2046 }, sourceSha256: null, outputSha256: "GIC", sizeBytes: 128, relativePath: "resources/newarea.gic" }], deletedResources: [], journalEvents: 5, values: {} }, area: { resref: "newarea", name: { stringRef: null, text: "Nouvelle zone" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 0, orientation: 0 }], instances: [], diagnostics: [], areSource: "workspace::newarea.are", gitSource: "workspace::newarea.git", gicSource: "workspace::newarea.gic" } }),
+  listWorkspaceCreatedAreas: vi.fn().mockResolvedValue([]),
+  deleteWorkspaceArea: vi.fn(),
+  addWorkspaceAreaInstance: vi.fn(),
+  removeWorkspaceAreaInstance: vi.fn(),
+  moveAreaInstance: vi.fn(),
+  setAreaTile: vi.fn(),
+  editAreaStructure: vi.fn().mockResolvedValue({ schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [], deletedResources: [], journalEvents: 4, values: {} }),
+  inspectWorkspaceArea: vi.fn().mockRejectedValue(new Error("fixture uses indexed area")),
+  validateWalkmeshDraft: vi.fn().mockResolvedValue({ valid: true, diagnostics: [] }),
+  transformWalkmeshDraft: vi.fn().mockImplementation((draft: { vertices: Array<[number, number, number]>; faces: Array<[number, number, number]>; surfaceIds: number[]; variants: unknown[]; hooks: unknown[] }, operation: { kind: string; faceIndex?: number }) => {
+    const next = structuredClone(draft);
+    if (operation.kind === "split_face" && operation.faceIndex !== undefined) {
+      const face = next.faces[operation.faceIndex];
+      const [a, b, c] = face.map((index) => next.vertices[index]);
+      const center = next.vertices.length;
+      next.vertices.push([(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3, (a[2] + b[2] + c[2]) / 3]);
+      next.faces[operation.faceIndex] = [face[0], face[1], center];
+      next.faces.push([face[1], face[2], center], [face[2], face[0], center]);
+      next.surfaceIds.push(next.surfaceIds[operation.faceIndex] ?? 0, next.surfaceIds[operation.faceIndex] ?? 0);
+    }
+    return Promise.resolve({ draft: next, validation: { valid: true, diagnostics: [] } });
+  }),
+  inspectWorkspaceWalkmesh: vi.fn(),
+  saveWorkspaceWalkmesh: vi.fn().mockImplementation((request: { resref: string; kind: "wok" | "pwk" | "dwk"; draft: unknown }) => Promise.resolve({
+    workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: request.resref, resourceType: 2016 }, sourceSha256: null, outputSha256: "WALK", sizeBytes: 256, relativePath: `resources/${request.resref}.${request.kind}` }], deletedResources: [], journalEvents: 4, values: {} },
+    document: { resref: request.resref, kind: request.kind, sourceFormat: "ascii", draft: request.draft, sourceSha256: "WALK" },
+  })),
   selectDirectory: vi.fn(),
   selectModule: vi.fn(),
   normalizeAppError: vi.fn((error) => error),
@@ -278,8 +363,8 @@ describe("OpenNever Forge shell", () => {
     expect(await screen.findByRole("table", { name: "Ressources résolues" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Forge Test" })).toBeInTheDocument();
     expect(screen.getByText("1 ressource(s) dans cette catégorie.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Ressources (2)" }));
-    expect(screen.getByText("2 ressource(s) dans cette catégorie.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ressources (3)" }));
+    expect(screen.getByText("3 ressource(s) dans cette catégorie.")).toBeInTheDocument();
     expect((await screen.findAllByText("module")).length).toBeGreaterThan(0);
     expect(await screen.findByText("start")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Dépendances du module" })).toBeInTheDocument();
@@ -338,5 +423,110 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Références (2)" }));
     expect(await screen.findByText("Rapport JSON stable")).toBeInTheDocument();
     expect(screen.getByText("contains · certain")).toBeInTheDocument();
+  });
+
+  it("opens an edit workspace and builds a separate module", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    await waitFor(() => expect(createEditWorkspace).toHaveBeenCalledWith({ jobId: "job-1" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Construire un MOD" }));
+    await waitFor(() => expect(selectModuleOutput).toHaveBeenCalled());
+    expect(buildWorkspaceModule).toHaveBeenCalledWith({ workspaceId: "workspace-1", outputPath: "C:/output.mod" });
+    expect(await screen.findByText(/3 ressources sauvegardées/)).toBeInTheDocument();
+  });
+
+  it("creates and splits a walkmesh in the editable overlay", async () => {
+    const workspace = { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 1, cursor: 1, canUndo: true, canRedo: false, modifiedResources: [], deletedResources: [], journalEvents: 3, values: {} };
+    render(<WalkmeshWorkbench jobId="job-1" workspace={workspace} onWorkspace={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir" }));
+    expect(screen.getByRole("button", { name: "Supprimer la face" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Extruder" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Souder les sommets" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Decouper la face" }));
+    await waitFor(() => expect(transformWalkmeshDraft).toHaveBeenCalledWith(expect.objectContaining({ faces: [[0, 1, 2], [0, 2, 3]] }), { kind: "split_face", faceIndex: 0 }));
+    expect(await screen.findByText(/decoupee au centroide/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer dans l'overlay" }));
+    await waitFor(() => expect(saveWorkspaceWalkmesh).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: "job-1", workspaceId: "workspace-1", resref: "onf_walkmesh", kind: "wok",
+      draft: expect.objectContaining({ faces: expect.arrayContaining([[1, 2, 4], [2, 0, 4]]) }),
+    })));
+    expect(await screen.findByText(/serialise en ASCII NWN/)).toBeInTheDocument();
+  });
+
+  it("creates an atomic area and opens it immediately", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zones (1)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "+ Nouvelle zone" }));
+    fireEvent.click(screen.getByRole("button", { name: "Créer ARE/GIT/GIC" }));
+    await waitFor(() => expect(createWorkspaceArea).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: "workspace-1", resref: "newarea" })));
+    expect(await screen.findByText("Zone créée dans l’overlay et ouverte immédiatement.")).toBeInTheDocument();
+    expect((await screen.findAllByText("Nouvelle zone")).length).toBeGreaterThan(0);
+  });
+
+  it("edits a trigger polygon through the transactional area command", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zones (1)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "trigger exit" }));
+    expect(await screen.findByText("Polygone local")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(editAreaStructure).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: "job-1",
+      workspaceId: "workspace-1",
+      area: "startarea",
+      action: expect.objectContaining({ kind: "set_geometry", instanceId: "startarea:TriggerList:0" }),
+    })));
+  });
+
+  it("creates a faction through the transactional FAC command", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Journal et factions (2)" }));
+    fireEvent.change(await screen.findByPlaceholderText("Nouvelle faction"), { target: { value: "Merchants" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Faction" }));
+    await waitFor(() => expect(editFactionStructure).toHaveBeenCalledWith({
+      jobId: "job-1",
+      workspaceId: "workspace-1",
+      resource: { resref: "repute", resourceType: 2038 },
+      action: { kind: "add_faction", name: "Merchants", parentId: null },
+    }));
+  });
+
+  it("edits a blueprint list through the transactional structure command", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Blueprints (1)" }));
+    fireEvent.click(await screen.findByRole("row", { name: /ambience/ }));
+    fireEvent.change(await screen.findByLabelText("Son"), { target: { value: "as_test" } });
+    fireEvent.click(screen.getByRole("button", { name: "+ Son" }));
+    await waitFor(() => expect(editBlueprintStructure).toHaveBeenCalledWith({
+      jobId: "job-1",
+      workspaceId: "workspace-1",
+      resource: { resref: "ambience", resourceType: 2035 },
+      action: { kind: "add_sound", resref: "as_test" },
+    }));
+  });
+
+  it("deploys the overlay separately and keeps undo wired", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner le dossier utilisateur"), { target: { value: "C:/NWN" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Déployer development" }));
+    await waitFor(() => expect(deployWorkspaceDevelopment).toHaveBeenCalledWith({ workspaceId: "workspace-1", userDataPath: "C:/NWN" }));
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    await waitFor(() => expect(undoEditCommand).toHaveBeenCalledWith({ workspaceId: "workspace-1" }));
   });
 });

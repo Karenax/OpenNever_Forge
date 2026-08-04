@@ -21,11 +21,16 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 aurora-core = { path = "../../../crates/aurora-core" }
+aurora-erf = { path = "../../../crates/aurora-erf" }
+aurora-edit = { path = "../../../crates/aurora-edit" }
 aurora-index = { path = "../../../crates/aurora-index" }
+aurora-nwscript = { path = "../../../crates/aurora-nwscript" }
 aurora-project = { path = "../../../crates/aurora-project" }
 aurora-gff = { path = "../../../crates/aurora-gff" }
+aurora-world = { path = "../../../crates/aurora-world" }
 aurora-tlk = { path = "../../../crates/aurora-tlk" }
 aurora-2da = { path = "../../../crates/aurora-2da" }
+aurora-dialogue = { path = "../../../crates/aurora-dialogue" }
 hex.workspace = true
 sha2.workspace = true
 tauri = { version = "2", features = [] }

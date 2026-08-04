@@ -957,6 +957,448 @@ fn text(bytes: &[u8]) -> String {
     decode_nwn_text(bytes)
 }
 
+#[derive(Debug)]
+struct WriteStruct {
+    struct_type: u32,
+    field_indices: Vec<u32>,
+}
+
+#[derive(Debug)]
+struct WriteField {
+    field_type: u32,
+    label_index: u32,
+    data: u32,
+}
+
+#[derive(Default)]
+struct GffWriter {
+    structs: Vec<WriteStruct>,
+    fields: Vec<WriteField>,
+    labels: Vec<String>,
+    label_indices: std::collections::BTreeMap<String, u32>,
+    field_data: Vec<u8>,
+    list_indices: Vec<u8>,
+}
+
+pub fn write_gff(document: &GenericGff) -> AppResult<Vec<u8>> {
+    if document.file_type.len() != 4 {
+        return Err(gff_error(
+            &document.source,
+            "GFF_WRITE_FILE_TYPE_INVALID",
+            format!(
+                "GFF file type {:?} must contain exactly four bytes",
+                document.file_type
+            ),
+        ));
+    }
+    if document.file_version != "V3.2" {
+        return Err(gff_error(
+            &document.source,
+            "GFF_WRITE_VERSION_UNSUPPORTED",
+            format!(
+                "GFF writer supports V3.2, found {:?}",
+                document.file_version
+            ),
+        ));
+    }
+    let mut writer = GffWriter::default();
+    let root = writer.add_struct(&document.root, &document.source, 0)?;
+    if root != 0 {
+        return Err(gff_error(
+            &document.source,
+            "GFF_WRITE_ROOT_INVALID",
+            "root struct was not assigned index zero".to_owned(),
+        ));
+    }
+    writer.finish(document)
+}
+
+impl GffWriter {
+    fn add_struct(&mut self, value: &GenericStruct, source: &str, depth: usize) -> AppResult<u32> {
+        if depth > MAX_DEPTH {
+            return Err(gff_error(
+                source,
+                "GFF_WRITE_DEPTH_LIMIT_EXCEEDED",
+                format!("Struct nesting exceeds {MAX_DEPTH}"),
+            ));
+        }
+        if self.structs.len() >= MAX_STRUCTS as usize {
+            return Err(gff_error(
+                source,
+                "GFF_WRITE_STRUCT_LIMIT_EXCEEDED",
+                format!("GFF writer accepts at most {MAX_STRUCTS} structs"),
+            ));
+        }
+        let index = checked_u32(self.structs.len(), source, "struct index")?;
+        self.structs.push(WriteStruct {
+            struct_type: value.struct_type,
+            field_indices: Vec::new(),
+        });
+        let mut field_indices = Vec::with_capacity(value.fields.len());
+        for field in &value.fields {
+            if self.fields.len() >= MAX_FIELDS as usize {
+                return Err(gff_error(
+                    source,
+                    "GFF_WRITE_FIELD_LIMIT_EXCEEDED",
+                    format!("GFF writer accepts at most {MAX_FIELDS} fields"),
+                ));
+            }
+            let label_index = self.label(&field.label, source)?;
+            let data = self.value(&field.value, field.field_type, source, depth + 1)?;
+            let field_index = checked_u32(self.fields.len(), source, "field index")?;
+            self.fields.push(WriteField {
+                field_type: field.field_type,
+                label_index,
+                data,
+            });
+            field_indices.push(field_index);
+        }
+        self.structs[index as usize].field_indices = field_indices;
+        Ok(index)
+    }
+
+    fn label(&mut self, label: &str, source: &str) -> AppResult<u32> {
+        if let Some(index) = self.label_indices.get(label) {
+            return Ok(*index);
+        }
+        let encoded = encode_nwn_text(label);
+        if encoded.len() > LABEL_SIZE as usize || encoded.contains(&0) {
+            return Err(gff_error(
+                source,
+                "GFF_WRITE_LABEL_INVALID",
+                format!("Label {label:?} exceeds 16 bytes or contains NUL"),
+            ));
+        }
+        let index = checked_u32(self.labels.len(), source, "label index")?;
+        self.labels.push(label.to_owned());
+        self.label_indices.insert(label.to_owned(), index);
+        Ok(index)
+    }
+
+    fn value(
+        &mut self,
+        value: &GenericValue,
+        field_type: u32,
+        source: &str,
+        depth: usize,
+    ) -> AppResult<u32> {
+        let mismatch = |expected: u32| {
+            gff_error(
+                source,
+                "GFF_WRITE_FIELD_TYPE_MISMATCH",
+                format!("Field declares type {field_type}, but its value requires type {expected}"),
+            )
+        };
+        match value {
+            GenericValue::Byte(value) => {
+                if field_type != FIELD_BYTE {
+                    return Err(mismatch(FIELD_BYTE));
+                }
+                Ok(u32::from(*value))
+            }
+            GenericValue::Char(value) => {
+                if field_type != FIELD_CHAR {
+                    return Err(mismatch(FIELD_CHAR));
+                }
+                Ok(u32::from(*value as u8))
+            }
+            GenericValue::Word(value) => {
+                if field_type != FIELD_WORD {
+                    return Err(mismatch(FIELD_WORD));
+                }
+                Ok(u32::from(*value))
+            }
+            GenericValue::Short(value) => {
+                if field_type != FIELD_SHORT {
+                    return Err(mismatch(FIELD_SHORT));
+                }
+                Ok(u32::from(*value as u16))
+            }
+            GenericValue::Dword(value) => {
+                if field_type != FIELD_DWORD {
+                    return Err(mismatch(FIELD_DWORD));
+                }
+                Ok(*value)
+            }
+            GenericValue::Int(value) => {
+                if field_type != FIELD_INT {
+                    return Err(mismatch(FIELD_INT));
+                }
+                Ok(*value as u32)
+            }
+            GenericValue::Dword64(value) => {
+                if field_type != FIELD_DWORD64 {
+                    return Err(mismatch(FIELD_DWORD64));
+                }
+                self.field_payload(&value.to_le_bytes(), source)
+            }
+            GenericValue::Int64(value) => {
+                if field_type != FIELD_INT64 {
+                    return Err(mismatch(FIELD_INT64));
+                }
+                self.field_payload(&value.to_le_bytes(), source)
+            }
+            GenericValue::Float(value) => {
+                if field_type != FIELD_FLOAT {
+                    return Err(mismatch(FIELD_FLOAT));
+                }
+                Ok(value.to_bits())
+            }
+            GenericValue::Double(value) => {
+                if field_type != FIELD_DOUBLE {
+                    return Err(mismatch(FIELD_DOUBLE));
+                }
+                self.field_payload(&value.to_bits().to_le_bytes(), source)
+            }
+            GenericValue::String(value) => {
+                if field_type != FIELD_CEXOSTRING {
+                    return Err(mismatch(FIELD_CEXOSTRING));
+                }
+                let bytes = encode_nwn_text(value);
+                let length = checked_u32(bytes.len(), source, "string length")?;
+                let mut payload = length.to_le_bytes().to_vec();
+                payload.extend_from_slice(&bytes);
+                self.field_payload(&payload, source)
+            }
+            GenericValue::ResRef(value) => {
+                if field_type != FIELD_RESREF {
+                    return Err(mismatch(FIELD_RESREF));
+                }
+                let bytes = encode_nwn_text(value);
+                if bytes.len() > u8::MAX as usize || bytes.contains(&0) {
+                    return Err(gff_error(
+                        source,
+                        "GFF_WRITE_RESREF_INVALID",
+                        format!("ResRef {value:?} exceeds 255 bytes or contains NUL"),
+                    ));
+                }
+                let mut payload = vec![bytes.len() as u8];
+                payload.extend_from_slice(&bytes);
+                self.field_payload(&payload, source)
+            }
+            GenericValue::LocalizedString(value) => {
+                if field_type != FIELD_CEXOLOCSTRING {
+                    return Err(mismatch(FIELD_CEXOLOCSTRING));
+                }
+                let mut body = value.string_ref.unwrap_or(u32::MAX).to_le_bytes().to_vec();
+                body.extend_from_slice(
+                    &checked_u32(value.values.len(), source, "localized string count")?
+                        .to_le_bytes(),
+                );
+                for localized in &value.values {
+                    let bytes = encode_nwn_text(&localized.text);
+                    body.extend_from_slice(&localized.language_id.to_le_bytes());
+                    body.extend_from_slice(
+                        &checked_u32(bytes.len(), source, "localized text length")?.to_le_bytes(),
+                    );
+                    body.extend_from_slice(&bytes);
+                }
+                let mut payload = checked_u32(body.len(), source, "localized string size")?
+                    .to_le_bytes()
+                    .to_vec();
+                payload.extend_from_slice(&body);
+                self.field_payload(&payload, source)
+            }
+            GenericValue::Void(value) => {
+                if field_type != FIELD_VOID {
+                    return Err(mismatch(FIELD_VOID));
+                }
+                let mut payload = checked_u32(value.len(), source, "void length")?
+                    .to_le_bytes()
+                    .to_vec();
+                payload.extend_from_slice(value);
+                self.field_payload(&payload, source)
+            }
+            GenericValue::Struct(value) => {
+                if field_type != FIELD_STRUCT {
+                    return Err(mismatch(FIELD_STRUCT));
+                }
+                self.add_struct(value, source, depth)
+            }
+            GenericValue::List(values) => {
+                if field_type != FIELD_LIST {
+                    return Err(mismatch(FIELD_LIST));
+                }
+                let mut indices = Vec::with_capacity(values.len());
+                for value in values {
+                    indices.push(self.add_struct(value, source, depth)?);
+                }
+                // Child structs can themselves contain lists. Compute the parent list offset
+                // only after every child has been serialized so nested list payloads cannot
+                // occupy the offset reserved for their parent.
+                let offset = checked_u32(self.list_indices.len(), source, "list indices offset")?;
+                self.list_indices.extend_from_slice(
+                    &checked_u32(indices.len(), source, "list count")?.to_le_bytes(),
+                );
+                for index in indices {
+                    self.list_indices.extend_from_slice(&index.to_le_bytes());
+                }
+                Ok(offset)
+            }
+        }
+    }
+
+    fn field_payload(&mut self, payload: &[u8], source: &str) -> AppResult<u32> {
+        let offset = checked_u32(self.field_data.len(), source, "field data offset")?;
+        self.field_data.extend_from_slice(payload);
+        Ok(offset)
+    }
+
+    fn finish(mut self, document: &GenericGff) -> AppResult<Vec<u8>> {
+        let mut struct_table = Vec::with_capacity(self.structs.len() * STRUCT_SIZE as usize);
+        let mut field_indices = Vec::new();
+        for value in &self.structs {
+            struct_table.extend_from_slice(&value.struct_type.to_le_bytes());
+            let count = checked_u32(
+                value.field_indices.len(),
+                &document.source,
+                "struct field count",
+            )?;
+            let data = match value.field_indices.as_slice() {
+                [] => 0,
+                [only] => *only,
+                many => {
+                    let offset = checked_u32(
+                        field_indices.len(),
+                        &document.source,
+                        "field indices offset",
+                    )?;
+                    for index in many {
+                        field_indices.extend_from_slice(&index.to_le_bytes());
+                    }
+                    offset
+                }
+            };
+            struct_table.extend_from_slice(&data.to_le_bytes());
+            struct_table.extend_from_slice(&count.to_le_bytes());
+        }
+        let mut field_table = Vec::with_capacity(self.fields.len() * FIELD_SIZE as usize);
+        for value in &self.fields {
+            field_table.extend_from_slice(&value.field_type.to_le_bytes());
+            field_table.extend_from_slice(&value.label_index.to_le_bytes());
+            field_table.extend_from_slice(&value.data.to_le_bytes());
+        }
+        let mut label_table = Vec::with_capacity(self.labels.len() * LABEL_SIZE as usize);
+        for label in &self.labels {
+            let bytes = encode_nwn_text(label);
+            label_table.extend_from_slice(&bytes);
+            label_table.resize(label_table.len() + LABEL_SIZE as usize - bytes.len(), 0);
+        }
+        let sections = [
+            &struct_table,
+            &field_table,
+            &label_table,
+            &self.field_data,
+            &field_indices,
+            &self.list_indices,
+        ];
+        let mut offsets = Vec::with_capacity(sections.len());
+        let mut cursor = GFF_HEADER_SIZE as usize;
+        for section in sections {
+            offsets.push(checked_u32(cursor, &document.source, "section offset")?);
+            cursor = cursor.checked_add(section.len()).ok_or_else(|| {
+                gff_error(
+                    &document.source,
+                    "GFF_WRITE_SIZE_OVERFLOW",
+                    "serialized GFF size overflows usize".to_owned(),
+                )
+            })?;
+        }
+        let mut output = Vec::with_capacity(cursor);
+        output.extend_from_slice(document.file_type.as_bytes());
+        output.extend_from_slice(b"V3.2");
+        output.extend_from_slice(&offsets[0].to_le_bytes());
+        output.extend_from_slice(
+            &checked_u32(self.structs.len(), &document.source, "struct count")?.to_le_bytes(),
+        );
+        output.extend_from_slice(&offsets[1].to_le_bytes());
+        output.extend_from_slice(
+            &checked_u32(self.fields.len(), &document.source, "field count")?.to_le_bytes(),
+        );
+        output.extend_from_slice(&offsets[2].to_le_bytes());
+        output.extend_from_slice(
+            &checked_u32(self.labels.len(), &document.source, "label count")?.to_le_bytes(),
+        );
+        output.extend_from_slice(&offsets[3].to_le_bytes());
+        output.extend_from_slice(
+            &checked_u32(self.field_data.len(), &document.source, "field data size")?.to_le_bytes(),
+        );
+        output.extend_from_slice(&offsets[4].to_le_bytes());
+        output.extend_from_slice(
+            &checked_u32(field_indices.len(), &document.source, "field indices size")?
+                .to_le_bytes(),
+        );
+        output.extend_from_slice(&offsets[5].to_le_bytes());
+        output.extend_from_slice(
+            &checked_u32(
+                self.list_indices.len(),
+                &document.source,
+                "list indices size",
+            )?
+            .to_le_bytes(),
+        );
+        output.extend_from_slice(&struct_table);
+        output.extend_from_slice(&field_table);
+        output.extend_from_slice(&label_table);
+        output.append(&mut self.field_data);
+        output.extend_from_slice(&field_indices);
+        output.extend_from_slice(&self.list_indices);
+        Ok(output)
+    }
+}
+
+fn checked_u32(value: usize, source: &str, field: &str) -> AppResult<u32> {
+    u32::try_from(value).map_err(|_| {
+        gff_error(
+            source,
+            "GFF_WRITE_SIZE_OVERFLOW",
+            format!("{field} value {value} exceeds u32"),
+        )
+    })
+}
+
+fn encode_nwn_text(value: &str) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(value.len());
+    for character in value.chars() {
+        let encoded = match character {
+            '€' => Some(0x80),
+            '‚' => Some(0x82),
+            'ƒ' => Some(0x83),
+            '„' => Some(0x84),
+            '…' => Some(0x85),
+            '†' => Some(0x86),
+            '‡' => Some(0x87),
+            'ˆ' => Some(0x88),
+            '‰' => Some(0x89),
+            'Š' => Some(0x8A),
+            '‹' => Some(0x8B),
+            'Œ' => Some(0x8C),
+            'Ž' => Some(0x8E),
+            '‘' => Some(0x91),
+            '’' => Some(0x92),
+            '“' => Some(0x93),
+            '”' => Some(0x94),
+            '•' => Some(0x95),
+            '–' => Some(0x96),
+            '—' => Some(0x97),
+            '˜' => Some(0x98),
+            '™' => Some(0x99),
+            'š' => Some(0x9A),
+            '›' => Some(0x9B),
+            'œ' => Some(0x9C),
+            'ž' => Some(0x9E),
+            'Ÿ' => Some(0x9F),
+            value if u32::from(value) <= 0xFF => Some(value as u8),
+            _ => None,
+        };
+        let Some(encoded) = encoded else {
+            return value.as_bytes().to_vec();
+        };
+        bytes.push(encoded);
+    }
+    bytes
+}
+
 fn gff_error(source: &str, code: &str, detail: String) -> Box<AppError> {
     Box::new(
         AppError::new(
@@ -1001,6 +1443,22 @@ mod tests {
         };
         assert_eq!(values.len(), 1);
         assert_eq!(values[0].fields[0].label, "Mod_Hak");
+    }
+
+    #[test]
+    fn writer_round_trips_a_nested_gff_deterministically() {
+        let original = parse_gff(&synthetic_ifo(), "fixture.mod::module.ifo").expect("generic GFF");
+        let first = write_gff(&original).expect("write GFF");
+        let second = write_gff(&original).expect("write deterministic GFF");
+        assert_eq!(first, second);
+        let rewritten = parse_gff(&first, "workspace::module.ifo").expect("reopen GFF");
+        assert_eq!(rewritten.file_type, original.file_type);
+        assert_eq!(rewritten.file_version, original.file_version);
+        assert_eq!(rewritten.root, original.root);
+        assert_eq!(
+            read_module_info(&first, "workspace::module.ifo").expect("module info"),
+            read_module_info(&synthetic_ifo(), "fixture.mod::module.ifo").expect("source info")
+        );
     }
 
     #[test]

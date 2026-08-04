@@ -102,6 +102,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurora-edit"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-erf",
+ "aurora-gff",
+ "aurora-mdl",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "aurora-erf"
 version = "0.1.0"
 dependencies = [
@@ -150,6 +164,7 @@ dependencies = [
  "hex",
  "serde",
  "sha2",
+ "tempfile",
 ]
 
 [[package]]
@@ -159,6 +174,7 @@ dependencies = [
  "aurora-2da",
  "aurora-core",
  "aurora-dialogue",
+ "aurora-edit",
  "aurora-erf",
  "aurora-gff",
  "aurora-mdl",
@@ -2232,10 +2248,15 @@ version = "0.1.0"
 dependencies = [
  "aurora-2da",
  "aurora-core",
+ "aurora-dialogue",
+ "aurora-edit",
+ "aurora-erf",
  "aurora-gff",
  "aurora-index",
+ "aurora-nwscript",
  "aurora-project",
  "aurora-tlk",
+ "aurora-world",
  "hex",
  "serde",
  "serde_json",

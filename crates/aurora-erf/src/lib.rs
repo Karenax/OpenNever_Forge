@@ -2,9 +2,9 @@ use aurora_core::{AppError, AppResult, ErrorSeverity};
 pub use aurora_core::{ResourceKey, resource_extension};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
-use std::path::Path;
+use std::fs::{self, File};
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 const ERF_HEADER_SIZE: u64 = 160;
@@ -12,6 +12,544 @@ const ERF_KEY_SIZE: u64 = 24;
 const ERF_RESOURCE_SIZE: u64 = 8;
 const DEFAULT_MAX_ENTRIES: u32 = 250_000;
 const DEFAULT_MAX_RESOURCE_BYTES: u64 = 16 * 1024 * 1024;
+const DEFAULT_MAX_LOCALIZED_STRING_BYTES: u64 = 16 * 1024 * 1024;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErfArchiveMetadata {
+    pub localized_string_count: u32,
+    pub localized_string_bytes: Vec<u8>,
+    pub build_year: u32,
+    pub build_day: u32,
+    pub description_string_ref: u32,
+}
+
+impl ErfArchiveMetadata {
+    pub fn deterministic_default(file_type: &str) -> Self {
+        let uses_module_description = matches!(file_type, "MOD " | "NWM " | "SAV ");
+        Self {
+            localized_string_count: u32::from(uses_module_description),
+            localized_string_bytes: if uses_module_description {
+                vec![0; 8]
+            } else {
+                Vec::new()
+            },
+            build_year: 0,
+            build_day: 0,
+            description_string_ref: u32::MAX,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErfResourceInput {
+    pub key: ResourceKey,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ErfResourceSource {
+    File(PathBuf),
+    Range {
+        path: PathBuf,
+        offset: u64,
+        size: u64,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErfResourceStreamInput {
+    pub key: ResourceKey,
+    pub source: ErfResourceSource,
+}
+
+pub fn write_erf(file_type: &str, resources: &[ErfResourceInput]) -> AppResult<Vec<u8>> {
+    write_erf_with_metadata(
+        file_type,
+        resources,
+        &ErfArchiveMetadata::deterministic_default(file_type),
+    )
+}
+
+pub fn write_erf_with_metadata(
+    file_type: &str,
+    resources: &[ErfResourceInput],
+    metadata: &ErfArchiveMetadata,
+) -> AppResult<Vec<u8>> {
+    if !matches!(file_type, "ERF " | "HAK " | "MOD " | "NWM " | "SAV ") {
+        return Err(write_error(
+            "ERF_WRITE_TYPE_INVALID",
+            format!("unsupported ERF output type {file_type:?}"),
+        ));
+    }
+    if resources.len() > DEFAULT_MAX_ENTRIES as usize {
+        return Err(write_error(
+            "ERF_WRITE_ENTRY_LIMIT_EXCEEDED",
+            format!(
+                "{} resources exceed the limit {DEFAULT_MAX_ENTRIES}",
+                resources.len()
+            ),
+        ));
+    }
+    let mut ordered = resources.iter().collect::<Vec<_>>();
+    ordered.sort_by(|left, right| left.key.cmp(&right.key));
+    for pair in ordered.windows(2) {
+        if pair[0].key == pair[1].key {
+            return Err(write_error(
+                "ERF_WRITE_DUPLICATE_RESOURCE",
+                format!("resource {} is present more than once", pair[0].key),
+            ));
+        }
+    }
+    let entry_count = u32::try_from(ordered.len())
+        .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "entry count exceeds u32"))?;
+    validate_write_metadata(metadata)?;
+    let localized_string_size = u64::try_from(metadata.localized_string_bytes.len())
+        .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "localized strings exceed u64"))?;
+    let key_offset = ERF_HEADER_SIZE
+        .checked_add(localized_string_size)
+        .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "key offset overflows"))?;
+    let resource_offset = key_offset
+        .checked_add(u64::from(entry_count) * ERF_KEY_SIZE)
+        .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "key table offset overflows"))?;
+    let data_offset = resource_offset
+        .checked_add(u64::from(entry_count) * ERF_RESOURCE_SIZE)
+        .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "resource table offset overflows"))?;
+    let mut output = vec![
+        0_u8;
+        usize::try_from(data_offset).map_err(|_| {
+            write_error("ERF_WRITE_SIZE_OVERFLOW", "ERF header tables exceed usize")
+        })?
+    ];
+    output[0..4].copy_from_slice(file_type.as_bytes());
+    output[4..8].copy_from_slice(b"V1.0");
+    put_u32_checked(&mut output, 8, metadata.localized_string_count);
+    put_u32_checked(
+        &mut output,
+        12,
+        u32::try_from(localized_string_size).map_err(|_| {
+            write_error(
+                "ERF_WRITE_SIZE_OVERFLOW",
+                "localized string table exceeds u32",
+            )
+        })?,
+    );
+    put_u32_checked(&mut output, 16, entry_count);
+    put_u32_checked(&mut output, 20, ERF_HEADER_SIZE as u32);
+    put_u32_checked(
+        &mut output,
+        24,
+        u32::try_from(key_offset)
+            .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "key offset exceeds u32"))?,
+    );
+    put_u32_checked(
+        &mut output,
+        28,
+        u32::try_from(resource_offset)
+            .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "resource offset exceeds u32"))?,
+    );
+    put_u32_checked(&mut output, 32, metadata.build_year);
+    put_u32_checked(&mut output, 36, metadata.build_day);
+    put_u32_checked(&mut output, 40, metadata.description_string_ref);
+    output[ERF_HEADER_SIZE as usize..key_offset as usize]
+        .copy_from_slice(&metadata.localized_string_bytes);
+    let mut cursor = data_offset;
+    for (index, resource) in ordered.into_iter().enumerate() {
+        let name = resource.key.resref.as_bytes();
+        if name.is_empty() || name.len() > 16 || name.contains(&0) || !name.is_ascii() {
+            return Err(write_error(
+                "ERF_WRITE_RESREF_INVALID",
+                format!(
+                    "ResRef {:?} must contain 1 to 16 ASCII bytes without NUL",
+                    resource.key.resref
+                ),
+            ));
+        }
+        let key_start = key_offset as usize + index * ERF_KEY_SIZE as usize;
+        output[key_start..key_start + name.len()].copy_from_slice(name);
+        put_u32_checked(&mut output, key_start + 16, index as u32);
+        output[key_start + 20..key_start + 22]
+            .copy_from_slice(&resource.key.resource_type.to_le_bytes());
+        let table_start = resource_offset as usize + index * ERF_RESOURCE_SIZE as usize;
+        let offset = u32::try_from(cursor).map_err(|_| {
+            write_error(
+                "ERF_WRITE_SIZE_OVERFLOW",
+                "resource data offset exceeds u32",
+            )
+        })?;
+        let size = u32::try_from(resource.bytes.len())
+            .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "resource size exceeds u32"))?;
+        put_u32_checked(&mut output, table_start, offset);
+        put_u32_checked(&mut output, table_start + 4, size);
+        output.extend_from_slice(&resource.bytes);
+        cursor = cursor
+            .checked_add(resource.bytes.len() as u64)
+            .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "container size overflows"))?;
+    }
+    Ok(output)
+}
+
+pub fn write_erf_streaming(
+    output_path: &Path,
+    file_type: &str,
+    resources: &[ErfResourceStreamInput],
+) -> AppResult<u64> {
+    write_erf_streaming_with_metadata(
+        output_path,
+        file_type,
+        resources,
+        &ErfArchiveMetadata::deterministic_default(file_type),
+    )
+}
+
+pub fn write_erf_streaming_with_metadata(
+    output_path: &Path,
+    file_type: &str,
+    resources: &[ErfResourceStreamInput],
+    metadata: &ErfArchiveMetadata,
+) -> AppResult<u64> {
+    if !matches!(file_type, "ERF " | "HAK " | "MOD " | "NWM " | "SAV ") {
+        return Err(write_error(
+            "ERF_WRITE_TYPE_INVALID",
+            format!("unsupported ERF output type {file_type:?}"),
+        ));
+    }
+    if resources.len() > DEFAULT_MAX_ENTRIES as usize {
+        return Err(write_error(
+            "ERF_WRITE_ENTRY_LIMIT_EXCEEDED",
+            format!(
+                "{} resources exceed the limit {DEFAULT_MAX_ENTRIES}",
+                resources.len()
+            ),
+        ));
+    }
+    let mut ordered = resources.iter().collect::<Vec<_>>();
+    ordered.sort_by(|left, right| left.key.cmp(&right.key));
+    for pair in ordered.windows(2) {
+        if pair[0].key == pair[1].key {
+            return Err(write_error(
+                "ERF_WRITE_DUPLICATE_RESOURCE",
+                format!("resource {} is present more than once", pair[0].key),
+            ));
+        }
+    }
+    let entry_count = u32::try_from(ordered.len())
+        .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "entry count exceeds u32"))?;
+    validate_write_metadata(metadata)?;
+    let localized_string_size = u64::try_from(metadata.localized_string_bytes.len())
+        .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "localized strings exceed u64"))?;
+    let key_offset = ERF_HEADER_SIZE
+        .checked_add(localized_string_size)
+        .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "key offset overflows"))?;
+    let resource_offset = key_offset
+        .checked_add(u64::from(entry_count) * ERF_KEY_SIZE)
+        .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "key table offset overflows"))?;
+    let data_offset = resource_offset
+        .checked_add(u64::from(entry_count) * ERF_RESOURCE_SIZE)
+        .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "resource table offset overflows"))?;
+    let mut tables = vec![
+        0_u8;
+        usize::try_from(data_offset).map_err(|_| {
+            write_error("ERF_WRITE_SIZE_OVERFLOW", "ERF header tables exceed usize")
+        })?
+    ];
+    tables[0..4].copy_from_slice(file_type.as_bytes());
+    tables[4..8].copy_from_slice(b"V1.0");
+    put_u32_checked(&mut tables, 8, metadata.localized_string_count);
+    put_u32_checked(
+        &mut tables,
+        12,
+        u32::try_from(localized_string_size).map_err(|_| {
+            write_error(
+                "ERF_WRITE_SIZE_OVERFLOW",
+                "localized string table exceeds u32",
+            )
+        })?,
+    );
+    put_u32_checked(&mut tables, 16, entry_count);
+    put_u32_checked(&mut tables, 20, ERF_HEADER_SIZE as u32);
+    put_u32_checked(&mut tables, 24, key_offset as u32);
+    put_u32_checked(&mut tables, 28, resource_offset as u32);
+    put_u32_checked(&mut tables, 32, metadata.build_year);
+    put_u32_checked(&mut tables, 36, metadata.build_day);
+    put_u32_checked(&mut tables, 40, metadata.description_string_ref);
+    tables[ERF_HEADER_SIZE as usize..key_offset as usize]
+        .copy_from_slice(&metadata.localized_string_bytes);
+
+    let mut cursor = data_offset;
+    let mut source_sizes = Vec::with_capacity(ordered.len());
+    for (index, resource) in ordered.iter().enumerate() {
+        let name = resource.key.resref.as_bytes();
+        if name.is_empty() || name.len() > 16 || name.contains(&0) || !name.is_ascii() {
+            return Err(write_error(
+                "ERF_WRITE_RESREF_INVALID",
+                format!(
+                    "ResRef {:?} must contain 1 to 16 ASCII bytes without NUL",
+                    resource.key.resref
+                ),
+            ));
+        }
+        let size = stream_source_size(&resource.source)?;
+        let size_u32 = u32::try_from(size)
+            .map_err(|_| write_error("ERF_WRITE_SIZE_OVERFLOW", "resource size exceeds u32"))?;
+        let offset_u32 = u32::try_from(cursor).map_err(|_| {
+            write_error(
+                "ERF_WRITE_SIZE_OVERFLOW",
+                "resource data offset exceeds u32",
+            )
+        })?;
+        let key_start = key_offset as usize + index * ERF_KEY_SIZE as usize;
+        tables[key_start..key_start + name.len()].copy_from_slice(name);
+        put_u32_checked(&mut tables, key_start + 16, index as u32);
+        tables[key_start + 20..key_start + 22]
+            .copy_from_slice(&resource.key.resource_type.to_le_bytes());
+        let table_start = resource_offset as usize + index * ERF_RESOURCE_SIZE as usize;
+        put_u32_checked(&mut tables, table_start, offset_u32);
+        put_u32_checked(&mut tables, table_start + 4, size_u32);
+        cursor = cursor
+            .checked_add(size)
+            .ok_or_else(|| write_error("ERF_WRITE_SIZE_OVERFLOW", "container size overflows"))?;
+        source_sizes.push(size);
+    }
+
+    let parent = output_path.parent().ok_or_else(|| {
+        write_error(
+            "ERF_WRITE_OUTPUT_INVALID",
+            "output path has no parent directory",
+        )
+    })?;
+    if !parent.is_dir() {
+        return Err(write_error(
+            "ERF_WRITE_OUTPUT_INVALID",
+            format!("{} is not an existing directory", parent.display()),
+        ));
+    }
+    let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(|error| {
+        Box::new(AppError::io(
+            "create streaming ERF temporary file",
+            parent.display().to_string(),
+            &error,
+        ))
+    })?;
+    temporary.write_all(&tables).map_err(|error| {
+        Box::new(AppError::io(
+            "write streaming ERF tables",
+            output_path.display().to_string(),
+            &error,
+        ))
+    })?;
+    let mut buffer = vec![0_u8; 1024 * 1024];
+    for (resource, expected_size) in ordered.into_iter().zip(source_sizes) {
+        copy_stream_source(&resource.source, &mut temporary, expected_size, &mut buffer)?;
+    }
+    temporary.as_file_mut().sync_all().map_err(|error| {
+        Box::new(AppError::io(
+            "flush streaming ERF",
+            output_path.display().to_string(),
+            &error,
+        ))
+    })?;
+    let backup = output_path.with_extension(format!(
+        "{}.opennever-backup",
+        output_path
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or("erf")
+    ));
+    if backup.exists() {
+        fs::remove_file(&backup).map_err(|error| {
+            Box::new(AppError::io(
+                "remove stale ERF backup",
+                backup.display().to_string(),
+                &error,
+            ))
+        })?;
+    }
+    if output_path.exists() {
+        fs::rename(output_path, &backup).map_err(|error| {
+            Box::new(AppError::io(
+                "backup existing ERF output",
+                output_path.display().to_string(),
+                &error,
+            ))
+        })?;
+    }
+    if let Err(error) = temporary.persist(output_path) {
+        if backup.exists() {
+            let _ = fs::rename(&backup, output_path);
+        }
+        return Err(Box::new(AppError::io(
+            "persist streaming ERF",
+            output_path.display().to_string(),
+            &error.error,
+        )));
+    }
+    if backup.exists() {
+        fs::remove_file(&backup).map_err(|error| {
+            Box::new(AppError::io(
+                "remove ERF backup",
+                backup.display().to_string(),
+                &error,
+            ))
+        })?;
+    }
+    Ok(cursor)
+}
+
+fn validate_write_metadata(metadata: &ErfArchiveMetadata) -> AppResult<()> {
+    if metadata.localized_string_bytes.len() as u64 > DEFAULT_MAX_LOCALIZED_STRING_BYTES {
+        return Err(write_error(
+            "ERF_WRITE_LOCALIZED_STRING_LIMIT_EXCEEDED",
+            "localized string table exceeds the 16 MiB safety limit",
+        ));
+    }
+    let mut cursor = 0_usize;
+    for _ in 0..metadata.localized_string_count {
+        let header_end = cursor.checked_add(8).ok_or_else(|| {
+            write_error(
+                "ERF_WRITE_LOCALIZED_STRINGS_INVALID",
+                "localized string header overflows",
+            )
+        })?;
+        if header_end > metadata.localized_string_bytes.len() {
+            return Err(write_error(
+                "ERF_WRITE_LOCALIZED_STRINGS_INVALID",
+                "localized string count exceeds the supplied table",
+            ));
+        }
+        let size = little_u32(&metadata.localized_string_bytes, cursor + 4) as usize;
+        cursor = header_end.checked_add(size).ok_or_else(|| {
+            write_error(
+                "ERF_WRITE_LOCALIZED_STRINGS_INVALID",
+                "localized string size overflows",
+            )
+        })?;
+        if cursor > metadata.localized_string_bytes.len() {
+            return Err(write_error(
+                "ERF_WRITE_LOCALIZED_STRINGS_INVALID",
+                "localized string extends beyond the supplied table",
+            ));
+        }
+    }
+    if cursor != metadata.localized_string_bytes.len() {
+        return Err(write_error(
+            "ERF_WRITE_LOCALIZED_STRINGS_INVALID",
+            "localized string table contains trailing bytes",
+        ));
+    }
+    Ok(())
+}
+
+fn stream_source_size(source: &ErfResourceSource) -> AppResult<u64> {
+    match source {
+        ErfResourceSource::File(path) => {
+            fs::metadata(path)
+                .map(|metadata| metadata.len())
+                .map_err(|error| {
+                    Box::new(AppError::io(
+                        "inspect ERF input",
+                        path.display().to_string(),
+                        &error,
+                    ))
+                })
+        }
+        ErfResourceSource::Range { path, offset, size } => {
+            let file_size = fs::metadata(path)
+                .map_err(|error| {
+                    Box::new(AppError::io(
+                        "inspect ERF range input",
+                        path.display().to_string(),
+                        &error,
+                    ))
+                })?
+                .len();
+            let end = offset.checked_add(*size).ok_or_else(|| {
+                write_error("ERF_WRITE_RANGE_INVALID", "resource range overflows u64")
+            })?;
+            if end > file_size {
+                return Err(write_error(
+                    "ERF_WRITE_RANGE_INVALID",
+                    format!(
+                        "range {offset}..{end} exceeds {} bytes in {}",
+                        file_size,
+                        path.display()
+                    ),
+                ));
+            }
+            Ok(*size)
+        }
+    }
+}
+
+fn copy_stream_source(
+    source: &ErfResourceSource,
+    output: &mut tempfile::NamedTempFile,
+    expected_size: u64,
+    buffer: &mut [u8],
+) -> AppResult<()> {
+    let (path, offset) = match source {
+        ErfResourceSource::File(path) => (path, 0),
+        ErfResourceSource::Range { path, offset, .. } => (path, *offset),
+    };
+    let mut input = File::open(path).map_err(|error| {
+        Box::new(AppError::io(
+            "open ERF stream input",
+            path.display().to_string(),
+            &error,
+        ))
+    })?;
+    input.seek(SeekFrom::Start(offset)).map_err(|error| {
+        Box::new(AppError::io(
+            "seek ERF stream input",
+            path.display().to_string(),
+            &error,
+        ))
+    })?;
+    let mut remaining = expected_size;
+    while remaining > 0 {
+        let wanted = usize::try_from(remaining.min(buffer.len() as u64)).unwrap_or(buffer.len());
+        let read = input.read(&mut buffer[..wanted]).map_err(|error| {
+            Box::new(AppError::io(
+                "read ERF stream input",
+                path.display().to_string(),
+                &error,
+            ))
+        })?;
+        if read == 0 {
+            return Err(write_error(
+                "ERF_WRITE_SOURCE_TRUNCATED",
+                format!(
+                    "{} ended before {expected_size} bytes were copied",
+                    path.display()
+                ),
+            ));
+        }
+        output.write_all(&buffer[..read]).map_err(|error| {
+            Box::new(AppError::io(
+                "write ERF stream payload",
+                path.display().to_string(),
+                &error,
+            ))
+        })?;
+        remaining -= read as u64;
+    }
+    Ok(())
+}
+
+fn put_u32_checked(bytes: &mut [u8], offset: usize, value: u32) {
+    bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+}
+
+fn write_error(code: &str, detail: impl Into<String>) -> Box<AppError> {
+    Box::new(
+        AppError::new(
+            code,
+            "Le nouveau conteneur NWN n’a pas pu être construit.",
+            detail,
+            ErrorSeverity::Error,
+        )
+        .with_import_stage("erf_write"),
+    )
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -103,6 +641,33 @@ impl ErfReader {
         )?;
         read_range(&mut file, path, resource.offset, resource.size)
     }
+
+    pub fn read_archive_metadata(&self, path: &Path) -> AppResult<ErfArchiveMetadata> {
+        let mut file = File::open(path)
+            .map_err(|error| AppError::io("open ERF metadata", display(path), &error))?;
+        let file_size = file
+            .metadata()
+            .map_err(|error| AppError::io("read ERF metadata", display(path), &error))?
+            .len();
+        ensure_range(path, "ERF_HEADER_TOO_SHORT", 0, ERF_HEADER_SIZE, file_size)?;
+        let header_bytes = read_range(&mut file, path, 0, ERF_HEADER_SIZE)?;
+        let header = ErfHeader::parse(&header_bytes);
+        validate_header(path, &header, file_size, self.max_entries)?;
+        let localized_string_bytes = read_range(
+            &mut file,
+            path,
+            header.localized_string_offset,
+            header.localized_string_size,
+        )?;
+        validate_localized_strings(path, header.localized_string_count, &localized_string_bytes)?;
+        Ok(ErfArchiveMetadata {
+            localized_string_count: header.localized_string_count,
+            localized_string_bytes,
+            build_year: header.build_year,
+            build_day: header.build_day,
+            description_string_ref: header.description_string_ref,
+        })
+    }
 }
 
 impl ContainerReader for ErfReader {
@@ -118,6 +683,13 @@ impl ContainerReader for ErfReader {
         let header_bytes = read_range(&mut file, path, 0, ERF_HEADER_SIZE)?;
         let header = ErfHeader::parse(&header_bytes);
         validate_header(path, &header, file_size, self.max_entries)?;
+        let localized_string_bytes = read_range(
+            &mut file,
+            path,
+            header.localized_string_offset,
+            header.localized_string_size,
+        )?;
+        validate_localized_strings(path, header.localized_string_count, &localized_string_bytes)?;
 
         if cancelled.load(Ordering::Relaxed) {
             return Err(AppError::job_cancelled(display(path)).into());
@@ -204,6 +776,7 @@ impl ContainerReader for ErfReader {
 struct ErfHeader {
     file_type: String,
     file_version: String,
+    localized_string_count: u32,
     localized_string_size: u64,
     entry_count: u32,
     localized_string_offset: u64,
@@ -211,6 +784,7 @@ struct ErfHeader {
     resource_offset: u64,
     build_year: u32,
     build_day: u32,
+    description_string_ref: u32,
 }
 
 impl ErfHeader {
@@ -218,6 +792,7 @@ impl ErfHeader {
         Self {
             file_type: String::from_utf8_lossy(&bytes[0..4]).into_owned(),
             file_version: String::from_utf8_lossy(&bytes[4..8]).into_owned(),
+            localized_string_count: little_u32(bytes, 8),
             localized_string_size: u64::from(little_u32(bytes, 12)),
             entry_count: little_u32(bytes, 16),
             localized_string_offset: u64::from(little_u32(bytes, 20)),
@@ -225,6 +800,7 @@ impl ErfHeader {
             resource_offset: u64::from(little_u32(bytes, 28)),
             build_year: little_u32(bytes, 32),
             build_day: little_u32(bytes, 36),
+            description_string_ref: little_u32(bytes, 40),
         }
     }
 }
@@ -273,6 +849,16 @@ fn validate_header(
         header.localized_string_size,
         file_size,
     )?;
+    if header.localized_string_size > DEFAULT_MAX_LOCALIZED_STRING_BYTES {
+        return Err(format_error(
+            path,
+            "ERF_LOCALIZED_STRING_LIMIT_EXCEEDED",
+            format!(
+                "Localized string table is {} bytes; limit is {DEFAULT_MAX_LOCALIZED_STRING_BYTES}",
+                header.localized_string_size
+            ),
+        ));
+    }
     let key_size = table_size(path, header.entry_count, ERF_KEY_SIZE, "key")?;
     let resource_size = table_size(path, header.entry_count, ERF_RESOURCE_SIZE, "resource")?;
     ensure_range(
@@ -289,6 +875,52 @@ fn validate_header(
         resource_size,
         file_size,
     )
+}
+
+fn validate_localized_strings(path: &Path, count: u32, bytes: &[u8]) -> AppResult<()> {
+    let mut cursor = 0_usize;
+    for index in 0..count {
+        let header_end = cursor.checked_add(8).ok_or_else(|| {
+            format_error(
+                path,
+                "ERF_LOCALIZED_STRINGS_INVALID",
+                format!("Localized string {index} header overflows"),
+            )
+        })?;
+        if header_end > bytes.len() {
+            return Err(format_error(
+                path,
+                "ERF_LOCALIZED_STRINGS_INVALID",
+                format!("Localized string {index} header is truncated"),
+            ));
+        }
+        let size = little_u32(bytes, cursor + 4) as usize;
+        cursor = header_end.checked_add(size).ok_or_else(|| {
+            format_error(
+                path,
+                "ERF_LOCALIZED_STRINGS_INVALID",
+                format!("Localized string {index} size overflows"),
+            )
+        })?;
+        if cursor > bytes.len() {
+            return Err(format_error(
+                path,
+                "ERF_LOCALIZED_STRINGS_INVALID",
+                format!("Localized string {index} extends beyond the table"),
+            ));
+        }
+    }
+    if cursor != bytes.len() {
+        return Err(format_error(
+            path,
+            "ERF_LOCALIZED_STRINGS_INVALID",
+            format!(
+                "Localized string table has {} trailing bytes",
+                bytes.len() - cursor
+            ),
+        ));
+    }
+    Ok(())
 }
 
 fn read_range(file: &mut File, path: &Path, offset: u64, size: u64) -> AppResult<Vec<u8>> {
@@ -406,6 +1038,93 @@ mod tests {
         assert_eq!(inventory.resources[0].key.resref, "module");
         assert_eq!(inventory.resources[0].extension.as_deref(), Some("ifo"));
         assert_eq!(inventory.resources[1].size, 3);
+    }
+
+    #[test]
+    fn writer_builds_a_deterministic_reopenable_container() {
+        let resources = vec![
+            ErfResourceInput {
+                key: ResourceKey::new("start", 2009),
+                bytes: b"void main() {}".to_vec(),
+            },
+            ErfResourceInput {
+                key: ResourceKey::new("module", 2014),
+                bytes: b"IFO!".to_vec(),
+            },
+        ];
+        let first = write_erf("MOD ", &resources).expect("write MOD");
+        assert_eq!(
+            first,
+            write_erf("MOD ", &resources).expect("deterministic MOD")
+        );
+        let root = tempdir().expect("temporary directory");
+        let module = root.path().join("output.mod");
+        fs::write(&module, first).expect("write fixture");
+        let reader = ErfReader::default();
+        let cancelled = AtomicBool::new(false);
+        let inventory = reader
+            .read_inventory(&module, &cancelled)
+            .expect("inventory");
+        assert_eq!(inventory.resource_count, 2);
+        assert_eq!(inventory.resources[0].key, ResourceKey::new("module", 2014));
+        assert_eq!(
+            reader
+                .read_resource(&module, &inventory.resources[1], &cancelled)
+                .expect("NSS"),
+            b"void main() {}"
+        );
+    }
+
+    #[test]
+    fn writer_preserves_archive_metadata_without_decoding_localized_bytes() {
+        let metadata = ErfArchiveMetadata {
+            localized_string_count: 1,
+            localized_string_bytes: vec![0, 0, 0, 0, 3, 0, 0, 0, 0x80, b'A', b'B'],
+            build_year: 126,
+            build_day: 213,
+            description_string_ref: u32::MAX,
+        };
+        let bytes = write_erf_with_metadata(
+            "MOD ",
+            &[ErfResourceInput {
+                key: ResourceKey::new("module", 2014),
+                bytes: b"IFO!".to_vec(),
+            }],
+            &metadata,
+        )
+        .expect("metadata-preserving MOD");
+        let root = tempdir().expect("temporary directory");
+        let module = root.path().join("metadata.mod");
+        fs::write(&module, bytes).expect("write metadata MOD");
+        assert_eq!(
+            ErfReader::default()
+                .read_archive_metadata(&module)
+                .expect("reopen metadata"),
+            metadata
+        );
+    }
+
+    #[test]
+    fn streaming_writer_accepts_a_resource_larger_than_the_reader_memory_limit() {
+        let root = tempdir().expect("temporary directory");
+        let payload = root.path().join("large.bin");
+        let file = File::create(&payload).expect("large payload");
+        file.set_len(DEFAULT_MAX_RESOURCE_BYTES + 1)
+            .expect("sparse payload length");
+        let module = root.path().join("large.mod");
+        write_erf_streaming(
+            &module,
+            "MOD ",
+            &[ErfResourceStreamInput {
+                key: ResourceKey::new("large", 2015),
+                source: ErfResourceSource::File(payload),
+            }],
+        )
+        .expect("streaming MOD");
+        let inventory = ErfReader::default()
+            .read_inventory(&module, &AtomicBool::new(false))
+            .expect("large inventory");
+        assert_eq!(inventory.resources[0].size, DEFAULT_MAX_RESOURCE_BYTES + 1);
     }
 
     #[test]

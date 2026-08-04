@@ -95,6 +95,36 @@ pub struct AreaTile {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct AreaPoint {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaSpawnPoint {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub orientation: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaInventoryItem {
+    pub resref: String,
+    pub tag: Option<String>,
+    pub stack_size: u32,
+    pub x: u32,
+    pub y: u32,
+    pub infinite: bool,
+    pub category_index: Option<usize>,
+    pub item_index: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct AreaInstance {
     pub id: String,
     pub category: String,
@@ -106,6 +136,11 @@ pub struct AreaInstance {
     pub bearing: Option<f32>,
     pub appearance: Option<u32>,
     pub transition_destination: Option<String>,
+    pub transition_flags: Option<u32>,
+    pub load_screen_id: Option<u32>,
+    pub geometry: Vec<AreaPoint>,
+    pub spawn_points: Vec<AreaSpawnPoint>,
+    pub inventory: Vec<AreaInventoryItem>,
     pub source_path: String,
 }
 
@@ -391,6 +426,24 @@ pub fn adapt_area(
                 let x = float(value, &["XPosition", "X"]).unwrap_or(0.0);
                 let y = float(value, &["YPosition", "Y"]).unwrap_or(0.0);
                 let z = float(value, &["ZPosition", "Z"]).unwrap_or(0.0);
+                let geometry = list(value, &["Geometry"])
+                    .iter()
+                    .map(|point| AreaPoint {
+                        x: float(point, &["PointX", "X"]).unwrap_or(0.0),
+                        y: float(point, &["PointY", "Y"]).unwrap_or(0.0),
+                        z: float(point, &["PointZ", "Z"]).unwrap_or(0.0),
+                    })
+                    .collect();
+                let spawn_points = list(value, &["SpawnPointList"])
+                    .iter()
+                    .map(|point| AreaSpawnPoint {
+                        x: float(point, &["X"]).unwrap_or(0.0),
+                        y: float(point, &["Y"]).unwrap_or(0.0),
+                        z: float(point, &["Z"]).unwrap_or(0.0),
+                        orientation: float(point, &["Orientation"]).unwrap_or(0.0),
+                    })
+                    .collect();
+                let inventory = area_inventory(value, &field.label);
                 instances.push(AreaInstance {
                     id: format!("{}:{}:{index}", resref, field.label),
                     category: normalize_category(&field.label),
@@ -413,6 +466,11 @@ pub fn adapt_area(
                         value,
                         &["LinkedTo", "TransitionDestin", "TransitionDestination"],
                     ),
+                    transition_flags: unsigned(value, &["LinkedToFlags"]),
+                    load_screen_id: unsigned(value, &["LoadScreenID"]),
+                    geometry,
+                    spawn_points,
+                    inventory,
                     source_path: format!("{}::{}[{index}]", document.source, field.label),
                 });
             }
@@ -467,6 +525,42 @@ pub fn adapt_area(
         git_source: git.map(|value| value.source.clone()),
         gic_source: gic.map(|value| value.source.clone()),
     }
+}
+
+fn area_inventory(instance: &GenericStruct, list_label: &str) -> Vec<AreaInventoryItem> {
+    fn append_items(
+        output: &mut Vec<AreaInventoryItem>,
+        owner: &GenericStruct,
+        category_index: Option<usize>,
+    ) {
+        for (item_index, item) in list(owner, &["ItemList"]).iter().enumerate() {
+            let Some(resref) = string(item, &["TemplateResRef", "ResRef"]) else {
+                continue;
+            };
+            output.push(AreaInventoryItem {
+                resref,
+                tag: string(item, &["Tag"]),
+                stack_size: unsigned(item, &["StackSize"]).unwrap_or(1),
+                x: unsigned(item, &["Repos_PosX"]).unwrap_or(0),
+                y: unsigned(item, &["Repos_Posy", "Repos_PosY"]).unwrap_or(0),
+                infinite: boolean(item, &["Infinite"]),
+                category_index,
+                item_index,
+            });
+        }
+    }
+
+    let mut output = Vec::new();
+    match list_label {
+        "Placeable List" => append_items(&mut output, instance, None),
+        "StoreList" => {
+            for (category_index, category) in list(instance, &["StoreList"]).iter().enumerate() {
+                append_items(&mut output, category, Some(category_index));
+            }
+        }
+        _ => {}
+    }
+    output
 }
 
 pub fn inspect_asset(key: ResourceKey, source: String, bytes: &[u8]) -> AssetRecord {
@@ -1202,6 +1296,63 @@ mod tests {
         assert_eq!(area.tiles[0].tile_id, 12);
         assert_eq!(area.instances[0].x, 4.0);
         assert_eq!(area.instances[0].category, "creature");
+    }
+
+    #[test]
+    fn area_projection_exposes_geometry_spawns_transitions_and_inventory() {
+        let are = document(
+            "ARE ",
+            structure(vec![
+                ("Width", GenericValue::Dword(1)),
+                ("Height", GenericValue::Dword(1)),
+                ("Tile_List", GenericValue::List(vec![structure(Vec::new())])),
+            ]),
+        );
+        let trigger = structure(vec![
+            (
+                "Geometry",
+                GenericValue::List(vec![structure(vec![
+                    ("PointX", GenericValue::Float(1.0)),
+                    ("PointY", GenericValue::Float(2.0)),
+                    ("PointZ", GenericValue::Float(3.0)),
+                ])]),
+            ),
+            ("LinkedTo", GenericValue::String("wp_exit".to_owned())),
+            ("LinkedToFlags", GenericValue::Byte(2)),
+            ("LoadScreenID", GenericValue::Word(7)),
+        ]);
+        let placeable = structure(vec![(
+            "ItemList",
+            GenericValue::List(vec![structure(vec![
+                ("TemplateResRef", GenericValue::ResRef("potion".to_owned())),
+                ("StackSize", GenericValue::Word(3)),
+                ("Repos_PosX", GenericValue::Word(2)),
+                ("Repos_Posy", GenericValue::Word(1)),
+            ])]),
+        )]);
+        let git = document(
+            "GIT ",
+            structure(vec![
+                ("TriggerList", GenericValue::List(vec![trigger])),
+                ("Placeable List", GenericValue::List(vec![placeable])),
+            ]),
+        );
+        let area = adapt_area("town", &are, Some(&git), None);
+        let trigger = area
+            .instances
+            .iter()
+            .find(|instance| instance.category == "trigger")
+            .expect("trigger");
+        assert_eq!(trigger.geometry[0].y, 2.0);
+        assert_eq!(trigger.transition_flags, Some(2));
+        assert_eq!(trigger.load_screen_id, Some(7));
+        let placeable = area
+            .instances
+            .iter()
+            .find(|instance| instance.category == "placeable")
+            .expect("placeable");
+        assert_eq!(placeable.inventory[0].resref, "potion");
+        assert_eq!(placeable.inventory[0].stack_size, 3);
     }
 
     #[test]

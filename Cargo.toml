@@ -11,6 +11,7 @@ members = [
   "crates/aurora-dialogue",
   "crates/aurora-mdl",
   "crates/aurora-world",
+  "crates/aurora-edit",
   "crates/aurora-project",
   "crates/aurora-index",
 ]

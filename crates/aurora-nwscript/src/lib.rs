@@ -2,9 +2,236 @@ use aurora_core::{AppError, AppResult, ErrorSeverity, ResourceKey, decode_nwn_te
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
 
 const MAX_SCRIPT_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SEARCH_MATCHES: usize = 20;
+const COMPILER_TIMEOUT: Duration = Duration::from_secs(30);
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CompilerConfig {
+    pub executable: PathBuf,
+    pub game_install_path: PathBuf,
+    pub include_paths: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CompileResult {
+    pub success: bool,
+    pub compiler: String,
+    pub stdout: String,
+    pub stderr: String,
+    pub diagnostics: Vec<ScriptDiagnostic>,
+    pub ncs: Option<NcsDocument>,
+    #[serde(skip)]
+    pub ncs_bytes: Vec<u8>,
+}
+
+pub fn compile_nss(
+    config: &CompilerConfig,
+    resref: &str,
+    source: &str,
+) -> AppResult<CompileResult> {
+    validate_compiler_config(config, resref, source)?;
+    let temporary = tempfile::tempdir().map_err(|error| {
+        Box::new(AppError::io(
+            "create NWScript compiler workspace",
+            "system temporary directory",
+            &error,
+        ))
+    })?;
+    let input = temporary.path().join(format!("{resref}.nss"));
+    fs::write(&input, source.as_bytes()).map_err(|error| {
+        Box::new(AppError::io(
+            "write temporary NSS source",
+            input.display().to_string(),
+            &error,
+        ))
+    })?;
+    let args = compiler_arguments(config, temporary.path(), &input);
+    let mut child = Command::new(&config.executable)
+        .args(&args)
+        .current_dir(temporary.path())
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| {
+            Box::new(
+                AppError::new(
+                    "NSS_COMPILER_START_FAILED",
+                    "Le compilateur NWScript n’a pas pu démarrer.",
+                    format!("{}: {error}", config.executable.display()),
+                    ErrorSeverity::Error,
+                )
+                .with_source(config.executable.display().to_string())
+                .with_import_stage("nwscript_compile"),
+            )
+        })?;
+    let started = Instant::now();
+    loop {
+        if child
+            .try_wait()
+            .map_err(|error| {
+                Box::new(AppError::io(
+                    "poll NWScript compiler",
+                    config.executable.display().to_string(),
+                    &error,
+                ))
+            })?
+            .is_some()
+        {
+            break;
+        }
+        if started.elapsed() >= COMPILER_TIMEOUT {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(Box::new(
+                AppError::new(
+                    "NSS_COMPILER_TIMEOUT",
+                    "La compilation NWScript a dépassé 30 secondes.",
+                    format!("compiler timed out for {resref}.nss"),
+                    ErrorSeverity::Error,
+                )
+                .with_resource(format!("{resref}.nss"))
+                .with_import_stage("nwscript_compile"),
+            ));
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    let output = child.wait_with_output().map_err(|error| {
+        Box::new(AppError::io(
+            "collect NWScript compiler output",
+            config.executable.display().to_string(),
+            &error,
+        ))
+    })?;
+    let stdout = bounded_output(&output.stdout);
+    let stderr = bounded_output(&output.stderr);
+    let diagnostics = compiler_diagnostics(resref, &stdout, &stderr);
+    let ncs_path = temporary.path().join(format!("{resref}.ncs"));
+    let ncs_bytes = fs::read(&ncs_path).unwrap_or_default();
+    let ncs = if ncs_bytes.is_empty() {
+        None
+    } else {
+        Some(inspect_ncs(
+            &ncs_bytes,
+            &format!("workspace::{resref}.ncs"),
+        )?)
+    };
+    let success = output.status.success() && ncs.as_ref().is_some_and(|value| value.valid_header);
+    Ok(CompileResult {
+        success,
+        compiler: config.executable.display().to_string(),
+        stdout,
+        stderr,
+        diagnostics,
+        ncs,
+        ncs_bytes,
+    })
+}
+
+fn validate_compiler_config(config: &CompilerConfig, resref: &str, source: &str) -> AppResult<()> {
+    if !config.executable.is_file() {
+        return Err(script_error(
+            &config.executable.display().to_string(),
+            "NSS_COMPILER_NOT_FOUND",
+            "compiler path is not a regular file".to_owned(),
+        ));
+    }
+    if !config.game_install_path.is_dir() {
+        return Err(script_error(
+            &config.game_install_path.display().to_string(),
+            "NSS_GAME_PATH_INVALID",
+            "game installation path is not a directory".to_owned(),
+        ));
+    }
+    if resref.is_empty()
+        || resref.len() > 16
+        || !resref
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+    {
+        return Err(script_error(
+            resref,
+            "NSS_RESREF_INVALID",
+            "script ResRef must contain 1 to 16 ASCII letters, digits or underscores".to_owned(),
+        ));
+    }
+    if source.len() > MAX_SCRIPT_BYTES {
+        return Err(script_error(
+            resref,
+            "NSS_SIZE_LIMIT_EXCEEDED",
+            format!("{} bytes exceeds {MAX_SCRIPT_BYTES}", source.len()),
+        ));
+    }
+    for include in &config.include_paths {
+        if !include.is_dir() {
+            return Err(script_error(
+                &include.display().to_string(),
+                "NSS_INCLUDE_PATH_INVALID",
+                "include path is not a directory".to_owned(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn compiler_arguments(config: &CompilerConfig, temporary: &Path, input: &Path) -> Vec<String> {
+    let mut includes = vec![temporary.display().to_string()];
+    includes.extend(
+        config
+            .include_paths
+            .iter()
+            .map(|path| path.display().to_string()),
+    );
+    vec![
+        "-o".to_owned(),
+        "-w".to_owned(),
+        "-n".to_owned(),
+        config.game_install_path.display().to_string(),
+        "-i".to_owned(),
+        includes.join(";"),
+        input.display().to_string(),
+    ]
+}
+
+fn bounded_output(bytes: &[u8]) -> String {
+    decode_nwn_text(&bytes[..bytes.len().min(256 * 1024)])
+}
+
+fn compiler_diagnostics(resref: &str, stdout: &str, stderr: &str) -> Vec<ScriptDiagnostic> {
+    stdout
+        .lines()
+        .chain(stderr.lines())
+        .filter(|line| {
+            let lower = line.to_ascii_lowercase();
+            lower.contains("error") || lower.contains("warning")
+        })
+        .take(200)
+        .map(|line| {
+            let line_number = line
+                .split(|character: char| !character.is_ascii_digit())
+                .find_map(|part| part.trim().parse::<usize>().ok());
+            ScriptDiagnostic {
+                code: if line.to_ascii_lowercase().contains("error") {
+                    "NSS_COMPILER_ERROR".to_owned()
+                } else {
+                    "NSS_COMPILER_WARNING".to_owned()
+                },
+                message: line.chars().take(500).collect(),
+                line: line_number,
+                resource: format!("{resref}.nss"),
+            }
+        })
+        .collect()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -539,5 +766,30 @@ mod tests {
         let doc = inspect_ncs(b"NCS V1.0\x00\x01", "test.ncs").expect("ncs");
         assert!(doc.valid_header);
         assert_eq!(doc.bytecode_size, 2);
+    }
+
+    #[test]
+    fn builds_shell_free_compiler_arguments_and_parses_diagnostics() {
+        let config = CompilerConfig {
+            executable: PathBuf::from("C:/tools/nwnsc.exe"),
+            game_install_path: PathBuf::from("C:/NWN"),
+            include_paths: vec![PathBuf::from("C:/project/includes")],
+        };
+        let args = compiler_arguments(
+            &config,
+            Path::new("C:/temp/work"),
+            Path::new("C:/temp/work/test.nss"),
+        );
+        assert_eq!(args[0..5], ["-o", "-w", "-n", "C:/NWN", "-i"]);
+        assert_eq!(args[5], "C:/temp/work;C:/project/includes");
+        assert_eq!(args[6], "C:/temp/work/test.nss");
+        let diagnostics = compiler_diagnostics(
+            "test",
+            "test.nss(3): error: unknown identifier\n",
+            "warning: unused value",
+        );
+        assert_eq!(diagnostics.len(), 2);
+        assert_eq!(diagnostics[0].line, Some(3));
+        assert_eq!(diagnostics[0].code, "NSS_COMPILER_ERROR");
     }
 }

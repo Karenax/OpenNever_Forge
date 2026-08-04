@@ -332,30 +332,47 @@ Charge totale indicative de la Phase 1, stabilisation comprise : **environ 67 à
 
 ## 6. Phase 2 — édition contrôlée
 
-Cette phase se construit en six incréments, toujours dans un espace de travail séparé :
+Cette phase se construit en six incréments, toujours dans un espace de travail séparé. Ils sont
+numérotés Lots 11 à 16 pour la suite du programme :
 
-1. **Socle d'édition** : modèle de commandes typées, validation, prévisualisation, undo/redo, journal append-only et copie logique des seules ressources modifiées.
-2. **Sérialisation sans perte** : writers GFF/ERF et tests de round-trip structurel et sémantique; les champs inconnus sont préservés.
-3. **Éditeurs métier** : propriétés de module, blueprints, dialogues, journal et factions, chaque action produisant une commande réversible.
-4. **NWScript** : édition NSS, diagnostics, compilation NSS → NCS et gestion sûre des includes, sans exécution du script.
-5. **Zones** : déplacement/ajout d'instances, modification de tuiles, transitions, sélection et gizmos; aucune écriture directe du MOD.
-6. **Build et test** : validation bloquante configurable, construction déterministe d'un nouveau `.mod`, comparaison avec la source et lancement explicite dans NWN:EE.
+1. **Lot 11 — Socle d'édition** : modèle de commandes typées, validation, prévisualisation, undo/redo, journal append-only et copie logique des seules ressources modifiées.
+2. **Lot 12 — Sérialisation sans perte** : writers GFF/ERF et tests de round-trip structurel et sémantique; les champs inconnus sont préservés.
+3. **Lot 13 — Éditeurs métier** : propriétés de module, blueprints, dialogues, journal et factions, chaque action produisant une commande réversible.
+4. **Lot 14 — NWScript** : édition NSS, diagnostics, compilation NSS → NCS et gestion sûre des includes, sans exécution du script.
+5. **Lot 15 — Zones** : déplacement/ajout d'instances, modification de tuiles, transitions, sélection et gizmos; aucune écriture directe du MOD.
+6. **Lot 16 — Build et test** : validation bloquante configurable, construction déterministe d'un nouveau `.mod`, comparaison avec la source et lancement explicite dans NWN:EE.
+
+**Statut au 4 août 2026 : fondation exécutable renforcée pour les Lots 11 à 16.** Le moteur
+transactionnel récupère les interruptions, restaure les octets atomiquement et lie chaque commande
+aux ressources exactes. Les writers GFF/ERF préservent les métadonnées et construisent les payloads
+en streaming. La compilation NCS enregistre le compilateur et les includes transitifs exacts. Les
+ajouts/suppressions d'instances et de zones sont intégrés. Les éditeurs métier spécialisés et les
+profils de lancement restent à compléter avant d'accepter définitivement la porte de sortie.
 
 Porte de sortie : un module de test synthétique puis un module utilisateur autorisé peuvent être modifiés, reconstruits, rouverts dans NWN Editor et lancés dans le jeu, tout en conservant l'original intact.
 
 ## 7. Phase 3 — remplacement complet d'Aurora
 
-Ordre proposé :
+Ordre proposé, numéroté Lots 17 à 25 :
 
-1. création d'un module vide et gestion des palettes ;
-2. création/suppression de zones, peinture de tuiles et placement 3D ;
-3. portes, transitions, triggers, encounters et inventaires ;
-4. gestion avancée des walkmeshes ;
-5. HAK, TLK, 2DA et contenus personnalisés ;
-6. builds reproductibles, profils de test et intégration Git ;
-7. synchronisation temporaire avec les projets Aurora existants ;
-8. documentation, analyse et refactoring ;
-9. assistance IA contrôlée, uniquement sous forme d'opérations validées, prévisualisées et annulables.
+1. **Lot 17** — création d'un module vide et gestion des palettes ;
+2. **Lot 18** — création/suppression de zones, peinture de tuiles et placement 3D ;
+3. **Lot 19** — portes, transitions, triggers, encounters et inventaires ;
+4. **Lot 20** — gestion avancée des walkmeshes ;
+5. **Lot 21** — HAK, TLK, 2DA et contenus personnalisés ;
+6. **Lot 22** — builds reproductibles, profils de test et intégration Git ;
+7. **Lot 23** — synchronisation temporaire avec les projets Aurora existants ;
+8. **Lot 24** — documentation, analyse et refactoring ;
+9. **Lot 25** — assistance IA contrôlée, uniquement sous forme d'opérations validées, prévisualisées et annulables.
+
+**Statut au 4 août 2026 : fondations exécutables sur les neuf lots.** Les Lots 17 à 19 disposent
+d'une verticale atomique utilisable et réhydratée dans l'interface. L'implémentation du Lot 20 est
+complète : grammaires ASCII autonomes WOK/PWK/DWK, AABB déterministe, variantes/hooks, surfaces et
+opérations de déplacement, découpe, suppression, extrusion et soudure. Le harnais moteur produit
+trois overrides réels sans modifier le module source ; le `nwserver.exe` local plante toutefois de
+façon identique sur le témoin et l'overlay, ce qui laisse la preuve moteur finale inconclusive dans
+cet environnement. Les Lots 21 à 23 et 25 ont des contrats Rust testés ; le Lot 24 est documenté. Voir
+`docs/validation/phase2-phase3-foundation-review.md` pour la séparation exacte entre livré et restant.
 
 Le critère final est fonctionnel : créer, maintenir, compiler et tester un module complexe sans ouvrir Aurora.
 
@@ -455,6 +472,8 @@ Ces choix ne bloquent pas la rédaction du plan mais bloquent certains commits :
 
 ## 12. Prochaine action recommandée
 
-Préparer la première unité de **Phase 2** sans l'activer implicitement : commandes transactionnelles,
-copie de travail, compilation NSS → NCS, contrôle avant sauvegarde Toolset et déploiement explicite
-dans `development`. Jusqu'à cette décision, l'application reste strictement en lecture seule.
+Commencer le **Lot 21** par les éditeurs TLK/2DA et le gestionnaire graphique des dépendances HAK.
+Le Lot 20 est implémenté et son harnais de validation moteur reste reproductible avec
+`scripts/validate_nwn_runtime.ps1`; une exécution sur un profil NWN où le témoin `nwserver` démarre
+devra simplement convertir son verdict environnemental actuel en preuve moteur positive. Le détail
+des étapes suivantes est maintenu dans `docs/validation/phase2-phase3-foundation-review.md`.

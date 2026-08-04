@@ -6,6 +6,35 @@ Tous les changements notables du projet sont consignés ici.
 
 ### Added
 
+- Phase 2 : espace d'édition transactionnel lié à l'empreinte source, commandes typées,
+  prévisualisation, journal append-only et undo/redo restaurant aussi les octets stagés.
+- Writers GFF V3.2 et ERF/MOD/HAK déterministes avec round-trip, suppression réversible et
+  réouverture des conteneurs construits.
+- Édition contrôlée des champs GFF, NSS Monaco, compilation externe NSS → NCS, déplacement
+  d'instances et peinture de tuiles ARE.
+- Éditeurs transactionnels des champs DLG, JRL et FAC avec textes localisés, liens de dialogue,
+  étapes de journal et réputations, ainsi que profils typés des neuf familles de blueprints.
+- Opérations structurelles DLG et JRL : création/suppression de nœuds, liens, départs, catégories et
+  étapes, avec réindexation des liens et transformations liées aux SHA-256 avant/après.
+- Opérations structurelles FAC : création/suppression de factions et réputations, matrice dirigée
+  complétée à l'ajout, protection de la faction PC et réindexation des parents/relations à la suppression.
+- Sous-structures de blueprints transactionnelles pour UTC/UTI/UTS/UTE : dons, capacités,
+  classes, équipement, propriétés d'objet, sons et profils de rencontre, avec édition imbriquée.
+- Inspection générique des ressources hydratée depuis l'overlay actif après modification.
+- Éditeur Lot 19 des polygones de triggers/rencontres, points d'apparition, destinations et drapeaux
+  de transition, ainsi que des inventaires de placeables et magasins incorporant le blueprint UTI
+  résolu complet sans écrire dans le MOD source.
+- Atelier Lot 20 WOK/PWK/DWK : lecture des surfaces de faces binaires/ASCII et des anciennes
+  ressources `#MAXDOOR`, conservation des variantes et hooks, validation topologique, déplacement,
+  découpe, suppression, extrusion et soudure dans l'aperçu SVG. Les writers autonomes WALKMESH,
+  PWKMESH et DWKMESH produisent un AABB déterministe et sont relus avant staging. Le remplacement
+  d'une ressource existante exige une confirmation explicite.
+- Construction d'un nouveau MOD, déploiement explicite dans `development` et nettoyage sélectif
+  par manifeste et SHA-256.
+- Fondation Phase 3 : création d'un module vide et de zones ARE/GIT/GIC, palettes typées,
+  validation de walkmesh, profils HAK/TLK, export reproductible, scan Aurora en lecture seule et
+  prévisualisation de propositions IA sous forme de commandes annulables.
+
 - Socle initial Tauri 2, React 19, TypeScript strict et Rust stable.
 - Architecture en crates pour les erreurs, les projets en lecture seule et l'index SQLite.
 - Shell sombre de l'éditeur et premier job de hash SHA-256 annulable.
@@ -66,6 +95,21 @@ Tous les changements notables du projet sont consignés ici.
 
 ### Fixed
 
+- Rend les transactions d'édition récupérables après interruption et interdit qu'une commande soit
+  validée sans exactement les octets de ressources correspondants.
+- Préserve la branche redo lorsqu'une transaction est rejetée et distingue deux overlays ouverts
+  sur le même module.
+- Invalide un NCS si son NSS ou un include transitif change et lie la compilation au SHA-256 exact
+  du compilateur externe.
+- Construit les MOD/HAK en streaming, préserve les métadonnées ERF sources et produit un module neuf
+  IFO/ARE/GIT/GIC accepté par les oracles `nwn_erf` et `nwn_gff` 2.1.2.
+- Rend création/suppression de zone ARE/GIT/GIC atomique, réhydrate les zones créées depuis
+  l'overlay et ajoute la suppression réversible d'instances.
+- Relit les zones existantes depuis l'overlay après édition et après undo/redo, de sorte que la
+  carte 2D, les polygones, transitions et inventaires reflètent exactement le GIT stagé.
+- Corrige les offsets des listes GFF imbriquées lors de la sérialisation et refuse les ResRef de
+  blueprint invalides avant toute écriture dans l'overlay.
+- Refuse les collisions entre workspaces dans `development` et borne le scan des projets Aurora.
 - Empêche l'en-tête flottant de l'inventaire de recouvrir le panneau Diagnostics.
 - Met à jour le compteur de l'inspecteur lorsque l'inventaire asynchrone arrive.
 - Supprime les tableaux GLB optionnels vides, déduplique les joints de skins et neutralise les

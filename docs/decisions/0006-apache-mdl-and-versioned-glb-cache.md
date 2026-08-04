@@ -28,10 +28,18 @@ Les PLT sont décodés en interne vers un PNG de prévisualisation par couches. 
 distinction des dix couches, mais ne prétend pas reproduire les couleurs finales d'une apparence :
 celles-ci dépendent des choix du blueprint et seront appliquées dans l'éditeur d'apparence.
 
+Pour le Lot 20, le même périmètre indépendant couvre les identifiants de surface des faces MDL.
+Le writer WOK/PWK/DWK produit volontairement les grammaires ASCII autonomes observées dans le
+corpus NWN : `WALKMESH` avec arbre AABB et multimaterial, `PWKMESH` avec points d'usage, et
+`DWKMESH` avec états fermé/ouvert et points de porte. L'ancien en-tête `#MAXDOOR ASCII` reste lu,
+y compris pour les PWK sans géométrie. Le format évite d'introduire un writer binaire AABB avant
+de disposer d'une validation moteur concluante. Un import binaire peut être projeté en géométrie
+éditable, mais son enregistrement est signalé comme remplacement complet et exige une confirmation.
+
 ## Validation
 
 - fixtures synthétiques pour limites, cycles, ASCII commenté, cache et dépendances ;
-- corpus local pour MDL binaire, supermodèle, référence, skin, animation, AABB et PLT ;
+- corpus local pour MDL binaire, supermodèle, référence, skin, animation, AABB, PWK, DWK et PLT ;
 - contrôle des GLB réels avec Khronos `gltf-validator` Apache-2.0 ;
 - contrôle avant/après du SHA-256 du module source ;
 - build TypeScript et tests Rust/frontend sans écriture NWN.

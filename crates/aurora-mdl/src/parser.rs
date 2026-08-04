@@ -77,6 +77,10 @@ pub struct MdlMesh {
     pub uv0: Vec<[f32; 2]>,
     pub colors: Vec<[u8; 4]>,
     pub indices: Vec<u32>,
+    /// Per-face Aurora surface/material identifier. For AABB walkmeshes this
+    /// is the walkability surface carried by the MDL face record.
+    #[serde(default)]
+    pub surface_ids: Vec<i32>,
     pub material: MdlMaterial,
     pub skin: Option<MdlSkin>,
     pub walkmesh: bool,
@@ -212,7 +216,10 @@ pub fn parse_mdl(bytes: &[u8]) -> Result<MdlModel, MdlError> {
 }
 
 fn is_ascii_mdl(bytes: &[u8]) -> bool {
-    if bytes.starts_with(b"newmodel") || bytes.starts_with(b"#MAXMODEL") {
+    if bytes.starts_with(b"newmodel")
+        || bytes.starts_with(b"#MAXMODEL")
+        || bytes.starts_with(b"#MAXDOOR")
+    {
         return true;
     }
     let sample = &bytes[..bytes.len().min(16 * 1024)];
@@ -225,9 +232,17 @@ fn is_ascii_mdl(bytes: &[u8]) -> bool {
     }
     String::from_utf8_lossy(sample)
         .lines()
-        .take(128)
+        .take(512)
         .map(str::trim_start)
-        .any(|line| line.to_ascii_lowercase().starts_with("newmodel "))
+        .any(|line| {
+            let line = line.to_ascii_lowercase();
+            line.starts_with("newmodel ")
+                || (line.starts_with("#max") && line.contains(" ascii"))
+                || line.contains("walkmesh  ascii")
+                || line.contains("pwkmesh  ascii")
+                || line.contains("dwkmesh  ascii")
+                || line.starts_with("beginwalkmeshgeom ")
+        })
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -542,7 +557,7 @@ impl<'a> BinaryParser<'a> {
         } else {
             Vec::new()
         };
-        let indices = self.read_faces(faces, vertex_count, node)?;
+        let (indices, surface_ids) = self.read_faces(faces, vertex_count, node)?;
         if normals.len() != positions.len() {
             normals = calculate_normals(&positions, &indices);
             self.warn(
@@ -574,6 +589,7 @@ impl<'a> BinaryParser<'a> {
             uv0,
             colors,
             indices,
+            surface_ids,
             material: MdlMaterial {
                 diffuse,
                 ambient,
@@ -663,13 +679,14 @@ impl<'a> BinaryParser<'a> {
         definition: ArrayDef,
         vertex_count: usize,
         node: &str,
-    ) -> Result<Vec<u32>, MdlError> {
+    ) -> Result<(Vec<u32>, Vec<i32>), MdlError> {
         if definition.used == 0 {
-            return Ok(Vec::new());
+            return Ok((Vec::new(), Vec::new()));
         }
         let offset = self.model_pointer(definition.pointer, definition.pointer as usize)?;
         checked_slice(self.bytes, offset, definition.used.saturating_mul(32))?;
         let mut indices = Vec::with_capacity(definition.used * 3);
+        let mut surface_ids = Vec::with_capacity(definition.used);
         for face in 0..definition.used {
             let face_offset = offset + face * 32;
             let values = [
@@ -687,8 +704,9 @@ impl<'a> BinaryParser<'a> {
                 continue;
             }
             indices.extend(values);
+            surface_ids.push(read_i32(self.bytes, face_offset + 16)?);
         }
-        Ok(indices)
+        Ok((indices, surface_ids))
     }
 
     fn parse_animations(&mut self, definition: ArrayDef) -> Result<Vec<MdlAnimation>, MdlError> {
@@ -1217,6 +1235,7 @@ fn parse_ascii(bytes: &[u8]) -> Result<MdlModel, MdlError> {
         }
         match words[0].to_ascii_lowercase().as_str() {
             "newmodel" if words.len() > 1 => model.name = words[1].to_owned(),
+            "beginwalkmeshgeom" if words.len() > 1 => model.name = words[1].to_owned(),
             "setsupermodel" if words.len() > 2 => {
                 model.supermodel = normalize_resource_name(words[2]);
             }
@@ -1412,6 +1431,12 @@ fn parse_ascii_node(
                         ];
                         if face_indices.iter().all(Option::is_some) {
                             mesh.indices.extend(face_indices.into_iter().flatten());
+                            mesh.surface_ids.push(
+                                values
+                                    .get(3)
+                                    .and_then(|value| value.parse::<i32>().ok())
+                                    .unwrap_or_default(),
+                            );
                         } else {
                             diagnostics.push(MdlDiagnostic {
                                 code: "MDL_ASCII_FACE_INVALID".to_owned(),
@@ -1720,6 +1745,7 @@ mod tests {
         let mesh = model.nodes[0].mesh.as_ref().expect("mesh");
         assert_eq!(mesh.positions.len(), 3);
         assert_eq!(mesh.indices, [0, 1, 2]);
+        assert_eq!(mesh.surface_ids, [0]);
         assert_eq!(mesh.material.textures, ["stone"]);
     }
 
@@ -1729,6 +1755,39 @@ mod tests {
             .expect("commented ASCII model");
         assert_eq!(model.format, MdlFormat::Ascii);
         assert_eq!(model.name, "comment");
+    }
+
+    #[test]
+    fn parses_standalone_ascii_walkmesh_grammars() {
+        let model = parse_mdl(
+            b"# Exported from NWmax\n#NWmax WALKMESH  ASCII\nbeginwalkmeshgeom tile\nnode aabb walk\nparent tile\nverts 3\n0 0 0\n1 0 0\n0 1 0\nfaces 1\n0 1 2 3 0 1 2 4\naabb 0 0 0 1 1 0 0\nendnode\nendwalkmeshgeom tile\n",
+        )
+        .expect("standalone WOK");
+        assert_eq!(model.name, "tile");
+        let mesh = model.nodes[0].mesh.as_ref().expect("AABB mesh");
+        assert!(mesh.walkmesh);
+        assert_eq!(mesh.surface_ids, [3]);
+
+        let model = parse_mdl(
+            b"#NWmax PWKMESH  ASCII\nnode trimesh NoWalk\nparent object_pwk\nverts 3\n0 0 0\n1 0 0\n0 1 0\nfaces 1\n0 1 2 1 0 0 0 7\nendnode\nnode dummy object_pwk_use01\nparent object_pwk\nposition 0 1 0\nendnode\n",
+        )
+        .expect("standalone PWK");
+        assert_eq!(model.nodes.len(), 2);
+        assert_eq!(model.nodes[0].mesh.as_ref().expect("mesh").surface_ids, [1]);
+
+        let model = parse_mdl(
+            b"#MAXDOOR ASCII\n# model: object_pwk\nnode dummy object_pwk_use01\nparent object_pwk\nposition 0 1 0\nendnode\n",
+        )
+        .expect("legacy hook-only PWK");
+        assert_eq!(model.nodes.len(), 1);
+        assert!(model.nodes[0].mesh.is_none());
+    }
+
+    #[test]
+    fn retains_binary_face_surface_identifiers() {
+        let model = parse_mdl(&binary_triangle_fixture()).expect("binary model");
+        let mesh = model.nodes[0].mesh.as_ref().expect("mesh");
+        assert_eq!(mesh.surface_ids, [7]);
     }
 
     #[test]
@@ -1792,6 +1851,7 @@ mod tests {
         bytes[mesh + 468..mesh + 472].copy_from_slice(&(36_i32).to_le_bytes());
         bytes[mesh + 472..mesh + 476].copy_from_slice(&(-1_i32).to_le_bytes());
         let face = base + face_offset;
+        bytes[face + 16..face + 20].copy_from_slice(&7_i32.to_le_bytes());
         bytes[face + 26..face + 28].copy_from_slice(&0_u16.to_le_bytes());
         bytes[face + 28..face + 30].copy_from_slice(&1_u16.to_le_bytes());
         bytes[face + 30..face + 32].copy_from_slice(&2_u16.to_le_bytes());

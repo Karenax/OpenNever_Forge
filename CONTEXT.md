@@ -1053,6 +1053,13 @@ Critère de sortie : fournir un rapport cohérent sur l’état d’un module sa
 
 Cette phase ne commence qu’après validation de la phase 1.
 
+**État au 4 août 2026 : phase engagée explicitement.** L'espace transactionnel, les writers
+GFF/ERF, l'édition structurée/NSS, la compilation NCS, les transformations de zone et les sorties
+MOD/development sont intégrés. Les sources NWN restent immuables ; seuls l'overlay et les nouvelles
+sorties sont écrits. Les structures DLG, JRL et FAC peuvent être créées/supprimées par commandes
+réversibles ; les relations indexées sont nettoyées et réindexées automatiquement. Les listes
+prioritaires UTC/UTI/UTS/UTE disposent du même contrat transactionnel, sans masquer le GFF brut.
+
 Fonctions prévues :
 
 - création d’un espace de travail modifiable ;
@@ -1088,6 +1095,11 @@ L’édition ne doit pas manipuler directement le fichier original sur disque.
 ---
 
 ## 18. Phase 3 — remplacement complet d’Aurora
+
+**État au 4 août 2026 : fondations en cours.** La création d'un MOD synthétique, des zones
+ARE/GIT/GIC, les palettes, la validation géométrique, les HAK, les exports reproductibles, le scan
+Aurora en lecture seule et les propositions IA prévisualisées disposent de contrats testés. Cette
+phase n'est pas encore acceptée comme remplacement complet.
 
 Fonctions finales :
 
@@ -1904,3 +1916,44 @@ placés dans le dossier NWN `development`. Cette couche prend le pas sur les res
 le module et permet une itération en direct sans redémarrage. Elle doit rester une sortie de test
 explicite et séparée de l'archive source, avec une liste précise des fichiers déployés et une action
 de nettoyage sûre.
+
+### 36.4 Édition structurée des objets de zone
+
+Le Lot 19 conserve les structures observées dans les ressources GIT réelles : `TriggerList`
+encode `Geometry` avec `PointX/PointY/PointZ`, `Encounter List` utilise `X/Y/Z` et sépare ses
+`SpawnPointList`, tandis que portes et triggers portent `LinkedTo`, `LinkedToFlags` et
+`LoadScreenID`. Les inventaires ne sont pas réécrits comme de simples références : les instances
+de placeables et magasins incorporent une copie du blueprint UTI résolu, puis ajoutent uniquement
+les champs de position, quantité, catégorie et stock infini nécessaires. Les champs inconnus restent
+préservés. Après chaque commande et après undo/redo, la zone est relue depuis l'overlay afin que la
+carte reflète les octets réellement stagés.
+
+### 36.5 Walkmeshes WOK, PWK et DWK
+
+Le Lot 20 dispose désormais d'un document géométrique typé (sommets, triangles, identifiants de
+surface, variantes et hooks), d'une validation bornée incluant l'aire réelle, les faces dupliquées,
+les arêtes non-manifold et la cohérence d'orientation. Les transformations Rust couvrent le
+déplacement d'un sommet, l'affectation d'une surface, la découpe au centroïde, la suppression avec
+compactage, l'extrusion selon la normale et la soudure spatiale à tolérance contrôlée. L'interface
+appelle ces opérations via une commande Tauri typée et affiche immédiatement leurs diagnostics.
+
+Le writer ne produit plus un MDL générique : il sérialise les grammaires autonomes observées dans
+les ressources NWN. Un WOK porte `#NWmax WALKMESH ASCII`, `beginwalkmeshgeom`, les vingt matériaux,
+des coordonnées de texture déterministes et un arbre AABB équilibré. Un PWK porte sa géométrie de
+collision et ses points `use`; un DWK conserve les états `closed`, `open1`, `open2` ainsi que les
+points de porte. Les anciens PWK `#MAXDOOR ASCII` ne contenant que des hooks sont également lus et
+réécrits sans ajout artificiel de géométrie. Chaque résultat est relu par le parser interne avant
+staging dans l'overlay ou déploiement dans `development`.
+
+L'import d'un walkmesh existant conserve l'identifiant de surface de chaque face, les géométries
+alternatives PWK/DWK et les nœuds dummy d'usage ou de porte. Son enregistrement reste présenté
+comme un **remplacement complet** et exige une confirmation explicite. Une ressource absente est
+créée par une commande annulable ; une ressource existante ou déjà stagée est transformée avec les
+SHA-256 avant/après. Le MOD source n'est jamais ouvert en écriture.
+
+Le harnais `scripts/validate_nwn_runtime.ps1` compare un lancement témoin et un lancement avec trois
+overrides WOK/PWK/DWK réellement référencés par une copie de module. Dans l'environnement local du
+4 août 2026, les deux lancements `nwserver.exe` s'arrêtent avec le même code `0xC0000005` avant
+écoute ; le résultat est classé `INCONCLUSIVE_ENVIRONMENT`, jamais comme un échec du writer. Le
+client Windows démarre avec les overrides et permet de poursuivre le contrôle manuel, tandis que
+les empreintes confirment l'immuabilité du module source.

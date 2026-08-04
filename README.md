@@ -1,39 +1,62 @@
 # OpenNever Forge
 
-OpenNever Forge est un éditeur tiers moderne pour Neverwinter Nights: Enhanced Edition. La première
-phase du projet est strictement en lecture seule : elle ouvre une copie de travail d'un module,
-indexe ses ressources et explique leur provenance sans modifier le `.mod`, les HAK ou
-l'installation NWN d'origine.
+OpenNever Forge est un éditeur tiers moderne pour Neverwinter Nights: Enhanced Edition. Les sources
+NWN restent strictement en lecture seule : l'application ouvre une copie de travail, indexe ses
+ressources et applique les modifications dans un overlay transactionnel séparé avant de construire
+un nouveau `.mod` ou de déployer explicitement des fichiers dans `development`.
 
 Le contexte complet est dans [`CONTEXT.md`](CONTEXT.md) et le séquencement dans
 [`CONSTRUCTION_PLAN.md`](CONSTRUCTION_PLAN.md).
 
 ## État actuel
 
-Les Lots 0 à 10 disposent de leur porte de sortie et la Phase 1 de lecture est complète. Le shell
-Tauri/React calcule l'empreinte d'une copie `.mod`, résout
+Les Lots 0 à 10 disposent de leur porte de sortie et la Phase 1 de lecture est complète. Les Lots
+11 à 16 fournissent le socle transactionnel récupérable, les writers GFF/ERF en streaming, l'édition
+NSS, la compilation NCS liée aux includes exacts, l'édition 2D des zones et la construction d'un
+nouveau MOD. La Phase 3 possède une
+fondation exécutable pour créer un module et des zones, gérer les palettes, valider les walkmeshes,
+produire un HAK, exporter un état reproductible et prévisualiser des changements assistés ; elle
+n'est pas encore déclarée complète. Le shell Tauri/React calcule l'empreinte d'une copie `.mod`, résout
 son catalogue MOD/HAK/override/development/patch/KEY-BIF et explique la provenance de chaque
 version. L'explorateur paginé ouvre à la demande les GFF, TLK et 2DA, ou un aperçu binaire pour les
 formats inconnus. Le cœur expose déjà le module, les zones ARE, les instances GIT, les données GIC
 et les principaux blueprints. Les catalogues et références de dépendances sont persistés dans
-SQLite. Le Lot 4 ajoute l'inventaire NSS/NCS, la recherche plein texte, un éditeur Monaco en lecture
-seule, une vue technique NCS et les références entrantes depuis les objets GFF. Aucune fonction
-d'écriture NWN ni compilation de script n'est activée. Le Lot 5 représente les DLG comme des
+SQLite. Le Lot 4 ajoute l'inventaire NSS/NCS, la recherche plein texte, un éditeur Monaco et les
+références entrantes depuis les objets GFF. Le Lot 5 représente les DLG comme des
 graphes fidèles, avec arbre borné, vue React Flow complète, GFF brut, textes localisés, scripts et
 références entrantes. Les vues de fin de Phase 1 ajoutent le journal JRL, les factions FAC, la carte
 2D ARE/GIT/GIC, l'inventaire d'assets, un lecteur MDL binaire/ASCII interne, un cache GLB versionné,
 les textures TGA/DDS/KTX/PLT et un manifeste de scène Rust rendu par Babylon.js. Les SET,
 blueprints et 2DA alimentent directement les tuiles, portes, placeables et créatures composites de
 la vue 3D, avec chargement GLB progressif, budget mémoire et marqueurs locaux en cas d'échec. Le
-graphe global reste exportable en JSON ou HTML. L'application demeure volontairement en lecture
-seule tant que la Phase 2 n'est pas engagée explicitement.
+graphe global reste exportable en JSON ou HTML. Aucune archive source n'est ouverte en écriture :
+les builds, exports et déploiements sont de nouvelles sorties explicites.
+
+Le Lot 13 permet maintenant de modifier transactionnellement les champs existants des DLG, JRL,
+FAC et des blueprints, y compris les variantes localisées, les cibles de liens et les réputations.
+La création/suppression structurelle est également disponible pour les nœuds/liens DLG et les
+catégories/étapes JRL, ainsi que pour les factions et réputations FAC. Les suppressions FAC
+réindexent automatiquement parents et relations, tandis que l'ajout complète la matrice Aurora.
+Les sous-structures prioritaires des blueprints sont également transactionnelles : dons,
+capacités, classes et équipement UTC, propriétés UTI, sons UTS et créatures UTE. Le Lot 19 ajoute
+les polygones UTT/UTE, les points d'apparition, les transitions et les inventaires des instances
+de placeables et magasins. Un objet ajouté est incorporé depuis son blueprint UTI résolu afin de
+préserver ses propriétés et les champs GFF inconnus ; la carte est ensuite relue depuis l'overlay.
+Le Lot 20 ajoute un atelier WOK/PWK/DWK avec aperçu topologique, surfaces par face, déplacement de
+sommet, découpe, suppression, extrusion et soudure contrôlées. Le writer produit les grammaires
+ASCII autonomes réelles de NWN, y compris l'arbre AABB déterministe des WOK et les variantes/hooks
+des PWK/DWK. Les nouvelles ressources sont créées dans l'overlay ; le remplacement d'un walkmesh
+existant reste une action complète explicitement confirmée et annulable.
 
 Les revues de sortie et leurs limites sont consignées dans
 [`docs/validation/lot1-exit-review.md`](docs/validation/lot1-exit-review.md) et
 [`docs/validation/lot2-lot3-exit-review.md`](docs/validation/lot2-lot3-exit-review.md), puis dans
 [`docs/validation/lot4-exit-review.md`](docs/validation/lot4-exit-review.md) et
 [`docs/validation/lot5-exit-review.md`](docs/validation/lot5-exit-review.md), puis
-[`docs/validation/lot6-lot10-exit-review.md`](docs/validation/lot6-lot10-exit-review.md).
+[`docs/validation/lot6-lot10-exit-review.md`](docs/validation/lot6-lot10-exit-review.md) et
+[`docs/validation/lot20-exit-review.md`](docs/validation/lot20-exit-review.md).
+L'état précis des Lots 11 à 25, les contrôles d'oracle et l'ordre restant sont dans
+[`docs/validation/phase2-phase3-foundation-review.md`](docs/validation/phase2-phase3-foundation-review.md).
 
 ## Prérequis Windows
 
