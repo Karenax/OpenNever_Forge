@@ -54,6 +54,7 @@ export type WorkspaceSnapshot = {
   sourceIntact: boolean; commandCount: number; cursor: number;
   canUndo: boolean; canRedo: boolean; modifiedResources: ModifiedResource[];
   deletedResources: ResourceKey[]; journalEvents: number; values: Record<string, unknown>;
+  migrationHistory?: Array<{ fromVersion: number; toVersion: number; backupPath: string; steps: string[] }>;
 };
 export type GenericGffValue = { kind: string; value: unknown };
 export type GenericGffField = { label: string; fieldType: number; value: GenericGffValue };
@@ -78,6 +79,45 @@ export type DevelopmentCleanupReport = { removed: string[]; preservedChanged: st
 export type PaletteManifest = { schemaVersion: number; categories: Array<{ id: string; label: string; resourceTypes: number[] }> };
 export type WorkspaceExportManifest = { schemaVersion: number; workspaceId: string; sourceSha256: string; files: DevelopmentFile[]; deletedResources: ResourceKey[] };
 export type AuroraSyncManifest = { schemaVersion: number; root: string; files: DevelopmentFile[] };
+export type AuroraSyncState = "identical" | "toolset_only" | "workspace_only" | "toolset_changed" | "workspace_changed" | "conflict";
+export type AuroraSyncDirection = "pull_from_toolset" | "push_to_toolset";
+export type AuroraSyncEntry = {
+  resource: ResourceKey; relativePath: string; toolsetSha256: string | null; workspaceSha256: string | null;
+  baselineToolsetSha256: string | null; baselineWorkspaceSha256: string | null; state: AuroraSyncState;
+};
+export type AuroraSyncPlan = {
+  schemaVersion: number; root: string; baselineFound: boolean; entries: AuroraSyncEntry[];
+  identicalCount: number; incomingCount: number; outgoingCount: number; conflictCount: number;
+};
+export type AuroraSyncAction = {
+  resource: ResourceKey; direction: AuroraSyncDirection;
+  expectedToolsetSha256: string | null; expectedWorkspaceSha256: string | null;
+};
+export type AuroraSyncReport = {
+  schemaVersion: number; root: string;
+  applied: Array<{ resource: ResourceKey; direction: AuroraSyncDirection; sha256: string | null }>;
+  backups: string[]; plan: AuroraSyncPlan; workspace: WorkspaceSnapshot;
+};
+export type ModuleBuildProfile = {
+  name: string; outputName: string; blockOnWarnings: boolean; deployDevelopment: boolean;
+  hakFiles: string[]; customTlk: string | null;
+};
+export type ReproducibleBuildVerification = {
+  profile: ModuleBuildProfile; firstSha256: string; secondSha256: string;
+  identical: boolean; resourceCount: number; warnings: string[];
+};
+export type GitFileStatus = { path: string; indexStatus: string; worktreeStatus: string };
+export type GitWorkspaceStatus = {
+  root: string; branch: string; head: string | null; clean: boolean; files: GitFileStatus[];
+};
+export type NwnLaunchProfile = {
+  name: string; mode: "client" | "server"; executablePath: string;
+  workingDirectory: string; arguments: string[];
+};
+export type NwnLaunchReport = { profile: NwnLaunchProfile; processId: number; logPath: string };
+export type BuildProfileRunReport = {
+  profile: ModuleBuildProfile; build: ModuleBuildReport; deployment: DevelopmentDeployment | null; warnings: string[];
+};
 export type WalkmeshKind = "wok" | "pwk" | "dwk";
 export type WalkmeshDraft = {
   vertices: Array<[number, number, number]>;
@@ -105,7 +145,14 @@ export type WalkmeshDocument = {
 };
 export type WalkmeshEditResult = { workspace: WorkspaceSnapshot; document: WalkmeshDocument };
 export type AiChangeSet = { summary: string; commands: EditCommand[] };
-export type AiChangeSetPreview = { summary: string; allValid: boolean; previews: Array<{ command: EditCommand; target: string; current: unknown; resulting: unknown; valid: boolean; diagnostic: string | null }> };
+export type AiCommandPreview = { command: EditCommand; target: string; current: unknown; resulting: unknown; valid: boolean; diagnostic: string | null };
+export type AiChangeSetPreview = { summary: string; proposalSha256: string; allValid: boolean; previews: AiCommandPreview[] };
+export type AiConsent = { allowNetwork: boolean; includeModuleMetadata: boolean; includeResourceContents: boolean };
+export type AiProviderProposal = {
+  endpointOrigin: string; model: string; proposalSha256: string; changeSet: AiChangeSet;
+  preview: AiChangeSetPreview; sharedResources: number; warnings: string[];
+};
+export type AiApplyReport = { proposalSha256: string; appliedCommands: number; workspace: WorkspaceSnapshot };
 
 export type HashProgress = {
   bytesRead: number;
@@ -342,9 +389,27 @@ export type StructuredResourceSummary = {
 
 export type ResourceInspection =
   | { kind: "gff"; value: GenericGff }
-  | { kind: "two_da"; value: unknown }
-  | { kind: "tlk"; value: unknown }
+  | { kind: "two_da"; value: TwoDaTable }
+  | { kind: "tlk"; value: TalkTable }
   | { kind: "binary"; value: { size: number; sha256: string; hexPreview: string; truncated: boolean } };
+
+export type TwoDaTable = {
+  source: string; defaultValue: string | null; columns: string[];
+  rows: Array<{ label: string; cells: Array<string | null> }>;
+};
+export type TwoDaEditAction =
+  | { kind: "set_cell"; rowIndex: number; columnIndex: number; value: string | null }
+  | { kind: "add_row"; label: string }
+  | { kind: "remove_row"; rowIndex: number }
+  | { kind: "set_default"; value: string | null };
+export type TlkEntry = {
+  index: number; flags: number; text: string | null; soundResref: string | null;
+  volumeVariance: number; pitchVariance: number; soundLength: number;
+};
+export type TalkTable = { languageId: number; entries: TlkEntry[]; source: string };
+export type TlkEditAction =
+  | { kind: "set_entry"; index: number; text: string | null; soundResref: string | null; soundLength: number }
+  | { kind: "append_entry"; text: string | null };
 
 export type ModuleDependencyKind = "hak" | "custom_tlk";
 export type ModuleDependencyState = "resolved" | "missing" | "unchecked" | "invalid";
@@ -535,9 +600,84 @@ export async function exportWorkspaceSources(request: { workspaceId: string; out
   return invoke<WorkspaceExportManifest>("export_workspace_sources", { request });
 }
 
+export async function editWorkspaceTwoDa(request: {
+  jobId: string; workspaceId: string; resource: ResourceKey; action: TwoDaEditAction;
+}): Promise<{ workspace: WorkspaceSnapshot; document: TwoDaTable }> {
+  requireTauri();
+  return invoke("edit_workspace_2da", { request });
+}
+
+export async function editWorkspaceTlk(request: {
+  jobId: string; workspaceId: string; resource: ResourceKey; action: TlkEditAction;
+}): Promise<{ workspace: WorkspaceSnapshot; document: TalkTable }> {
+  requireTauri();
+  return invoke("edit_workspace_tlk", { request });
+}
+
+export async function editWorkspaceModuleDependencies(request: {
+  jobId: string; workspaceId: string; hakFiles: string[]; customTlk: string | null;
+}): Promise<{ workspace: WorkspaceSnapshot; document: GenericGff }> {
+  requireTauri();
+  return invoke("edit_workspace_module_dependencies", { request });
+}
+
+export async function listWorkspaceBuildProfiles(request: { workspaceId: string }): Promise<ModuleBuildProfile[]> {
+  requireTauri();
+  return invoke("list_workspace_build_profiles", { request });
+}
+
+export async function saveWorkspaceBuildProfile(request: { workspaceId: string; profile: ModuleBuildProfile }): Promise<ModuleBuildProfile[]> {
+  requireTauri();
+  return invoke("save_workspace_build_profile", { request });
+}
+
+export async function verifyWorkspaceReproducibleBuild(request: { workspaceId: string; profile: ModuleBuildProfile }): Promise<ReproducibleBuildVerification> {
+  requireTauri();
+  return invoke("verify_workspace_reproducible_build", { request });
+}
+
+export async function runWorkspaceBuildProfile(request: {
+  workspaceId: string; profile: ModuleBuildProfile; outputDirectory: string; userDataPath: string | null;
+}): Promise<BuildProfileRunReport> {
+  requireTauri();
+  return invoke("run_workspace_build_profile", { request });
+}
+
+export async function inspectGitWorkspace(request: { root: string }): Promise<GitWorkspaceStatus> {
+  requireTauri();
+  return invoke("inspect_git_workspace", { request });
+}
+
+export async function listWorkspaceLaunchProfiles(request: { workspaceId: string }): Promise<NwnLaunchProfile[]> {
+  requireTauri();
+  return invoke("list_workspace_launch_profiles", { request });
+}
+
+export async function saveWorkspaceLaunchProfile(request: { workspaceId: string; profile: NwnLaunchProfile }): Promise<NwnLaunchProfile[]> {
+  requireTauri();
+  return invoke("save_workspace_launch_profile", { request });
+}
+
+export async function launchWorkspaceTestProfile(request: { workspaceId: string; profile: NwnLaunchProfile }): Promise<NwnLaunchReport> {
+  requireTauri();
+  return invoke("launch_workspace_test_profile", { request });
+}
+
 export async function inspectAuroraWorkspace(request: { root: string }): Promise<AuroraSyncManifest> {
   requireTauri();
   return invoke<AuroraSyncManifest>("inspect_aurora_workspace", { request });
+}
+
+export async function planAuroraWorkspaceSync(request: { jobId: string; workspaceId: string; root: string }): Promise<AuroraSyncPlan> {
+  requireTauri();
+  return invoke<AuroraSyncPlan>("plan_aurora_workspace_sync", { request });
+}
+
+export async function applyAuroraWorkspaceSync(request: {
+  jobId: string; workspaceId: string; root: string; actions: AuroraSyncAction[];
+}): Promise<AuroraSyncReport> {
+  requireTauri();
+  return invoke<AuroraSyncReport>("apply_aurora_workspace_sync", { request });
 }
 
 export async function validateWalkmeshDraft(draft: WalkmeshDraft, kind: WalkmeshKind): Promise<WalkmeshValidation> {
@@ -565,9 +705,24 @@ export async function saveWorkspaceWalkmesh(request: {
   return invoke<WalkmeshEditResult>("save_workspace_walkmesh", { request });
 }
 
-export async function previewAiChangeSet(request: { workspaceId: string; changeSet: AiChangeSet }): Promise<AiChangeSetPreview> {
+export async function previewAiChangeSet(request: { jobId: string; workspaceId: string; changeSet: AiChangeSet }): Promise<AiChangeSetPreview> {
   requireTauri();
   return invoke<AiChangeSetPreview>("preview_ai_change_set", { request });
+}
+
+export async function requestAiChangeSet(request: {
+  jobId: string; workspaceId: string; endpoint: string; model: string; apiKey?: string;
+  prompt: string; selectedResources: ResourceKey[]; consent: AiConsent;
+}): Promise<AiProviderProposal> {
+  requireTauri();
+  return invoke<AiProviderProposal>("request_ai_change_set", { request });
+}
+
+export async function applyAiChangeSet(request: {
+  jobId: string; workspaceId: string; proposalSha256: string; changeSet: AiChangeSet; confirmed: boolean;
+}): Promise<AiApplyReport> {
+  requireTauri();
+  return invoke<AiApplyReport>("apply_ai_change_set", { request });
 }
 
 export async function createNewModule(request: {
@@ -759,6 +914,12 @@ export async function selectCompiler(): Promise<string | null> {
     directory: false,
     filters: [{ name: "Compilateur NWScript", extensions: ["exe"] }],
   });
+  return typeof selected === "string" ? selected : null;
+}
+
+export async function selectNwnExecutable(): Promise<string | null> {
+  requireTauri();
+  const selected = await open({ multiple: false, directory: false, filters: [{ name: "Neverwinter Nights", extensions: ["exe"] }] });
   return typeof selected === "string" ? selected : null;
 }
 

@@ -10,6 +10,8 @@ aurora-core = { path = "../aurora-core" }
 aurora-gff = { path = "../aurora-gff" }
 aurora-erf = { path = "../aurora-erf" }
 aurora-mdl = { path = "../aurora-mdl" }
+aurora-nwscript = { path = "../aurora-nwscript" }
+hex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

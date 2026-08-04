@@ -32,6 +32,7 @@ aurora-tlk = { path = "../../../crates/aurora-tlk" }
 aurora-2da = { path = "../../../crates/aurora-2da" }
 aurora-dialogue = { path = "../../../crates/aurora-dialogue" }
 hex.workspace = true
+reqwest.workspace = true
 sha2.workspace = true
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"

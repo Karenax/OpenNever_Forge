@@ -121,6 +121,194 @@ pub fn parse_2da(bytes: &[u8], source: &str) -> AppResult<TwoDaTable> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
+pub enum TwoDaEditAction {
+    SetCell {
+        row_index: usize,
+        column_index: usize,
+        value: Option<String>,
+    },
+    AddRow {
+        label: String,
+    },
+    RemoveRow {
+        row_index: usize,
+    },
+    SetDefault {
+        value: Option<String>,
+    },
+}
+
+pub fn apply_2da_edit(table: &mut TwoDaTable, action: &TwoDaEditAction) -> AppResult<()> {
+    match action {
+        TwoDaEditAction::SetCell {
+            row_index,
+            column_index,
+            value,
+        } => {
+            let column_count = table.columns.len();
+            let row = table.rows.get_mut(*row_index).ok_or_else(|| {
+                two_da_error(
+                    &table.source,
+                    "TWO_DA_ROW_OUT_OF_BOUNDS",
+                    row_index.to_string(),
+                )
+            })?;
+            if *column_index >= column_count {
+                return Err(two_da_error(
+                    &table.source,
+                    "TWO_DA_COLUMN_OUT_OF_BOUNDS",
+                    column_index.to_string(),
+                ));
+            }
+            row.cells.resize(column_count, None);
+            row.cells[*column_index] = value.clone();
+        }
+        TwoDaEditAction::AddRow { label } => {
+            validate_row_label(table, label)?;
+            if table
+                .rows
+                .iter()
+                .any(|row| row.label.eq_ignore_ascii_case(label))
+            {
+                return Err(two_da_error(
+                    &table.source,
+                    "TWO_DA_ROW_DUPLICATE",
+                    label.clone(),
+                ));
+            }
+            table.rows.push(TwoDaRow {
+                label: label.clone(),
+                cells: vec![None; table.columns.len()],
+            });
+        }
+        TwoDaEditAction::RemoveRow { row_index } => {
+            if *row_index >= table.rows.len() {
+                return Err(two_da_error(
+                    &table.source,
+                    "TWO_DA_ROW_OUT_OF_BOUNDS",
+                    row_index.to_string(),
+                ));
+            }
+            table.rows.remove(*row_index);
+        }
+        TwoDaEditAction::SetDefault { value } => table.default_value = value.clone(),
+    }
+    validate_2da(table)
+}
+
+pub fn write_2da(table: &TwoDaTable) -> AppResult<Vec<u8>> {
+    validate_2da(table)?;
+    let mut output = String::from("2DA V2.0\n");
+    if let Some(value) = &table.default_value {
+        output.push_str("DEFAULT: ");
+        output.push_str(&encode_token(value));
+        output.push('\n');
+    }
+    output.push_str(
+        &table
+            .columns
+            .iter()
+            .map(|value| encode_token(value))
+            .collect::<Vec<_>>()
+            .join(" "),
+    );
+    output.push('\n');
+    for row in &table.rows {
+        output.push_str(&encode_token(&row.label));
+        for cell in &row.cells {
+            output.push(' ');
+            output.push_str(
+                &cell
+                    .as_deref()
+                    .map(encode_token)
+                    .unwrap_or_else(|| "****".to_owned()),
+            );
+        }
+        output.push('\n');
+    }
+    Ok(output.into_bytes())
+}
+
+fn validate_2da(table: &TwoDaTable) -> AppResult<()> {
+    if table.columns.is_empty() || table.columns.len() > MAX_COLUMNS {
+        return Err(two_da_error(
+            &table.source,
+            "TWO_DA_COLUMN_LIMIT_EXCEEDED",
+            format!("{} columns", table.columns.len()),
+        ));
+    }
+    if table.rows.len() > MAX_ROWS {
+        return Err(two_da_error(
+            &table.source,
+            "TWO_DA_ROW_LIMIT_EXCEEDED",
+            format!("{} rows", table.rows.len()),
+        ));
+    }
+    let mut columns = BTreeSet::new();
+    for column in &table.columns {
+        if column.trim().is_empty() || !columns.insert(column.to_ascii_lowercase()) {
+            return Err(two_da_error(
+                &table.source,
+                "TWO_DA_COLUMN_INVALID",
+                format!("invalid or duplicate column {column:?}"),
+            ));
+        }
+    }
+    let mut labels = BTreeSet::new();
+    for row in &table.rows {
+        validate_row_label(table, &row.label)?;
+        if !labels.insert(row.label.to_ascii_lowercase()) {
+            return Err(two_da_error(
+                &table.source,
+                "TWO_DA_ROW_DUPLICATE",
+                row.label.clone(),
+            ));
+        }
+        if row.cells.len() != table.columns.len() {
+            return Err(two_da_error(
+                &table.source,
+                "TWO_DA_CELL_COUNT_INVALID",
+                format!(
+                    "row {} has {} cells, expected {}",
+                    row.label,
+                    row.cells.len(),
+                    table.columns.len()
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_row_label(table: &TwoDaTable, label: &str) -> AppResult<()> {
+    if label.trim().is_empty() || label.chars().any(char::is_whitespace) {
+        return Err(two_da_error(
+            &table.source,
+            "TWO_DA_ROW_LABEL_INVALID",
+            format!("row label {label:?} must be one non-empty token"),
+        ));
+    }
+    Ok(())
+}
+
+fn encode_token(value: &str) -> String {
+    if !value.is_empty()
+        && !value.chars().any(char::is_whitespace)
+        && !value.contains('"')
+        && !value.contains('\\')
+        && value != "****"
+    {
+        return value.to_owned();
+    }
+    format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct TwoDaDifference {
     pub row_label: String,
@@ -353,5 +541,27 @@ mod tests {
                 .len(),
             1
         );
+    }
+
+    #[test]
+    fn edits_writes_and_reopens_a_table_deterministically() {
+        let mut table =
+            parse_2da(b"2DA V2.0\nName Value\n0 old ****\n", "table.2da").expect("table");
+        apply_2da_edit(
+            &mut table,
+            &TwoDaEditAction::SetCell {
+                row_index: 0,
+                column_index: 0,
+                value: Some("two words".into()),
+            },
+        )
+        .expect("edit");
+        apply_2da_edit(&mut table, &TwoDaEditAction::AddRow { label: "1".into() }).expect("append");
+        let first = write_2da(&table).expect("write");
+        let reopened = parse_2da(&first, "reopened.2da").expect("reopen");
+        let second = write_2da(&reopened).expect("rewrite");
+        assert_eq!(first, second);
+        assert_eq!(reopened.cell(0, "Name"), Some("two words"));
+        assert_eq!(reopened.rows.len(), 2);
     }
 }

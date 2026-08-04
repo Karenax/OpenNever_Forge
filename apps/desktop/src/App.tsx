@@ -73,6 +73,18 @@ import {
   editFactionStructure,
   editJournalStructure,
   exportWorkspaceSources,
+  editWorkspaceTwoDa,
+  editWorkspaceTlk,
+  editWorkspaceModuleDependencies,
+  inspectGitWorkspace,
+  listWorkspaceBuildProfiles,
+  listWorkspaceLaunchProfiles,
+  launchWorkspaceTestProfile,
+  runWorkspaceBuildProfile,
+  saveWorkspaceBuildProfile,
+  saveWorkspaceLaunchProfile,
+  selectNwnExecutable,
+  verifyWorkspaceReproducibleBuild,
   moveAreaInstance,
   removeWorkspaceAreaInstance,
   redoEditCommand,
@@ -115,7 +127,16 @@ import {
   type WalkmeshDraft,
   type WalkmeshKind,
   type WalkmeshOperation,
+  type ModuleBuildProfile,
+  type GitWorkspaceStatus,
+  type TwoDaTable,
+  type TalkTable,
+  type TwoDaEditAction,
+  type TlkEditAction,
+  type NwnLaunchProfile,
 } from "./lib/tauri";
+import { AuroraSyncPanel } from "./components/AuroraSyncPanel";
+import { AiAssistantPanel } from "./components/AiAssistantPanel";
 import { useUiStore } from "./store/uiStore";
 import "./App.css";
 
@@ -635,7 +656,16 @@ function App() {
 
             {!jobId && <NewModuleCreator onCreated={(path) => updateField("modulePath", path)} />}
 
-            {dependencyReport && <DependencyReportView report={dependencyReport} />}
+            {dependencyReport && (
+              <DependencyReportView
+                report={dependencyReport}
+                moduleInfo={moduleInfo}
+                jobId={jobId}
+                editWorkspace={editWorkspace}
+                onWorkspace={setEditWorkspace}
+                onError={pushError}
+              />
+            )}
 
             {structuredSummary && <StructuredSummaryView summary={structuredSummary} />}
 
@@ -697,6 +727,33 @@ function App() {
                   </div>
                 )}
               </section>
+            )}
+
+            {editWorkspace && (
+              <BuildProfilesPanel
+                workspace={editWorkspace}
+                userDataPath={project.userDataPath}
+                onError={pushError}
+              />
+            )}
+
+            {editWorkspace && jobId && (
+              <AuroraSyncPanel
+                jobId={jobId}
+                workspace={editWorkspace}
+                onWorkspaceChange={setEditWorkspace}
+                onError={pushError}
+              />
+            )}
+
+            {editWorkspace && jobId && (
+              <AiAssistantPanel
+                jobId={jobId}
+                workspace={editWorkspace}
+                selectedResource={selectedResource?.key}
+                onWorkspaceChange={setEditWorkspace}
+                onError={pushError}
+              />
             )}
 
             {scriptIndexSummary && jobId && activeExplorerItem === "scripts" && (
@@ -804,6 +861,30 @@ function App() {
                 <>
                   {inspection.kind === "gff" && editWorkspace && (
                     <GffFieldEditor document={inspection.value} onCommit={editSelectedGff} onStructure={editSelectedBlueprintStructure} />
+                  )}
+                  {inspection.kind === "two_da" && editWorkspace && jobId && selectedResource && (
+                    <TwoDaEditor
+                      table={inspection.value}
+                      onCommit={async (action) => {
+                        try {
+                          const result = await editWorkspaceTwoDa({ jobId, workspaceId: editWorkspace.workspaceId, resource: selectedResource.key, action });
+                          setEditWorkspace(result.workspace);
+                          setInspection({ kind: "two_da", value: result.document });
+                        } catch (error) { pushError(error); throw error; }
+                      }}
+                    />
+                  )}
+                  {inspection.kind === "tlk" && editWorkspace && jobId && selectedResource && (
+                    <TlkEditor
+                      table={inspection.value}
+                      onCommit={async (action) => {
+                        try {
+                          const result = await editWorkspaceTlk({ jobId, workspaceId: editWorkspace.workspaceId, resource: selectedResource.key, action });
+                          setEditWorkspace(result.workspace);
+                          setInspection({ kind: "tlk", value: result.document });
+                        } catch (error) { pushError(error); throw error; }
+                      }}
+                    />
                   )}
                   <pre className="raw-inspector">{JSON.stringify(inspection.value, null, 2)}</pre>
                 </>
@@ -974,7 +1055,14 @@ function EditableScalarGffField({label,value,onCommit}:{label:string;value:Gener
   );
 }
 
-function DependencyReportView({ report }: { report: ModuleDependencyReport }) {
+function DependencyReportView({ report, moduleInfo, jobId, editWorkspace, onWorkspace, onError }: {
+  report: ModuleDependencyReport;
+  moduleInfo: { hakFiles: string[]; customTlk: string | null } | undefined;
+  jobId: string | undefined;
+  editWorkspace: WorkspaceSnapshot | undefined;
+  onWorkspace: (workspace: WorkspaceSnapshot) => void;
+  onError: (error: unknown) => void;
+}) {
   return (
     <section className="dependency-card" aria-label="Dépendances du module">
       <div className="dependency-heading">
@@ -999,6 +1087,192 @@ function DependencyReportView({ report }: { report: ModuleDependencyReport }) {
           ))}
         </div>
       )}
+      {moduleInfo && jobId && editWorkspace && (
+        <DependencyEditor
+          initialHakFiles={moduleInfo.hakFiles}
+          initialCustomTlk={moduleInfo.customTlk}
+          onCommit={async (hakFiles, customTlk) => {
+            try {
+              const result = await editWorkspaceModuleDependencies({
+                jobId,
+                workspaceId: editWorkspace.workspaceId,
+                hakFiles,
+                customTlk,
+              });
+              onWorkspace(result.workspace);
+            } catch (error) {
+              onError(error);
+              throw error;
+            }
+          }}
+        />
+      )}
+    </section>
+  );
+}
+
+function DependencyEditor({ initialHakFiles, initialCustomTlk, onCommit }: {
+  initialHakFiles: string[];
+  initialCustomTlk: string | null;
+  onCommit: (hakFiles: string[], customTlk: string | null) => Promise<void>;
+}) {
+  const [haks, setHaks] = useState(initialHakFiles.join("\n"));
+  const [tlk, setTlk] = useState(initialCustomTlk ?? "");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  async function commit() {
+    setBusy(true);
+    setSaved(false);
+    try {
+      const hakFiles = haks.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+      await onCommit(hakFiles, tlk.trim() || null);
+      setSaved(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="dependency-editor">
+      <strong>Gestionnaire HAK/TLK</strong>
+      <label>HAK, dans l’ordre de priorité<textarea value={haks} onChange={(event) => setHaks(event.currentTarget.value)} placeholder="contenu.hak" /></label>
+      <label>TLK personnalisé<input value={tlk} onChange={(event) => setTlk(event.currentTarget.value)} placeholder="dialog.tlk" /></label>
+      <button type="button" disabled={busy} onClick={() => void commit()}>{busy ? "Validation…" : "Appliquer à module.ifo"}</button>
+      {saved && <small>Déclarations relues depuis l’overlay et ajoutées à l’historique annulable.</small>}
+    </div>
+  );
+}
+
+function TwoDaEditor({ table, onCommit }: { table: TwoDaTable; onCommit: (action: TwoDaEditAction) => Promise<void> }) {
+  const [label, setLabel] = useState("");
+  const visibleRows = table.rows.slice(0, 100);
+  return (
+    <div className="table-editor">
+      <div className="table-editor-heading"><strong>Éditeur 2DA</strong><span>{table.rows.length} ligne(s) · {table.columns.length} colonne(s)</span></div>
+      <div className="table-editor-grid" style={{ gridTemplateColumns: `72px repeat(${Math.max(1, table.columns.length)}, minmax(110px, 1fr)) 34px` }}>
+        <b>Label</b>{table.columns.map((column) => <b key={column}>{column}</b>)}<b />
+        {visibleRows.map((row, rowIndex) => (
+          <div className="table-editor-row" style={{ display: "contents" }} key={`${row.label}-${rowIndex}`}>
+            <code>{row.label}</code>
+            {table.columns.map((column, columnIndex) => (
+              <TwoDaCellEditor key={column} value={row.cells[columnIndex] ?? null} onCommit={(value) => onCommit({ kind: "set_cell", rowIndex, columnIndex, value })} />
+            ))}
+            <button type="button" title="Supprimer la ligne" onClick={() => void onCommit({ kind: "remove_row", rowIndex })}>×</button>
+          </div>
+        ))}
+      </div>
+      {table.rows.length > visibleRows.length && <small>Affichage borné aux 100 premières lignes ; la ressource complète reste conservée.</small>}
+      <div className="table-editor-add"><input value={label} onChange={(event) => setLabel(event.currentTarget.value)} placeholder="Nouveau label" /><button type="button" disabled={!label.trim()} onClick={() => { void onCommit({ kind: "add_row", label: label.trim() }); setLabel(""); }}>+ Ligne</button></div>
+    </div>
+  );
+}
+
+function TwoDaCellEditor({ value, onCommit }: { value: string | null; onCommit: (value: string | null) => Promise<void> }) {
+  const [draft, setDraft] = useState(value ?? "");
+  const original = value ?? "";
+  return <input aria-label="Cellule 2DA" value={draft} placeholder="****" onChange={(event) => setDraft(event.currentTarget.value)} onBlur={() => { if (draft !== original) void onCommit(draft || null); }} />;
+}
+
+function TlkEditor({ table, onCommit }: { table: TalkTable; onCommit: (action: TlkEditAction) => Promise<void> }) {
+  const [newText, setNewText] = useState("");
+  return (
+    <div className="table-editor tlk-editor">
+      <div className="table-editor-heading"><strong>Éditeur TLK</strong><span>Langue {table.languageId} · {table.entries.length} entrée(s)</span></div>
+      {table.entries.slice(0, 100).map((entry) => <TlkEntryEditor key={entry.index} entry={entry} onCommit={onCommit} />)}
+      {table.entries.length > 100 && <small>Affichage borné aux 100 premières entrées.</small>}
+      <div className="table-editor-add"><input value={newText} onChange={(event) => setNewText(event.currentTarget.value)} placeholder="Nouvelle chaîne" /><button type="button" onClick={() => { void onCommit({ kind: "append_entry", text: newText || null }); setNewText(""); }}>+ Entrée</button></div>
+    </div>
+  );
+}
+
+function TlkEntryEditor({ entry, onCommit }: { entry: TalkTable["entries"][number]; onCommit: (action: TlkEditAction) => Promise<void> }) {
+  const [text, setText] = useState(entry.text ?? "");
+  const [sound, setSound] = useState(entry.soundResref ?? "");
+  return (
+    <div className="tlk-entry-row">
+      <code>{entry.index}</code>
+      <textarea value={text} onChange={(event) => setText(event.currentTarget.value)} />
+      <input value={sound} onChange={(event) => setSound(event.currentTarget.value)} placeholder="sound resref" />
+      <button type="button" disabled={text === (entry.text ?? "") && sound === (entry.soundResref ?? "")} onClick={() => void onCommit({ kind: "set_entry", index: entry.index, text: text || null, soundResref: sound || null, soundLength: entry.soundLength })}>Appliquer</button>
+    </div>
+  );
+}
+
+function BuildProfilesPanel({ workspace, userDataPath, onError }: { workspace: WorkspaceSnapshot; userDataPath: string; onError: (error: unknown) => void }) {
+  const [profile, setProfile] = useState<ModuleBuildProfile>({ name: "Test local", outputName: "opennever-test.mod", blockOnWarnings: true, deployDevelopment: false, hakFiles: [], customTlk: null });
+  const [profiles, setProfiles] = useState<ModuleBuildProfile[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState("");
+  const [git, setGit] = useState<GitWorkspaceStatus>();
+  const [launchProfiles, setLaunchProfiles] = useState<NwnLaunchProfile[]>([]);
+  const [launchProfile, setLaunchProfile] = useState<NwnLaunchProfile>({ name: "Client local", mode: "client", executablePath: "", workingDirectory: "", arguments: [] });
+  useEffect(() => {
+    void listWorkspaceBuildProfiles({ workspaceId: workspace.workspaceId }).then(setProfiles).catch(onError);
+    void listWorkspaceLaunchProfiles({ workspaceId: workspace.workspaceId }).then(setLaunchProfiles).catch(onError);
+  }, [workspace.workspaceId]);
+  async function execute(action: "save" | "verify" | "run" | "git") {
+    setBusy(true);
+    try {
+      if (action === "save") {
+        setProfiles(await saveWorkspaceBuildProfile({ workspaceId: workspace.workspaceId, profile }));
+        setResult("Profil sauvegardé dans le workspace.");
+      } else if (action === "verify") {
+        const verification = await verifyWorkspaceReproducibleBuild({ workspaceId: workspace.workspaceId, profile });
+        setResult(verification.identical ? `Build reproductible confirmé · ${verification.firstSha256.slice(0, 16)}…${verification.warnings.length ? ` · ${verification.warnings.length} avertissement(s)` : ""}` : "Échec : les deux builds diffèrent.");
+      } else if (action === "run") {
+        const outputDirectory = await selectDirectory();
+        if (!outputDirectory) return;
+        const report = await runWorkspaceBuildProfile({ workspaceId: workspace.workspaceId, profile, outputDirectory, userDataPath: userDataPath || null });
+        setResult(`Build ${report.build.sha256.slice(0, 16)}… · ${report.build.resourceCount} ressource(s)${report.deployment ? " · development déployé" : ""}${report.warnings.length ? ` · ${report.warnings.length} avertissement(s)` : ""}.`);
+      } else {
+        const root = await selectDirectory();
+        if (!root) return;
+        const status = await inspectGitWorkspace({ root });
+        setGit(status);
+        setResult(status.clean ? "Dépôt Git propre." : `${status.files.length} changement(s) Git visible(s).`);
+      }
+    } catch (error) {
+      onError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function executeLaunch(action: "save" | "launch") {
+    setBusy(true);
+    try {
+      if (action === "save") {
+        setLaunchProfiles(await saveWorkspaceLaunchProfile({ workspaceId: workspace.workspaceId, profile: launchProfile }));
+        setResult("Profil de test NWN sauvegardé.");
+      } else {
+        const report = await launchWorkspaceTestProfile({ workspaceId: workspace.workspaceId, profile: launchProfile });
+        setResult(`Processus ${report.processId} lancé · journal ${report.logPath}.`);
+      }
+    } catch (error) { onError(error); } finally { setBusy(false); }
+  }
+  return (
+    <section className="build-profile-card" aria-label="Profils de build et intégration Git">
+      <div className="dependency-heading"><div><span className="eyebrow">LOT 22 · REPRODUCTIBILITÉ</span><h2>Profils de build et Git</h2></div><span>{profiles.length} profil(s)</span></div>
+      <div className="build-profile-form">
+        <label>Nom<input value={profile.name} onChange={(event) => setProfile({ ...profile, name: event.currentTarget.value })} /></label>
+        <label>Fichier MOD<input value={profile.outputName} onChange={(event) => setProfile({ ...profile, outputName: event.currentTarget.value })} /></label>
+        <label>HAK attendus<input value={profile.hakFiles.join(", ")} onChange={(event) => setProfile({ ...profile, hakFiles: event.currentTarget.value.split(",").map((value) => value.trim()).filter(Boolean) })} placeholder="contenu.hak, correctifs.hak" /></label>
+        <label>TLK attendu<input value={profile.customTlk ?? ""} onChange={(event) => setProfile({ ...profile, customTlk: event.currentTarget.value.trim() || null })} placeholder="dialog.tlk" /></label>
+        <label className="check-row"><input type="checkbox" checked={profile.blockOnWarnings} onChange={(event) => setProfile({ ...profile, blockOnWarnings: event.currentTarget.checked })} /> Bloquer sur avertissements</label>
+        <label className="check-row"><input type="checkbox" checked={profile.deployDevelopment} onChange={(event) => setProfile({ ...profile, deployDevelopment: event.currentTarget.checked })} /> Déployer dans development</label>
+      </div>
+      <div className="profile-actions"><button type="button" disabled={busy} onClick={() => void execute("save")}>Sauvegarder</button><button type="button" disabled={busy || !workspace.modifiedResources.length} onClick={() => void execute("verify")}>Vérifier ×2</button><button type="button" disabled={busy || !workspace.modifiedResources.length} onClick={() => void execute("run")}>Construire</button><button type="button" disabled={busy} onClick={() => void execute("git")}><GitBranch size={13} /> Inspecter Git</button></div>
+      {result && <p className="profile-result">{result}</p>}
+      {git && <div className="git-status"><strong>{git.branch || "HEAD détachée"}</strong><code>{git.head?.slice(0, 12) ?? "aucun commit"}</code><span>{git.clean ? "Propre" : `${git.files.length} fichier(s) modifié(s)`}</span>{git.files.slice(0, 20).map((file) => <small key={`${file.indexStatus}${file.worktreeStatus}${file.path}`}><code>{file.indexStatus}{file.worktreeStatus}</code> {file.path}</small>)}</div>}
+      <div className="launch-profile-section">
+        <div className="table-editor-heading"><strong>Profil de test NWN</strong><span>{launchProfiles.length} profil(s)</span></div>
+        <div className="build-profile-form">
+          <label>Nom<input value={launchProfile.name} onChange={(event) => setLaunchProfile({ ...launchProfile, name: event.currentTarget.value })} /></label>
+          <label>Mode<select value={launchProfile.mode} onChange={(event) => setLaunchProfile({ ...launchProfile, mode: event.currentTarget.value as "client" | "server" })}><option value="client">Client nwmain</option><option value="server">Serveur nwserver</option></select></label>
+          <label>Exécutable<div className="path-picker"><input value={launchProfile.executablePath} readOnly /><button type="button" onClick={async () => { const path = await selectNwnExecutable(); if (path) setLaunchProfile({ ...launchProfile, executablePath: path }); }}>Parcourir</button></div></label>
+          <label>Dossier de travail<div className="path-picker"><input value={launchProfile.workingDirectory} readOnly /><button type="button" onClick={async () => { const path = await selectDirectory(); if (path) setLaunchProfile({ ...launchProfile, workingDirectory: path }); }}>Parcourir</button></div></label>
+          <label className="launch-arguments">Arguments, un par ligne<textarea value={launchProfile.arguments.join("\n")} onChange={(event) => setLaunchProfile({ ...launchProfile, arguments: event.currentTarget.value.split(/\r?\n/).filter(Boolean) })} placeholder="-module\nopennever-test" /></label>
+        </div>
+        <div className="profile-actions"><button type="button" disabled={busy || !launchProfile.executablePath || !launchProfile.workingDirectory} onClick={() => void executeLaunch("save")}>Sauvegarder le test</button><button type="button" disabled={busy || !launchProfile.executablePath || !launchProfile.workingDirectory} onClick={() => void executeLaunch("launch")}>Lancer maintenant</button></div>
+      </div>
     </section>
   );
 }

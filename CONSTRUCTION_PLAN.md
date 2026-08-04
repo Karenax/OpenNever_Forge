@@ -346,8 +346,9 @@ numérotés Lots 11 à 16 pour la suite du programme :
 transactionnel récupère les interruptions, restaure les octets atomiquement et lie chaque commande
 aux ressources exactes. Les writers GFF/ERF préservent les métadonnées et construisent les payloads
 en streaming. La compilation NCS enregistre le compilateur et les includes transitifs exacts. Les
-ajouts/suppressions d'instances et de zones sont intégrés. Les éditeurs métier spécialisés et les
-profils de lancement restent à compléter avant d'accepter définitivement la porte de sortie.
+ajouts/suppressions d'instances et de zones, éditeurs métier et profils de lancement sont intégrés.
+La porte de sortie technique est couverte ; sa preuve moteur finale reste à rejouer sur un profil
+NWN où le module témoin atteint effectivement l’écoute serveur.
 
 Porte de sortie : un module de test synthétique puis un module utilisateur autorisé peuvent être modifiés, reconstruits, rouverts dans NWN Editor et lancés dans le jeu, tout en conservant l'original intact.
 
@@ -365,14 +366,21 @@ Ordre proposé, numéroté Lots 17 à 25 :
 8. **Lot 24** — documentation, analyse et refactoring ;
 9. **Lot 25** — assistance IA contrôlée, uniquement sous forme d'opérations validées, prévisualisées et annulables.
 
-**Statut au 4 août 2026 : fondations exécutables sur les neuf lots.** Les Lots 17 à 19 disposent
+**Statut au 4 août 2026 : Lots 17 à 25 exécutables.** Les Lots 17 à 19 disposent
 d'une verticale atomique utilisable et réhydratée dans l'interface. L'implémentation du Lot 20 est
 complète : grammaires ASCII autonomes WOK/PWK/DWK, AABB déterministe, variantes/hooks, surfaces et
 opérations de déplacement, découpe, suppression, extrusion et soudure. Le harnais moteur produit
 trois overrides réels sans modifier le module source ; le `nwserver.exe` local plante toutefois de
 façon identique sur le témoin et l'overlay, ce qui laisse la preuve moteur finale inconclusive dans
-cet environnement. Les Lots 21 à 23 et 25 ont des contrats Rust testés ; le Lot 24 est documenté. Voir
-`docs/validation/phase2-phase3-foundation-review.md` pour la séparation exacte entre livré et restant.
+cet environnement. Les Lots 21 et 22 sont désormais complets : writers et éditeurs TLK/2DA,
+gestion transactionnelle des déclarations HAK/TLK, profils persistants, double build comparé et
+inspection Git sans shell. Le Lot 23 compare désormais Toolset, overlay et baseline, exige un choix
+sur les conflits et sauvegarde toute cible avant écriture. Le Lot 24 apporte le schéma workspace v3,
+les migrations sauvegardées, les guides utilisateur/migration et le refactoring du moteur de
+synchronisation. Le Lot 25 branche un endpoint compatible choisi par l’utilisateur avec réseau et
+partage désactivés par défaut, clé éphémère, validation des seules opérations GFF/NSS autorisées,
+prévisualisation sur les octets courants, confirmation par SHA-256 et application annulable. Voir
+`docs/validation/lot25-exit-review.md` pour la preuve et les limites exactes.
 
 Le critère final est fonctionnel : créer, maintenir, compiler et tester un module complexe sans ouvrir Aurora.
 
@@ -472,8 +480,15 @@ Ces choix ne bloquent pas la rédaction du plan mais bloquent certains commits :
 
 ## 12. Prochaine action recommandée
 
-Commencer le **Lot 21** par les éditeurs TLK/2DA et le gestionnaire graphique des dépendances HAK.
-Le Lot 20 est implémenté et son harnais de validation moteur reste reproductible avec
-`scripts/validate_nwn_runtime.ps1`; une exécution sur un profil NWN où le témoin `nwserver` démarre
-devra simplement convertir son verdict environnemental actuel en preuve moteur positive. Le détail
-des étapes suivantes est maintenu dans `docs/validation/phase2-phase3-foundation-review.md`.
+Le **plan de développement des Lots 0 à 25 est terminé**. Préparer la candidate release Windows,
+conserver les résultats de la validation synthétique sans Aurora et ne fermer les deux acceptations
+externes suivantes qu’après observation réelle :
+
+1. rejouer `scripts/validate_nwn_runtime.ps1` sur un profil où le témoin `nwserver` atteint l’écoute,
+   puis confirmer le chargement client du module construit ;
+2. contrôler un cycle Toolset réel comparer → synchroniser → compiler NSS en NCS → sauvegarder →
+   fermer → rouvrir.
+
+Ces contrôles ne cachent plus de développement planifié. Leur statut reste explicitement
+**inconclusif/non observé** dans l’environnement actuel ; aucun succès moteur ou Toolset ne doit être
+inventé. Le détail est maintenu dans `docs/validation/phase2-phase3-foundation-review.md`.

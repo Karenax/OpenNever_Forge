@@ -1,13 +1,23 @@
-use aurora_core::{AppError, AppResult, ErrorSeverity, ResourceKey};
+mod sync;
+
+pub use sync::{
+    AURORA_SYNC_SCHEMA_VERSION, AuroraSyncAction, AuroraSyncAppliedFile, AuroraSyncBaseline,
+    AuroraSyncBaselineEntry, AuroraSyncDirection, AuroraSyncEntry, AuroraSyncManifest,
+    AuroraSyncPlan, AuroraSyncReport, AuroraSyncState, AuroraSyncWorkspaceFile, baseline_from_plan,
+    compare_aurora_sync, content_digest, resource_key_from_aurora_path, verify_sync_action,
+};
+
+use aurora_core::{AppError, AppResult, ErrorSeverity, ResourceKey, resource_type_for_extension};
 use aurora_erf::{
     ContainerReader, ErfReader, ErfResourceInput, ErfResourceSource, ErfResourceStreamInput,
     write_erf, write_erf_streaming, write_erf_streaming_with_metadata,
 };
 use aurora_gff::{
     GenericField, GenericGff, GenericStruct, GenericValue, LocalizedString, LocalizedValue,
-    parse_gff, write_gff,
+    parse_gff, read_module_info, write_gff,
 };
 use aurora_mdl::{MdlFormat, parse_mdl};
+use aurora_nwscript::parse_nss;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -15,9 +25,10 @@ use std::collections::BTreeMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 
-pub const EDIT_WORKSPACE_SCHEMA_VERSION: u32 = 2;
+pub const EDIT_WORKSPACE_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -335,6 +346,15 @@ pub struct ModifiedResource {
     pub relative_path: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceMigrationRecord {
+    pub from_version: u32,
+    pub to_version: u32,
+    pub backup_path: String,
+    pub steps: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandPreview {
@@ -362,6 +382,7 @@ pub struct WorkspaceSnapshot {
     pub deleted_resources: Vec<ResourceKey>,
     pub journal_events: u64,
     pub values: BTreeMap<String, Value>,
+    pub migration_history: Vec<WorkspaceMigrationRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -530,20 +551,66 @@ pub struct ModuleBuildProfile {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct ReproducibleBuildVerification {
+    pub profile: ModuleBuildProfile,
+    pub first_sha256: String,
+    pub second_sha256: String,
+    pub identical: bool,
+    pub resource_count: usize,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct GitFileStatus {
+    pub path: String,
+    pub index_status: String,
+    pub worktree_status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorkspaceStatus {
+    pub root: String,
+    pub branch: String,
+    pub head: Option<String>,
+    pub clean: bool,
+    pub files: Vec<GitFileStatus>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum NwnLaunchMode {
+    Client,
+    Server,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NwnLaunchProfile {
+    pub name: String,
+    pub mode: NwnLaunchMode,
+    pub executable_path: String,
+    pub working_directory: String,
+    pub arguments: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NwnLaunchReport {
+    pub profile: NwnLaunchProfile,
+    pub process_id: u32,
+    pub log_path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkspaceExportManifest {
     pub schema_version: u32,
     pub workspace_id: String,
     pub source_sha256: String,
     pub files: Vec<DevelopmentFile>,
     pub deleted_resources: Vec<ResourceKey>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct AuroraSyncManifest {
-    pub schema_version: u32,
-    pub root: String,
-    pub files: Vec<DevelopmentFile>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -557,8 +624,147 @@ pub struct AiChangeSet {
 #[serde(rename_all = "camelCase")]
 pub struct AiChangeSetPreview {
     pub summary: String,
+    pub proposal_sha256: String,
     pub all_valid: bool,
     pub previews: Vec<CommandPreview>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AiApplyReport {
+    pub proposal_sha256: String,
+    pub applied_commands: usize,
+    pub workspace: WorkspaceSnapshot,
+}
+
+pub fn ai_change_set_sha256(change_set: &AiChangeSet) -> AppResult<String> {
+    validate_controlled_ai_change_set(change_set)?;
+    let encoded = serde_json::to_vec(change_set).map_err(|error| {
+        edit_error(
+            "EDIT_AI_PROPOSAL_SERIALIZE_FAILED",
+            format!("cannot serialize AI proposal: {error}"),
+        )
+    })?;
+    Ok(hex::encode(Sha256::digest(encoded)))
+}
+
+pub fn validate_controlled_ai_change_set(change_set: &AiChangeSet) -> AppResult<()> {
+    if change_set.summary.trim().is_empty() || change_set.summary.len() > 512 {
+        return Err(edit_error(
+            "EDIT_AI_SUMMARY_INVALID",
+            "AI proposals require a non-empty summary of at most 512 bytes",
+        ));
+    }
+    if change_set.commands.is_empty() || change_set.commands.len() > 32 {
+        return Err(edit_error(
+            "EDIT_AI_COMMAND_COUNT_INVALID",
+            "AI proposals must contain between 1 and 32 operations",
+        ));
+    }
+    let encoded_size = serde_json::to_vec(change_set)
+        .map_err(|error| {
+            edit_error(
+                "EDIT_AI_PROPOSAL_SERIALIZE_FAILED",
+                format!("cannot serialize AI proposal: {error}"),
+            )
+        })?
+        .len();
+    if encoded_size > 1024 * 1024 {
+        return Err(edit_error(
+            "EDIT_AI_PROPOSAL_TOO_LARGE",
+            "AI proposal JSON exceeds the 1 MiB safety limit",
+        ));
+    }
+    for command in &change_set.commands {
+        command
+            .validate()
+            .map_err(|message| edit_error("EDIT_AI_COMMAND_INVALID", message))?;
+        match command {
+            EditCommand::SetField {
+                resource,
+                path,
+                before,
+                after,
+            } => {
+                validate_resref(&resource.resref)?;
+                let extension = aurora_core::resource_extension(resource.resource_type);
+                if !matches!(
+                    extension,
+                    Some(
+                        "are"
+                            | "ifo"
+                            | "bic"
+                            | "git"
+                            | "uti"
+                            | "utc"
+                            | "dlg"
+                            | "itp"
+                            | "utt"
+                            | "uts"
+                            | "gff"
+                            | "fac"
+                            | "ute"
+                            | "utd"
+                            | "utp"
+                            | "gic"
+                            | "gui"
+                            | "utm"
+                            | "jrl"
+                            | "utw"
+                    )
+                ) {
+                    return Err(edit_error(
+                        "EDIT_AI_RESOURCE_TYPE_UNSUPPORTED",
+                        format!("{resource} is not a supported GFF resource"),
+                    ));
+                }
+                if path.len() > 256
+                    || serde_json::to_vec(before).is_ok_and(|value| value.len() > 64 * 1024)
+                    || serde_json::to_vec(after).is_ok_and(|value| value.len() > 64 * 1024)
+                {
+                    return Err(edit_error(
+                        "EDIT_AI_FIELD_OPERATION_TOO_LARGE",
+                        format!("field operation for {resource} exceeds its safety limit"),
+                    ));
+                }
+            }
+            EditCommand::ReplaceText {
+                resource,
+                before,
+                after,
+            } => {
+                validate_resref(&resource.resref)?;
+                if resource.resource_type != 2009 {
+                    return Err(edit_error(
+                        "EDIT_AI_RESOURCE_TYPE_UNSUPPORTED",
+                        format!("AI text replacement is limited to NSS, not {resource}"),
+                    ));
+                }
+                if before.len() > 256 * 1024 || after.len() > 256 * 1024 {
+                    return Err(edit_error(
+                        "EDIT_AI_SCRIPT_TOO_LARGE",
+                        format!("AI script operation for {resource} exceeds 256 KiB"),
+                    ));
+                }
+            }
+            _ => {
+                return Err(edit_error(
+                    "EDIT_AI_COMMAND_UNSUPPORTED",
+                    "AI output may only contain set_field and replace_text operations",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn controlled_ai_resource(command: &EditCommand) -> &ResourceKey {
+    match command {
+        EditCommand::SetField { resource, .. } | EditCommand::ReplaceText { resource, .. } => {
+            resource
+        }
+        _ => unreachable!("controlled AI validation rejects unsupported commands"),
+    }
 }
 
 impl PaletteManifest {
@@ -633,6 +839,8 @@ struct PersistedWorkspace {
     #[serde(default)]
     pending_revision: Option<ResourceRevision>,
     next_event_sequence: u64,
+    #[serde(default)]
+    migration_history: Vec<WorkspaceMigrationRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -742,6 +950,7 @@ impl EditWorkspace {
                 resource_revisions: Vec::new(),
                 pending_revision: None,
                 next_event_sequence: 1,
+                migration_history: Vec::new(),
             },
         };
         workspace.persist()?;
@@ -765,7 +974,7 @@ impl EditWorkspace {
                 format!("cannot decode {}: {error}", path.display()),
             )
         })?;
-        if !matches!(state.schema_version, 1 | EDIT_WORKSPACE_SCHEMA_VERSION) {
+        if state.schema_version == 0 || state.schema_version > EDIT_WORKSPACE_SCHEMA_VERSION {
             return Err(edit_error(
                 "EDIT_WORKSPACE_VERSION_UNSUPPORTED",
                 format!(
@@ -780,8 +989,45 @@ impl EditWorkspace {
                 "workspace cursor is outside the command timeline",
             ));
         }
+        let previous_schema = state.schema_version;
+        let migration = if previous_schema < EDIT_WORKSPACE_SCHEMA_VERSION {
+            let backup_path = root.join(format!("workspace.json.v{previous_schema}.bak"));
+            atomic_write(&backup_path, &bytes)?;
+            let mut steps = Vec::new();
+            if previous_schema < 2 {
+                steps.push(
+                    "initialisation des révisions de ressources et des suppressions atomiques"
+                        .to_owned(),
+                );
+            }
+            if previous_schema < 3 {
+                steps.push(
+                    "activation des baselines Toolset et de l’historique de migration".to_owned(),
+                );
+            }
+            Some(WorkspaceMigrationRecord {
+                from_version: previous_schema,
+                to_version: EDIT_WORKSPACE_SCHEMA_VERSION,
+                backup_path: backup_path.display().to_string(),
+                steps,
+            })
+        } else {
+            None
+        };
         state.schema_version = EDIT_WORKSPACE_SCHEMA_VERSION;
+        if let Some(migration) = migration.clone() {
+            state.migration_history.push(migration);
+        }
         let mut workspace = Self { root, state };
+        if migration.is_some() {
+            workspace.persist()?;
+            workspace.append_event(
+                "migrate_workspace",
+                workspace.state.cursor,
+                workspace.state.cursor,
+                None,
+            )?;
+        }
         if workspace.state.pending_revision.is_some() {
             workspace.restore_pending_revision()?;
             workspace.persist()?;
@@ -1047,10 +1293,6 @@ impl EditWorkspace {
             .state
             .modified_resources
             .contains_key(&resource.to_string())
-            || self
-                .state
-                .deleted_resources
-                .contains_key(&resource.to_string())
         {
             return Err(edit_error(
                 "EDIT_RESOURCE_ALREADY_EXISTS",
@@ -1301,6 +1543,7 @@ impl EditWorkspace {
             deleted_resources: self.state.deleted_resources.values().cloned().collect(),
             journal_events: self.state.next_event_sequence.saturating_sub(1),
             values: self.state.values.clone(),
+            migration_history: self.state.migration_history.clone(),
         })
     }
 
@@ -1769,7 +2012,7 @@ impl EditWorkspace {
         })
     }
 
-    fn validate_compiled_scripts(&self) -> AppResult<()> {
+    pub fn validate_compiled_scripts(&self) -> AppResult<()> {
         for modified in self.state.modified_resources.values() {
             if modified.resource.resource_type != 2009 {
                 continue;
@@ -1843,9 +2086,174 @@ impl EditWorkspace {
         }
         AiChangeSetPreview {
             summary: change_set.summary.clone(),
+            proposal_sha256: hex::encode(Sha256::digest(
+                serde_json::to_vec(change_set).expect("AI change set serializes"),
+            )),
             all_valid: !previews.is_empty() && previews.iter().all(|preview| preview.valid),
             previews,
         }
+    }
+
+    pub fn preview_controlled_ai_change_set(
+        &self,
+        change_set: &AiChangeSet,
+        source_resources: &BTreeMap<String, Vec<u8>>,
+    ) -> AppResult<AiChangeSetPreview> {
+        validate_controlled_ai_change_set(change_set)?;
+        let mut preview = self.preview_ai_change_set(change_set);
+        let mut resource_states = BTreeMap::<String, Vec<u8>>::new();
+
+        for (index, command) in change_set.commands.iter().enumerate() {
+            if !preview.previews[index].valid {
+                continue;
+            }
+            let resource = controlled_ai_resource(command);
+            let key = resource.to_string();
+            if !resource_states.contains_key(&key) {
+                let bytes = self
+                    .staged_resource_bytes(resource)?
+                    .or_else(|| source_resources.get(&key).cloned())
+                    .ok_or_else(|| {
+                        edit_error(
+                            "EDIT_AI_RESOURCE_MISSING",
+                            format!("no source bytes are available for {resource}"),
+                        )
+                    })?;
+                resource_states.insert(key.clone(), bytes);
+            }
+            let current = resource_states
+                .get(&key)
+                .expect("controlled resource state was inserted")
+                .clone();
+            let transformed = match command {
+                EditCommand::SetField {
+                    path,
+                    before,
+                    after,
+                    ..
+                } => edit_gff_field(
+                    &current,
+                    &format!("ai-preview::{}", resource.file_name()),
+                    path,
+                    before,
+                    after,
+                )
+                .map(|(bytes, _)| bytes),
+                EditCommand::ReplaceText { before, after, .. } => {
+                    let current_text = String::from_utf8_lossy(&current).into_owned();
+                    if current_text != *before {
+                        Err(edit_error(
+                            "EDIT_AI_TEXT_PRECONDITION_FAILED",
+                            format!("current text for {resource} differs from the proposal"),
+                        ))
+                    } else {
+                        parse_nss(after.as_bytes(), &format!("ai-preview::{resource}"))?;
+                        Ok(after.as_bytes().to_vec())
+                    }
+                }
+                _ => unreachable!("controlled AI validation rejects unsupported commands"),
+            };
+            match transformed {
+                Ok(bytes) => {
+                    resource_states.insert(key, bytes);
+                }
+                Err(error) => {
+                    preview.previews[index].valid = false;
+                    preview.previews[index].diagnostic = Some(error.user_message.clone());
+                }
+            }
+        }
+        preview.all_valid =
+            !preview.previews.is_empty() && preview.previews.iter().all(|command| command.valid);
+        Ok(preview)
+    }
+
+    pub fn apply_controlled_ai_change_set(
+        &mut self,
+        change_set: &AiChangeSet,
+        expected_proposal_sha256: &str,
+        source_resources: &BTreeMap<String, Vec<u8>>,
+    ) -> AppResult<AiApplyReport> {
+        let proposal_sha256 = ai_change_set_sha256(change_set)?;
+        if proposal_sha256 != expected_proposal_sha256 {
+            return Err(edit_error(
+                "EDIT_AI_PROPOSAL_CHANGED",
+                "the confirmed AI proposal does not match its preview digest",
+            ));
+        }
+        let preview = self.preview_controlled_ai_change_set(change_set, source_resources)?;
+        if !preview.all_valid {
+            return Err(edit_error(
+                "EDIT_AI_PREVIEW_REJECTED",
+                "at least one AI operation failed its current byte or schema precondition",
+            ));
+        }
+
+        let cursor_before = self.state.cursor;
+        for command in change_set.commands.iter().cloned() {
+            let resource = controlled_ai_resource(&command).clone();
+            let source_bytes = source_resources.get(&resource.to_string()).ok_or_else(|| {
+                edit_error(
+                    "EDIT_AI_RESOURCE_MISSING",
+                    format!("no immutable source bytes are available for {resource}"),
+                )
+            })?;
+            let current = self
+                .staged_resource_bytes(&resource)?
+                .unwrap_or_else(|| source_bytes.clone());
+            let output = match &command {
+                EditCommand::SetField {
+                    path,
+                    before,
+                    after,
+                    ..
+                } => edit_gff_field(
+                    &current,
+                    &format!("ai-apply::{}", resource.file_name()),
+                    path,
+                    before,
+                    after,
+                )
+                .map(|(bytes, _)| bytes),
+                EditCommand::ReplaceText { before, after, .. } => {
+                    let current_text = String::from_utf8_lossy(&current).into_owned();
+                    if current_text != *before {
+                        Err(edit_error(
+                            "EDIT_AI_TEXT_PRECONDITION_FAILED",
+                            format!("current text for {resource} differs from the proposal"),
+                        ))
+                    } else {
+                        parse_nss(after.as_bytes(), &format!("ai-apply::{resource}"))?;
+                        Ok(after.as_bytes().to_vec())
+                    }
+                }
+                _ => unreachable!("controlled AI validation rejects unsupported commands"),
+            };
+            let result = output.and_then(|bytes| {
+                self.stage_resource(resource, Some(source_bytes), &bytes)?;
+                self.apply(command)
+            });
+            if let Err(error) = result {
+                self.rollback_ai_batch(cursor_before)?;
+                return Err(error);
+            }
+        }
+
+        Ok(AiApplyReport {
+            proposal_sha256,
+            applied_commands: change_set.commands.len(),
+            workspace: self.snapshot()?,
+        })
+    }
+
+    fn rollback_ai_batch(&mut self, cursor: usize) -> AppResult<()> {
+        while self.state.cursor > cursor {
+            self.undo()?;
+        }
+        self.state.timeline.truncate(cursor);
+        self.state.resource_revisions.truncate(cursor);
+        self.persist()?;
+        self.append_event("rollback_ai_change_set", cursor, cursor, None)
     }
 
     pub fn export_reproducible_sources(
@@ -1901,6 +2309,289 @@ impl EditWorkspace {
             .map_err(|error| edit_error("EDIT_EXPORT_SERIALIZE_FAILED", error.to_string()))?;
         atomic_write(&destination.join("opennever-export.json"), &bytes)?;
         Ok(manifest)
+    }
+
+    pub fn load_aurora_sync_baseline(
+        &self,
+        toolset_root: &Path,
+    ) -> AppResult<Option<AuroraSyncBaseline>> {
+        let path = self.aurora_sync_baseline_path(toolset_root)?;
+        if !path.is_file() {
+            return Ok(None);
+        }
+        let bytes = fs::read(&path).map_err(|error| {
+            Box::new(AppError::io(
+                "read Aurora synchronization baseline",
+                path.display().to_string(),
+                &error,
+            ))
+        })?;
+        let mut baseline =
+            serde_json::from_slice::<AuroraSyncBaseline>(&bytes).map_err(|error| {
+                edit_error(
+                    "EDIT_AURORA_SYNC_BASELINE_INVALID",
+                    format!("cannot decode {}: {error}", path.display()),
+                )
+            })?;
+        if baseline.schema_version == 0 || baseline.schema_version > AURORA_SYNC_SCHEMA_VERSION {
+            return Err(edit_error(
+                "EDIT_AURORA_SYNC_BASELINE_VERSION_UNSUPPORTED",
+                format!(
+                    "baseline schema {} is not supported",
+                    baseline.schema_version
+                ),
+            ));
+        }
+        baseline.schema_version = AURORA_SYNC_SCHEMA_VERSION;
+        Ok(Some(baseline))
+    }
+
+    pub fn save_aurora_sync_baseline(
+        &self,
+        toolset_root: &Path,
+        baseline: &AuroraSyncBaseline,
+    ) -> AppResult<String> {
+        let path = self.aurora_sync_baseline_path(toolset_root)?;
+        let mut normalized = baseline.clone();
+        normalized.schema_version = AURORA_SYNC_SCHEMA_VERSION;
+        normalized.root = canonical_toolset_root(toolset_root)?;
+        normalized
+            .entries
+            .sort_by(|left, right| left.resource.cmp(&right.resource));
+        let bytes = serde_json::to_vec_pretty(&normalized).map_err(|error| {
+            edit_error(
+                "EDIT_AURORA_SYNC_BASELINE_SERIALIZE_FAILED",
+                error.to_string(),
+            )
+        })?;
+        atomic_write(&path, &bytes)?;
+        Ok(path.display().to_string())
+    }
+
+    fn aurora_sync_baseline_path(&self, toolset_root: &Path) -> AppResult<PathBuf> {
+        let root = canonical_toolset_root(toolset_root)?;
+        let identity = sha256_bytes(root.to_ascii_lowercase().as_bytes());
+        Ok(self
+            .root
+            .join("aurora-sync")
+            .join(format!("{identity}.json")))
+    }
+
+    pub fn list_build_profiles(&self) -> AppResult<Vec<ModuleBuildProfile>> {
+        let path = self.root.join("build-profiles.json");
+        if !path.is_file() {
+            return Ok(Vec::new());
+        }
+        let bytes = fs::read(&path).map_err(|error| {
+            Box::new(AppError::io(
+                "read build profiles",
+                path.display().to_string(),
+                &error,
+            ))
+        })?;
+        let mut profiles =
+            serde_json::from_slice::<Vec<ModuleBuildProfile>>(&bytes).map_err(|error| {
+                edit_error(
+                    "EDIT_BUILD_PROFILES_INVALID",
+                    format!("cannot decode {}: {error}", path.display()),
+                )
+            })?;
+        for profile in &profiles {
+            validate_build_profile(profile)?;
+        }
+        profiles.sort_by(|left, right| {
+            left.name
+                .to_ascii_lowercase()
+                .cmp(&right.name.to_ascii_lowercase())
+        });
+        Ok(profiles)
+    }
+
+    pub fn save_build_profile(
+        &self,
+        profile: ModuleBuildProfile,
+    ) -> AppResult<Vec<ModuleBuildProfile>> {
+        validate_build_profile(&profile)?;
+        let mut profiles = self.list_build_profiles()?;
+        profiles.retain(|candidate| !candidate.name.eq_ignore_ascii_case(&profile.name));
+        profiles.push(profile);
+        profiles.sort_by(|left, right| {
+            left.name
+                .to_ascii_lowercase()
+                .cmp(&right.name.to_ascii_lowercase())
+        });
+        let bytes = serde_json::to_vec_pretty(&profiles).map_err(|error| {
+            edit_error("EDIT_BUILD_PROFILES_SERIALIZE_FAILED", error.to_string())
+        })?;
+        atomic_write(&self.root.join("build-profiles.json"), &bytes)?;
+        Ok(profiles)
+    }
+
+    pub fn verify_reproducible_build(
+        &self,
+        profile: &ModuleBuildProfile,
+    ) -> AppResult<ReproducibleBuildVerification> {
+        let warnings = self.validate_build_profile_context(profile)?;
+        let temp = tempfile::tempdir().map_err(|error| {
+            Box::new(AppError::io(
+                "create build verification directory",
+                "temporary",
+                &error,
+            ))
+        })?;
+        let first = temp.path().join("first.mod");
+        let second = temp.path().join("second.mod");
+        let first_report = self.build_module(&first)?;
+        let second_report = self.build_module(&second)?;
+        Ok(ReproducibleBuildVerification {
+            profile: profile.clone(),
+            first_sha256: first_report.sha256.clone(),
+            second_sha256: second_report.sha256.clone(),
+            identical: first_report.sha256 == second_report.sha256,
+            resource_count: first_report.resource_count,
+            warnings,
+        })
+    }
+
+    pub fn validate_build_profile_context(
+        &self,
+        profile: &ModuleBuildProfile,
+    ) -> AppResult<Vec<String>> {
+        validate_build_profile(profile)?;
+        let key = ResourceKey::new("module", 2014);
+        let bytes = if let Some(bytes) = self.staged_resource_bytes(&key)? {
+            bytes
+        } else {
+            let source = Path::new(&self.state.source.path);
+            let reader = ErfReader::default();
+            let inventory = reader.read_inventory(source, &AtomicBool::new(false))?;
+            let resource = inventory
+                .resources
+                .iter()
+                .find(|resource| resource.key == key)
+                .ok_or_else(|| {
+                    edit_error(
+                        "EDIT_MODULE_INFO_MISSING",
+                        "source module has no module.ifo",
+                    )
+                })?;
+            reader.read_resource(source, resource, &AtomicBool::new(false))?
+        };
+        let info = read_module_info(&bytes, "profile::module.ifo")?;
+        let mut warnings = Vec::new();
+        if info.hak_files != profile.hak_files {
+            warnings.push(format!(
+                "profile HAK list {:?} differs from module.ifo {:?}",
+                profile.hak_files, info.hak_files
+            ));
+        }
+        if info.custom_tlk != profile.custom_tlk {
+            warnings.push(format!(
+                "profile custom TLK {:?} differs from module.ifo {:?}",
+                profile.custom_tlk, info.custom_tlk
+            ));
+        }
+        if profile.block_on_warnings && !warnings.is_empty() {
+            return Err(edit_error(
+                "EDIT_BUILD_PROFILE_WARNINGS_BLOCKED",
+                warnings.join("; "),
+            ));
+        }
+        Ok(warnings)
+    }
+
+    pub fn list_launch_profiles(&self) -> AppResult<Vec<NwnLaunchProfile>> {
+        let path = self.root.join("launch-profiles.json");
+        if !path.is_file() {
+            return Ok(Vec::new());
+        }
+        let bytes = fs::read(&path).map_err(|error| {
+            Box::new(AppError::io(
+                "read launch profiles",
+                path.display().to_string(),
+                &error,
+            ))
+        })?;
+        let mut profiles = serde_json::from_slice::<Vec<NwnLaunchProfile>>(&bytes)
+            .map_err(|error| edit_error("EDIT_LAUNCH_PROFILES_INVALID", error.to_string()))?;
+        for profile in &profiles {
+            validate_launch_profile(profile)?;
+        }
+        profiles.sort_by(|left, right| {
+            left.name
+                .to_ascii_lowercase()
+                .cmp(&right.name.to_ascii_lowercase())
+        });
+        Ok(profiles)
+    }
+
+    pub fn save_launch_profile(
+        &self,
+        profile: NwnLaunchProfile,
+    ) -> AppResult<Vec<NwnLaunchProfile>> {
+        validate_launch_profile(&profile)?;
+        let mut profiles = self.list_launch_profiles()?;
+        profiles.retain(|candidate| !candidate.name.eq_ignore_ascii_case(&profile.name));
+        profiles.push(profile);
+        profiles.sort_by(|left, right| {
+            left.name
+                .to_ascii_lowercase()
+                .cmp(&right.name.to_ascii_lowercase())
+        });
+        let bytes = serde_json::to_vec_pretty(&profiles).map_err(|error| {
+            edit_error("EDIT_LAUNCH_PROFILES_SERIALIZE_FAILED", error.to_string())
+        })?;
+        atomic_write(&self.root.join("launch-profiles.json"), &bytes)?;
+        Ok(profiles)
+    }
+
+    pub fn launch_nwn_profile(&self, profile: &NwnLaunchProfile) -> AppResult<NwnLaunchReport> {
+        validate_launch_profile(profile)?;
+        let log_root = self.root.join("launch-logs");
+        fs::create_dir_all(&log_root).map_err(|error| {
+            Box::new(AppError::io(
+                "create launch log directory",
+                log_root.display().to_string(),
+                &error,
+            ))
+        })?;
+        let log_path = log_root.join(format!("{}.log", safe_profile_name(&profile.name)));
+        let log = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+            .map_err(|error| {
+                Box::new(AppError::io(
+                    "open launch log",
+                    log_path.display().to_string(),
+                    &error,
+                ))
+            })?;
+        let stderr = log.try_clone().map_err(|error| {
+            Box::new(AppError::io(
+                "clone launch log",
+                log_path.display().to_string(),
+                &error,
+            ))
+        })?;
+        let child = Command::new(&profile.executable_path)
+            .current_dir(&profile.working_directory)
+            .args(&profile.arguments)
+            .stdout(Stdio::from(log))
+            .stderr(Stdio::from(stderr))
+            .spawn()
+            .map_err(|error| {
+                Box::new(AppError::io(
+                    "launch NWN test profile",
+                    profile.executable_path.clone(),
+                    &error,
+                ))
+            })?;
+        Ok(NwnLaunchReport {
+            profile: profile.clone(),
+            process_id: child.id(),
+            log_path: log_path.display().to_string(),
+        })
     }
 
     fn persist(&self) -> AppResult<()> {
@@ -2304,11 +2995,13 @@ pub fn serialize_walkmesh_ascii(
                     &mut output,
                     "NoWalk",
                     &parent,
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                    &draft.vertices,
-                    &draft.faces,
-                    &draft.surface_ids,
+                    WalkmeshTrimesh {
+                        position: [0.0, 0.0, 0.0],
+                        rotation: [0.0, 0.0, 0.0, 1.0],
+                        vertices: &draft.vertices,
+                        faces: &draft.faces,
+                        surfaces: &draft.surface_ids,
+                    },
                 );
             }
             for variant in &draft.variants {
@@ -2316,11 +3009,13 @@ pub fn serialize_walkmesh_ascii(
                     &mut output,
                     &variant.name,
                     &parent,
-                    variant.position,
-                    variant.rotation,
-                    &variant.vertices,
-                    &variant.faces,
-                    &variant.surface_ids,
+                    WalkmeshTrimesh {
+                        position: variant.position,
+                        rotation: variant.rotation,
+                        vertices: &variant.vertices,
+                        faces: &variant.faces,
+                        surfaces: &variant.surface_ids,
+                    },
                 );
             }
             let hooks = if draft.hooks.is_empty() {
@@ -2348,11 +3043,13 @@ pub fn serialize_walkmesh_ascii(
                     &mut output,
                     &format!("{resref}_DWK_wg_closed"),
                     &parent,
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 1.0],
-                    &draft.vertices,
-                    &draft.faces,
-                    &draft.surface_ids,
+                    WalkmeshTrimesh {
+                        position: [0.0, 0.0, 0.0],
+                        rotation: [0.0, 0.0, 0.0, 1.0],
+                        vertices: &draft.vertices,
+                        faces: &draft.faces,
+                        surfaces: &draft.surface_ids,
+                    },
                 );
                 let variants = dwk_variants(resref, draft);
                 for variant in &variants {
@@ -2360,11 +3057,13 @@ pub fn serialize_walkmesh_ascii(
                         &mut output,
                         &variant.name,
                         &parent,
-                        variant.position,
-                        variant.rotation,
-                        &variant.vertices,
-                        &variant.faces,
-                        &variant.surface_ids,
+                        WalkmeshTrimesh {
+                            position: variant.position,
+                            rotation: variant.rotation,
+                            vertices: &variant.vertices,
+                            faces: &variant.faces,
+                            surfaces: &variant.surface_ids,
+                        },
                     );
                 }
             }
@@ -2717,20 +3416,30 @@ fn write_walkmesh_geometry(
     }
 }
 
+struct WalkmeshTrimesh<'a> {
+    position: [f32; 3],
+    rotation: [f32; 4],
+    vertices: &'a [[f32; 3]],
+    faces: &'a [[u32; 3]],
+    surfaces: &'a [i32],
+}
+
 fn write_walkmesh_trimesh(
     output: &mut String,
     name: &str,
     parent: &str,
-    position: [f32; 3],
-    rotation: [f32; 4],
-    vertices: &[[f32; 3]],
-    faces: &[[u32; 3]],
-    surfaces: &[i32],
+    geometry: WalkmeshTrimesh<'_>,
 ) {
     output.push_str(&format!("node trimesh {name}\n  parent {parent}\n"));
-    write_walkmesh_transform(output, position, rotation);
+    write_walkmesh_transform(output, geometry.position, geometry.rotation);
     output.push_str("  bitmap NULL\n");
-    write_walkmesh_geometry(output, vertices, faces, surfaces, false);
+    write_walkmesh_geometry(
+        output,
+        geometry.vertices,
+        geometry.faces,
+        geometry.surfaces,
+        false,
+    );
     output.push_str("endnode\n");
 }
 
@@ -2987,7 +3696,11 @@ fn format_walkmesh_float(value: f32) -> String {
 }
 
 pub fn validate_build_profile(profile: &ModuleBuildProfile) -> AppResult<()> {
-    if profile.name.trim().is_empty() || !profile.output_name.to_ascii_lowercase().ends_with(".mod")
+    let output = Path::new(&profile.output_name);
+    if profile.name.trim().is_empty()
+        || profile.name.len() > 80
+        || output.components().count() != 1
+        || !profile.output_name.to_ascii_lowercase().ends_with(".mod")
     {
         return Err(edit_error(
             "EDIT_BUILD_PROFILE_INVALID",
@@ -3001,6 +3714,184 @@ pub fn validate_build_profile(profile: &ModuleBuildProfile) -> AppResult<()> {
         validate_dependency_name(tlk, "tlk")?;
     }
     Ok(())
+}
+
+pub fn validate_launch_profile(profile: &NwnLaunchProfile) -> AppResult<()> {
+    let executable = Path::new(&profile.executable_path);
+    let expected = match profile.mode {
+        NwnLaunchMode::Client => "nwmain.exe",
+        NwnLaunchMode::Server => "nwserver.exe",
+    };
+    if profile.name.trim().is_empty()
+        || profile.name.len() > 80
+        || !executable.is_file()
+        || !executable
+            .file_name()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case(expected))
+        || !Path::new(&profile.working_directory).is_dir()
+        || profile.arguments.len() > 64
+        || profile
+            .arguments
+            .iter()
+            .any(|value| value.len() > 4096 || value.contains('\0'))
+    {
+        return Err(edit_error(
+            "EDIT_LAUNCH_PROFILE_INVALID",
+            format!(
+                "profile must target an existing {expected} with a valid working directory and bounded arguments"
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn safe_profile_name(name: &str) -> String {
+    let value = name
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    value.trim_matches('-').chars().take(64).collect()
+}
+
+pub fn edit_module_dependencies(
+    bytes: &[u8],
+    source: &str,
+    hak_files: &[String],
+    custom_tlk: Option<&str>,
+) -> AppResult<(Vec<u8>, GenericGff)> {
+    let mut document = parse_gff(bytes, source)?;
+    if document.file_type != "IFO " {
+        return Err(edit_error(
+            "EDIT_MODULE_INFO_REQUIRED",
+            format!("{source} is {}, expected IFO", document.file_type.trim()),
+        ));
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for hak in hak_files {
+        validate_dependency_name(hak, "hak")?;
+        if !seen.insert(hak.to_ascii_lowercase()) {
+            return Err(edit_error(
+                "EDIT_DEPENDENCY_DUPLICATE",
+                format!("duplicate HAK dependency {hak:?}"),
+            ));
+        }
+    }
+    if let Some(tlk) = custom_tlk.filter(|value| !value.is_empty()) {
+        validate_dependency_name(tlk, "tlk")?;
+    }
+    let hak_value = GenericValue::List(
+        hak_files
+            .iter()
+            .enumerate()
+            .map(|(index, hak)| GenericStruct {
+                index: index as u32,
+                struct_type: 0,
+                fields: vec![GenericField {
+                    label: "Mod_Hak".into(),
+                    field_type: 10,
+                    value: GenericValue::String(hak.clone()),
+                }],
+            })
+            .collect(),
+    );
+    set_root_field(&mut document, "Mod_HakList", 15, hak_value);
+    set_root_field(
+        &mut document,
+        "Mod_CustomTlk",
+        10,
+        GenericValue::String(custom_tlk.unwrap_or_default().to_owned()),
+    );
+    let output = write_gff(&document)?;
+    let reopened = parse_gff(&output, source)?;
+    Ok((output, reopened))
+}
+
+fn set_root_field(document: &mut GenericGff, label: &str, field_type: u32, value: GenericValue) {
+    if let Some(field) = document
+        .root
+        .fields
+        .iter_mut()
+        .find(|field| field.label == label)
+    {
+        field.field_type = field_type;
+        field.value = value;
+    } else {
+        document.root.fields.push(GenericField {
+            label: label.to_owned(),
+            field_type,
+            value,
+        });
+    }
+}
+
+pub fn inspect_git_repository(root: &Path) -> AppResult<GitWorkspaceStatus> {
+    if !root.is_dir() {
+        return Err(edit_error(
+            "EDIT_GIT_ROOT_INVALID",
+            format!("{} is not a directory", root.display()),
+        ));
+    }
+    let repository_root = git_output(root, &["rev-parse", "--show-toplevel"])?;
+    let repository_root = repository_root.trim().to_owned();
+    let branch = git_output(root, &["branch", "--show-current"])?
+        .trim()
+        .to_owned();
+    let head = git_output(root, &["rev-parse", "HEAD"])
+        .ok()
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
+    let porcelain = git_output(
+        root,
+        &[
+            "-c",
+            "core.quotepath=false",
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=normal",
+        ],
+    )?;
+    let mut files = Vec::new();
+    for line in porcelain.lines() {
+        if line.len() < 4 || files.len() >= 10_000 {
+            continue;
+        }
+        files.push(GitFileStatus {
+            index_status: line[0..1].to_owned(),
+            worktree_status: line[1..2].to_owned(),
+            path: line[3..].to_owned(),
+        });
+    }
+    Ok(GitWorkspaceStatus {
+        root: repository_root,
+        branch,
+        head,
+        clean: files.is_empty(),
+        files,
+    })
+}
+
+fn git_output(root: &Path, arguments: &[&str]) -> AppResult<String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(arguments)
+        .output()
+        .map_err(|error| Box::new(AppError::io("run git", root.display().to_string(), &error)))?;
+    if !output.status.success() {
+        return Err(edit_error(
+            "EDIT_GIT_COMMAND_FAILED",
+            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+        ));
+    }
+    String::from_utf8(output.stdout)
+        .map_err(|error| edit_error("EDIT_GIT_OUTPUT_INVALID", error.to_string()))
 }
 
 pub fn build_custom_hak(
@@ -3060,10 +3951,131 @@ pub fn scan_aurora_workspace(root: &Path) -> AppResult<AuroraSyncManifest> {
         });
     }
     Ok(AuroraSyncManifest {
-        schema_version: 1,
-        root: root.display().to_string(),
+        schema_version: AURORA_SYNC_SCHEMA_VERSION,
+        root: canonical_toolset_root(root)?,
         files,
     })
+}
+
+pub fn read_aurora_workspace_file(root: &Path, relative_path: &str) -> AppResult<Option<Vec<u8>>> {
+    let path = safe_aurora_workspace_path(root, relative_path)?;
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let metadata = fs::metadata(&path).map_err(|error| {
+        Box::new(AppError::io(
+            "inspect Aurora synchronization file",
+            path.display().to_string(),
+            &error,
+        ))
+    })?;
+    if metadata.len() > 256 * 1024 * 1024 {
+        return Err(edit_error(
+            "EDIT_AURORA_SYNC_FILE_TOO_LARGE",
+            format!(
+                "{} exceeds the 256 MiB synchronization limit",
+                path.display()
+            ),
+        ));
+    }
+    fs::read(&path).map(Some).map_err(|error| {
+        Box::new(AppError::io(
+            "read Aurora synchronization file",
+            path.display().to_string(),
+            &error,
+        ))
+    })
+}
+
+pub fn write_aurora_workspace_file(
+    root: &Path,
+    relative_path: &str,
+    bytes: Option<&[u8]>,
+) -> AppResult<Option<String>> {
+    let path = safe_aurora_workspace_path(root, relative_path)?;
+    let backup = if path.is_file() {
+        let previous = fs::read(&path).map_err(|error| {
+            Box::new(AppError::io(
+                "backup Aurora synchronization file",
+                path.display().to_string(),
+                &error,
+            ))
+        })?;
+        let digest = sha256_bytes(&previous);
+        let backup_path = root
+            .join(".opennever-backups")
+            .join(&digest[..16])
+            .join(relative_path);
+        if !backup_path.is_file() {
+            atomic_write(&backup_path, &previous)?;
+        }
+        Some(backup_path.display().to_string())
+    } else {
+        None
+    };
+    match bytes {
+        Some(bytes) => atomic_write(&path, bytes)?,
+        None if path.is_file() => fs::remove_file(&path).map_err(|error| {
+            Box::new(AppError::io(
+                "remove synchronized Aurora file",
+                path.display().to_string(),
+                &error,
+            ))
+        })?,
+        None => {}
+    }
+    Ok(backup)
+}
+
+fn safe_aurora_workspace_path(root: &Path, relative_path: &str) -> AppResult<PathBuf> {
+    resource_key_from_aurora_path(relative_path)?;
+    let canonical_root = fs::canonicalize(root).map_err(|error| {
+        Box::new(AppError::io(
+            "canonicalize Aurora workspace",
+            root.display().to_string(),
+            &error,
+        ))
+    })?;
+    let relative = Path::new(relative_path);
+    let mut current = canonical_root.clone();
+    for component in relative.components() {
+        let std::path::Component::Normal(component) = component else {
+            return Err(edit_error("EDIT_AURORA_SYNC_PATH_INVALID", relative_path));
+        };
+        current.push(component);
+        if current.exists()
+            && fs::symlink_metadata(&current)
+                .map(|metadata| metadata.file_type().is_symlink())
+                .unwrap_or(true)
+        {
+            return Err(edit_error(
+                "EDIT_AURORA_SYNC_SYMLINK_REJECTED",
+                current.display().to_string(),
+            ));
+        }
+    }
+    if !current.starts_with(&canonical_root) {
+        return Err(edit_error("EDIT_AURORA_SYNC_PATH_INVALID", relative_path));
+    }
+    Ok(current)
+}
+
+fn canonical_toolset_root(root: &Path) -> AppResult<String> {
+    if !root.is_dir() {
+        return Err(edit_error(
+            "EDIT_AURORA_SYNC_ROOT_INVALID",
+            format!("{} is not a directory", root.display()),
+        ));
+    }
+    fs::canonicalize(root)
+        .map(|path| path.display().to_string())
+        .map_err(|error| {
+            Box::new(AppError::io(
+                "canonicalize Aurora workspace",
+                root.display().to_string(),
+                &error,
+            ))
+        })
 }
 
 fn collect_aurora_files(
@@ -3110,7 +4122,10 @@ fn collect_aurora_files(
             continue;
         }
         let path = entry.path();
-        if metadata.is_dir() {
+        if metadata.is_dir()
+            && entry.file_name() != ".opennever-backups"
+            && entry.file_name() != ".git"
+        {
             collect_aurora_files(root, &path, paths, depth + 1)?;
         } else if metadata.is_file() && supported_aurora_extension(&path) {
             if !path.starts_with(root) {
@@ -3132,34 +4147,12 @@ fn collect_aurora_files(
 }
 
 fn supported_aurora_extension(path: &Path) -> bool {
-    matches!(
-        path.extension()
-            .and_then(|value| value.to_str())
-            .map(str::to_ascii_lowercase)
-            .as_deref(),
-        Some(
-            "nss"
-                | "ncs"
-                | "ifo"
-                | "are"
-                | "git"
-                | "gic"
-                | "dlg"
-                | "jrl"
-                | "fac"
-                | "utc"
-                | "utd"
-                | "ute"
-                | "uti"
-                | "utp"
-                | "uts"
-                | "utt"
-                | "utm"
-                | "utw"
-                | "2da"
-                | "tlk"
-        )
-    )
+    path.extension()
+        .and_then(|value| value.to_str())
+        .and_then(resource_type_for_extension)
+        .is_some_and(|resource_type| {
+            !matches!(resource_type, 2011 | 2061 | 2062 | 9997 | 9998 | 9999)
+        })
 }
 
 fn validate_dependency_name(value: &str, extension: &str) -> AppResult<()> {
@@ -6303,6 +7296,180 @@ mod tests {
     }
 
     #[test]
+    fn validates_applies_and_undoes_a_controlled_ai_change_set() {
+        let (_temp, _source, mut workspace) = workspace();
+        let resources = new_module_resources(&NewModuleDefinition {
+            name: "AI fixture".to_owned(),
+            tag: "OLD".to_owned(),
+            entry_area: "startarea".to_owned(),
+            tileset: "tno01".to_owned(),
+        })
+        .expect("module resources");
+        let module = resources
+            .iter()
+            .find(|entry| entry.key == ResourceKey::new("module", 2014))
+            .expect("module IFO")
+            .bytes
+            .clone();
+        let mut sources = BTreeMap::new();
+        sources.insert(ResourceKey::new("module", 2014).to_string(), module);
+        let change_set = AiChangeSet {
+            summary: "Renommer le tag du module".to_owned(),
+            commands: vec![EditCommand::SetField {
+                resource: ResourceKey::new("module", 2014),
+                path: "Mod_Tag".to_owned(),
+                before: json!({"kind": "string", "value": "OLD"}),
+                after: json!({"kind": "string", "value": "NEW"}),
+            }],
+        };
+        let digest = ai_change_set_sha256(&change_set).expect("proposal digest");
+        let preview = workspace
+            .preview_controlled_ai_change_set(&change_set, &sources)
+            .expect("controlled preview");
+        assert!(preview.all_valid);
+        assert_eq!(workspace.snapshot().expect("preview snapshot").cursor, 0);
+
+        let report = workspace
+            .apply_controlled_ai_change_set(&change_set, &digest, &sources)
+            .expect("apply proposal");
+        assert_eq!(report.applied_commands, 1);
+        assert_eq!(report.proposal_sha256, digest);
+        assert_eq!(report.workspace.cursor, 1);
+        workspace.undo().expect("undo AI command");
+        assert!(
+            workspace
+                .snapshot()
+                .expect("undo snapshot")
+                .modified_resources
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn rejects_uncontrolled_ai_commands_and_changed_confirmations() {
+        let (_temp, _source, mut workspace) = workspace();
+        let unsupported = AiChangeSet {
+            summary: "Déplacer une instance".to_owned(),
+            commands: vec![EditCommand::MoveInstance {
+                area: "startarea".to_owned(),
+                instance_id: "creature:0".to_owned(),
+                before: Transform {
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0,
+                    bearing: 0.0,
+                },
+                after: Transform {
+                    x: 1.0,
+                    y: 1.0,
+                    z: 0.0,
+                    bearing: 0.0,
+                },
+            }],
+        };
+        assert_eq!(
+            validate_controlled_ai_change_set(&unsupported)
+                .expect_err("unsupported command")
+                .code,
+            "EDIT_AI_COMMAND_UNSUPPORTED"
+        );
+
+        let change_set = AiChangeSet {
+            summary: "Modifier le script".to_owned(),
+            commands: vec![EditCommand::ReplaceText {
+                resource: ResourceKey::new("start", 2009),
+                before: "void main() {}".to_owned(),
+                after: "void main() { int value = 1; }".to_owned(),
+            }],
+        };
+        let mut sources = BTreeMap::new();
+        sources.insert(
+            ResourceKey::new("start", 2009).to_string(),
+            b"void main() {}".to_vec(),
+        );
+        assert_eq!(
+            workspace
+                .apply_controlled_ai_change_set(&change_set, &"0".repeat(64), &sources)
+                .expect_err("changed confirmation")
+                .code,
+            "EDIT_AI_PROPOSAL_CHANGED"
+        );
+    }
+
+    #[test]
+    fn completes_a_module_lifecycle_without_aurora_and_preserves_the_source() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let source = temp.path().join("source.mod");
+        create_empty_module(
+            &source,
+            &NewModuleDefinition {
+                name: "OpenNever standalone".to_owned(),
+                tag: "STANDALONE_OLD".to_owned(),
+                entry_area: "startarea".to_owned(),
+                tileset: "tno01".to_owned(),
+            },
+        )
+        .expect("create source module");
+        let source_before = fs::read(&source).expect("source bytes");
+        let mut workspace = EditWorkspace::create(
+            temp.path().join("workspace"),
+            &source,
+            &sha256_bytes(&source_before),
+            source_before.len() as u64,
+        )
+        .expect("standalone workspace");
+        let reader = ErfReader::default();
+        let inventory = reader
+            .read_inventory(&source, &AtomicBool::new(false))
+            .expect("source inventory");
+        let module_entry = inventory
+            .resources
+            .iter()
+            .find(|entry| entry.key == ResourceKey::new("module", 2014))
+            .expect("module IFO");
+        let module_bytes = reader
+            .read_resource(&source, module_entry, &AtomicBool::new(false))
+            .expect("module IFO bytes");
+        let mut sources = BTreeMap::new();
+        sources.insert(ResourceKey::new("module", 2014).to_string(), module_bytes);
+        let proposal = AiChangeSet {
+            summary: "Finaliser le tag du module autonome".to_owned(),
+            commands: vec![EditCommand::SetField {
+                resource: ResourceKey::new("module", 2014),
+                path: "Mod_Tag".to_owned(),
+                before: json!({"kind": "string", "value": "STANDALONE_OLD"}),
+                after: json!({"kind": "string", "value": "STANDALONE_READY"}),
+            }],
+        };
+        let digest = ai_change_set_sha256(&proposal).expect("proposal digest");
+        workspace
+            .apply_controlled_ai_change_set(&proposal, &digest, &sources)
+            .expect("apply standalone edit");
+        let output = temp.path().join("standalone-ready.mod");
+        let report = workspace
+            .build_module(&output)
+            .expect("build standalone module");
+        assert!(report.source_intact);
+        assert_eq!(
+            fs::read(&source).expect("source after build"),
+            source_before
+        );
+        let built_inventory = reader
+            .read_inventory(&output, &AtomicBool::new(false))
+            .expect("built inventory");
+        let built_module = built_inventory
+            .resources
+            .iter()
+            .find(|entry| entry.key == ResourceKey::new("module", 2014))
+            .expect("built module IFO");
+        let built_info = reader
+            .read_resource(&output, built_module, &AtomicBool::new(false))
+            .and_then(|bytes| read_module_info(&bytes, "standalone-ready::module.ifo"))
+            .expect("reopen built module info");
+        assert_eq!(built_info.tag, "STANDALONE_READY");
+    }
+
+    #[test]
     fn serializes_and_reopens_all_walkmesh_resource_kinds() {
         for kind in [WalkmeshKind::Wok, WalkmeshKind::Pwk, WalkmeshKind::Dwk] {
             let mut draft = WalkmeshDraft {
@@ -6474,23 +7641,86 @@ mod tests {
     fn scans_an_aurora_workspace_without_following_symlinks_or_reading_unknown_files() {
         let temp = tempfile::tempdir().expect("temporary directory");
         fs::write(temp.path().join("script.nss"), b"void main() {}").expect("NSS");
-        fs::write(temp.path().join("ignored.txt"), b"not a resource").expect("text");
+        fs::write(temp.path().join("ignored.json"), b"not a resource").expect("JSON");
         let manifest = scan_aurora_workspace(temp.path()).expect("scan");
         assert_eq!(manifest.files.len(), 1);
         assert_eq!(manifest.files[0].name, "script.nss");
     }
 
     #[test]
+    fn synchronizes_toolset_files_with_recoverable_backups() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let path = temp.path().join("script.nss");
+        fs::write(&path, b"old").expect("old source");
+        let backup = write_aurora_workspace_file(temp.path(), "script.nss", Some(b"new"))
+            .expect("write")
+            .expect("backup");
+        assert_eq!(fs::read(&path).expect("new source"), b"new");
+        assert_eq!(fs::read(&backup).expect("backup source"), b"old");
+        let removed_backup = write_aurora_workspace_file(temp.path(), "script.nss", None)
+            .expect("remove")
+            .expect("removal backup");
+        assert!(!path.exists());
+        assert_eq!(
+            fs::read(removed_backup).expect("removed source backup"),
+            b"new"
+        );
+        assert!(
+            scan_aurora_workspace(temp.path())
+                .expect("scan")
+                .files
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn migrates_a_legacy_workspace_with_an_exact_backup() {
+        let (_temp, _source, workspace) = workspace();
+        let root = workspace.root.clone();
+        drop(workspace);
+        let state_path = root.join("workspace.json");
+        let mut state = serde_json::from_slice::<serde_json::Value>(
+            &fs::read(&state_path).expect("workspace state"),
+        )
+        .expect("workspace json");
+        state["schemaVersion"] = serde_json::json!(1);
+        state
+            .as_object_mut()
+            .expect("workspace object")
+            .remove("migrationHistory");
+        let legacy = serde_json::to_vec_pretty(&state).expect("legacy json");
+        fs::write(&state_path, &legacy).expect("legacy workspace");
+
+        let migrated = EditWorkspace::open(&root).expect("migrate workspace");
+        let snapshot = migrated.snapshot().expect("snapshot");
+        assert_eq!(snapshot.schema_version, EDIT_WORKSPACE_SCHEMA_VERSION);
+        assert_eq!(snapshot.migration_history.len(), 1);
+        assert_eq!(
+            fs::read(root.join("workspace.json.v1.bak")).expect("migration backup"),
+            legacy
+        );
+    }
+
+    #[test]
     fn validates_reproducible_build_profiles_and_hak_outputs() {
-        validate_build_profile(&ModuleBuildProfile {
+        let profile = ModuleBuildProfile {
             name: "Test local".to_owned(),
             output_name: "test.mod".to_owned(),
             block_on_warnings: true,
             deploy_development: false,
             hak_files: vec!["custom.hak".to_owned()],
             custom_tlk: Some("dialog.tlk".to_owned()),
-        })
-        .expect("profile");
+        };
+        validate_build_profile(&profile).expect("profile");
+        let (_workspace_temp, _source, workspace) = workspace();
+        let saved = workspace
+            .save_build_profile(profile.clone())
+            .expect("save profile");
+        assert_eq!(saved, vec![profile.clone()]);
+        assert_eq!(
+            workspace.list_build_profiles().expect("list profiles"),
+            vec![profile]
+        );
         let temp = tempfile::tempdir().expect("temporary directory");
         let report = build_custom_hak(
             &temp.path().join("custom.hak"),
@@ -6501,6 +7731,116 @@ mod tests {
         )
         .expect("HAK");
         assert_eq!(report.resource_count, 1);
+    }
+
+    #[test]
+    fn edits_module_hak_and_tlk_dependencies_without_losing_unknown_fields() {
+        let resources = new_module_resources(&NewModuleDefinition {
+            name: "Dependency Test".into(),
+            tag: "DEPENDENCY_TEST".into(),
+            entry_area: "startarea".into(),
+            tileset: "tno01".into(),
+        })
+        .expect("module resources");
+        let ifo = resources
+            .iter()
+            .find(|resource| resource.key == ResourceKey::new("module", 2014))
+            .expect("module.ifo");
+        let (bytes, reopened) = edit_module_dependencies(
+            &ifo.bytes,
+            "module.ifo",
+            &["first.hak".into(), "second".into()],
+            Some("custom.tlk"),
+        )
+        .expect("edit dependencies");
+        assert_eq!(write_gff(&reopened).expect("rewrite"), bytes);
+        assert!(matches!(
+            find_field(&reopened.root, &["Mod_HakList"]).map(|field| &field.value),
+            Some(GenericValue::List(values)) if values.len() == 2
+        ));
+        assert_eq!(
+            find_field(&reopened.root, &["Mod_CustomTlk"]).map(|field| &field.value),
+            Some(&GenericValue::String("custom.tlk".into()))
+        );
+        assert!(find_field(&reopened.root, &["Mod_Entry_Area"]).is_some());
+    }
+
+    #[test]
+    fn verifies_two_identical_module_builds_from_a_profile() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let source = temp.path().join("source.mod");
+        create_empty_module(
+            &source,
+            &NewModuleDefinition {
+                name: "Reproducible".into(),
+                tag: "REPRODUCIBLE".into(),
+                entry_area: "startarea".into(),
+                tileset: "tno01".into(),
+            },
+        )
+        .expect("create source module");
+        let source_hash = sha256_file(&source).expect("source hash");
+        let source_size = fs::metadata(&source).expect("source metadata").len();
+        let workspace = EditWorkspace::create(
+            temp.path().join("workspace"),
+            &source,
+            &source_hash,
+            source_size,
+        )
+        .expect("workspace");
+        let verification = workspace
+            .verify_reproducible_build(&ModuleBuildProfile {
+                name: "Double build".into(),
+                output_name: "double.mod".into(),
+                block_on_warnings: true,
+                deploy_development: false,
+                hak_files: Vec::new(),
+                custom_tlk: None,
+            })
+            .expect("verification");
+        assert!(verification.identical);
+        assert_eq!(verification.first_sha256, verification.second_sha256);
+        assert_eq!(verification.resource_count, 4);
+    }
+
+    #[test]
+    fn reports_git_branch_and_untracked_files_without_mutating_the_repository() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let initialized = Command::new("git")
+            .arg("init")
+            .arg("--initial-branch=main")
+            .arg(temp.path())
+            .status()
+            .expect("git init");
+        assert!(initialized.success());
+        fs::write(temp.path().join("module.nss"), b"void main() {}\n").expect("untracked file");
+        let status = inspect_git_repository(temp.path()).expect("git status");
+        assert_eq!(status.branch, "main");
+        assert!(!status.clean);
+        assert_eq!(status.files[0].path, "module.nss");
+        assert_eq!(status.files[0].index_status, "?");
+        assert_eq!(status.files[0].worktree_status, "?");
+    }
+
+    #[test]
+    fn persists_only_bounded_nwn_launch_profiles() {
+        let (_temp, _source, workspace) = workspace();
+        let executable = workspace.root.join("nwserver.exe");
+        fs::write(&executable, b"synthetic executable fixture").expect("fixture executable");
+        let profile = NwnLaunchProfile {
+            name: "Serveur local".into(),
+            mode: NwnLaunchMode::Server,
+            executable_path: executable.display().to_string(),
+            working_directory: workspace.root.display().to_string(),
+            arguments: vec!["-module".into(), "opennever-test".into()],
+        };
+        validate_launch_profile(&profile).expect("launch profile");
+        assert_eq!(
+            workspace
+                .save_launch_profile(profile.clone())
+                .expect("save launch profile"),
+            vec![profile]
+        );
     }
 
     #[test]

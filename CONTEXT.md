@@ -1957,3 +1957,76 @@ overrides WOK/PWK/DWK réellement référencés par une copie de module. Dans l'
 écoute ; le résultat est classé `INCONCLUSIVE_ENVIRONMENT`, jamais comme un échec du writer. Le
 client Windows démarre avec les overrides et permet de poursuivre le contrôle manuel, tandis que
 les empreintes confirment l'immuabilité du module source.
+
+### 36.6 Contenus personnalisés HAK, TLK et 2DA
+
+Le Lot 21 fournit des writers internes déterministes pour les tables `2DA V2.0` et `TLK V3.0`.
+Les cellules, lignes, chaînes et références sonores sont modifiées par des opérations typées ; le
+résultat est sérialisé, relu par le parser interne, puis stagé dans l'overlay avec les SHA-256 avant
+et après. La suppression implicite d'un index TLK n'est pas proposée, car elle invaliderait les
+StrRef existants ; les entrées peuvent être modifiées ou ajoutées en fin de table.
+
+Le gestionnaire HAK/TLK valide les noms et l'ordre, refuse les doublons, transforme `Mod_HakList`
+et `Mod_CustomTlk` dans `module.ifo`, puis relit le GFF écrit. Cette transformation est annulable et
+préserve tous les champs IFO non concernés. Le writer HAK existant continue à empaqueter uniquement
+les ressources explicitement modifiées, sans toucher aux HAK sources.
+
+### 36.7 Builds reproductibles, profils et Git
+
+Le Lot 22 persiste les profils de build dans le workspace séparé. Avant construction, la liste HAK
+et le TLK attendus sont comparés aux déclarations réellement relues dans `module.ifo`; un profil
+configuré pour bloquer les avertissements refuse tout écart. La vérification reproductible construit
+deux MOD temporaires indépendants et compare leurs SHA-256. Un profil peut ensuite produire son MOD
+dans un dossier choisi et déployer facultativement les ressources dans `development` selon les
+règles de propriété et de nettoyage existantes.
+
+L'intégration Git est volontairement locale et en lecture seule : elle résout la racine, la branche,
+le commit courant et au plus 10 000 entrées de statut avec des arguments directs à l'exécutable
+`git`, sans shell et sans effectuer automatiquement d'ajout, commit, checkout ou push.
+
+Les profils de test `client` et `server` acceptent uniquement un `nwmain.exe` ou `nwserver.exe`
+existant, un dossier de travail valide et une liste bornée d'arguments directs. Le processus est
+lancé sans shell et ses sorties standard et d'erreur sont ajoutées à un journal du workspace. Le
+logiciel ne prétend pas que le chargement moteur a réussi tant que ce processus n'a pas été contrôlé.
+
+### 36.8 Synchronisation contrôlée avec Aurora Toolset
+
+Le Lot 23 compare les fichiers reconnus du dossier temporaire Aurora, l’état résolu ou stagé du
+workspace OpenNever et une baseline persistée. Chaque ressource est classée comme identique,
+présente d’un seul côté, modifiée d’un seul côté ou conflictuelle. Une différence ne déclenche aucune
+écriture tant que l’utilisateur n’a pas choisi importer depuis le Toolset ou envoyer vers le
+Toolset. Les SHA-256 de la prévisualisation sont revérifiés immédiatement avant l’opération.
+
+Un import devient une commande OpenNever transactionnelle et annulable. Un envoi crée d’abord une
+sauvegarde récupérable sous `.opennever-backups`, y compris avant une suppression. Les liens
+symboliques, chemins sortants, doublons de ResRef, profondeurs, quantités et tailles hors limites
+sont refusés. L’envoi d’un NSS stagé est bloqué si son NCS n’est plus lié à sa compilation exacte.
+La synchronisation ne remplace jamais la compilation puis la sauvegarde explicite dans Aurora.
+
+### 36.9 Migrations et documentation utilisateur
+
+Le Lot 24 porte le workspace au schéma 3. Les schémas 1 et 2 sont migrés uniquement après copie
+byte-for-byte de `workspace.json` vers `workspace.json.v<version>.bak`; le chemin, les étapes et les
+versions sont conservés dans l’historique visible. Un schéma futur est refusé sans réécriture. Les
+baselines Toolset restent séparées des ressources NWN dans `aurora-sync/`.
+
+Le moteur de comparaison est isolé dans `crates/aurora-edit/src/sync.rs`. Le guide utilisateur
+décrit l’ouverture, l’édition, la compilation NSS→NCS, `development`, les builds, la synchronisation
+Toolset et la récupération. Le guide des migrations et l’ADR 0008 fixent les garanties de
+compatibilité et de sauvegarde.
+
+### 36.10 Assistance IA contrôlée
+
+Le Lot 25 conserve le réseau désactivé par défaut. L’utilisateur choisit explicitement un endpoint
+compatible et un modèle ; HTTP est limité aux hôtes locaux, tandis que le réseau distant exige
+HTTPS. La clé éventuelle vit uniquement en mémoire pendant l’appel. Les consentements réseau,
+métadonnées de module et contenu de ressource sont indépendants. Au plus huit GFF/NSS sont
+sélectionnables, avec des limites strictes sur le prompt, chaque contexte, la réponse et le nombre
+d’opérations. Aucun contenu transmis ou secret n’est journalisé.
+
+Le modèle renvoie uniquement un `AiChangeSet`. Le cœur accepte les opérations `set_field` sur GFF
+et `replace_text` sur NSS, refuse les autres commandes, rejoue les transformations sur les octets
+courants et valide le parse NSS. Une prévisualisation sans mutation porte une empreinte SHA-256 ;
+l’application exige une confirmation explicite de cette même empreinte, stage les octets dans
+l’overlay et conserve chaque commande dans l’historique undo/redo. Une proposition JSON locale
+emprunte le même pipeline sans réseau. L’IA n’écrit jamais directement dans un GFF ou un MOD.

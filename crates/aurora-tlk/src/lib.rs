@@ -115,6 +115,190 @@ pub fn parse_tlk(bytes: &[u8], source: &str) -> AppResult<TalkTable> {
     })
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
+pub enum TlkEditAction {
+    SetEntry {
+        index: u32,
+        text: Option<String>,
+        sound_resref: Option<String>,
+        sound_length: f32,
+    },
+    AppendEntry {
+        text: Option<String>,
+    },
+}
+
+pub fn apply_tlk_edit(table: &mut TalkTable, action: &TlkEditAction) -> AppResult<()> {
+    match action {
+        TlkEditAction::SetEntry {
+            index,
+            text,
+            sound_resref,
+            sound_length,
+        } => {
+            let entry = table.entries.get_mut(*index as usize).ok_or_else(|| {
+                tlk_error(&table.source, "TLK_ENTRY_OUT_OF_BOUNDS", index.to_string())
+            })?;
+            validate_sound(sound_resref.as_deref(), *sound_length, &table.source)?;
+            entry.text = text.clone();
+            entry.sound_resref = sound_resref.clone();
+            entry.sound_length = *sound_length;
+            entry.flags = (entry.flags & !(TEXT_PRESENT | SOUND_PRESENT))
+                | if entry.text.is_some() {
+                    TEXT_PRESENT
+                } else {
+                    0
+                }
+                | if entry.sound_resref.is_some() {
+                    SOUND_PRESENT
+                } else {
+                    0
+                };
+        }
+        TlkEditAction::AppendEntry { text } => {
+            if table.entries.len() >= MAX_ENTRIES as usize {
+                return Err(tlk_error(
+                    &table.source,
+                    "TLK_ENTRY_LIMIT_EXCEEDED",
+                    MAX_ENTRIES.to_string(),
+                ));
+            }
+            table.entries.push(TlkEntry {
+                index: table.entries.len() as u32,
+                flags: if text.is_some() { TEXT_PRESENT } else { 0 },
+                text: text.clone(),
+                sound_resref: None,
+                volume_variance: 0.0,
+                pitch_variance: 0.0,
+                sound_length: 0.0,
+            });
+        }
+    }
+    Ok(())
+}
+
+pub fn write_tlk(table: &TalkTable) -> AppResult<Vec<u8>> {
+    if table.entries.len() > MAX_ENTRIES as usize {
+        return Err(tlk_error(
+            &table.source,
+            "TLK_ENTRY_LIMIT_EXCEEDED",
+            table.entries.len().to_string(),
+        ));
+    }
+    let strings_offset = HEADER_SIZE
+        .checked_add(table.entries.len().checked_mul(ENTRY_SIZE).ok_or_else(|| {
+            tlk_error(
+                &table.source,
+                "TLK_SIZE_OVERFLOW",
+                "entry table overflow".into(),
+            )
+        })?)
+        .ok_or_else(|| tlk_error(&table.source, "TLK_SIZE_OVERFLOW", "header overflow".into()))?;
+    let mut records = vec![0_u8; table.entries.len() * ENTRY_SIZE];
+    let mut strings = Vec::new();
+    for (position, entry) in table.entries.iter().enumerate() {
+        if entry.index != position as u32 {
+            return Err(tlk_error(
+                &table.source,
+                "TLK_ENTRY_INDEX_INVALID",
+                format!("entry {} declares index {}", position, entry.index),
+            ));
+        }
+        validate_sound(
+            entry.sound_resref.as_deref(),
+            entry.sound_length,
+            &table.source,
+        )?;
+        if !entry.volume_variance.is_finite() || !entry.pitch_variance.is_finite() {
+            return Err(tlk_error(
+                &table.source,
+                "TLK_SOUND_VARIANCE_INVALID",
+                position.to_string(),
+            ));
+        }
+        let base = position * ENTRY_SIZE;
+        let flags = (entry.flags & !(TEXT_PRESENT | SOUND_PRESENT))
+            | if entry.text.is_some() {
+                TEXT_PRESENT
+            } else {
+                0
+            }
+            | if entry.sound_resref.is_some() {
+                SOUND_PRESENT
+            } else {
+                0
+            };
+        records[base..base + 4].copy_from_slice(&flags.to_le_bytes());
+        if let Some(sound) = &entry.sound_resref {
+            records[base + 4..base + 4 + sound.len()].copy_from_slice(sound.as_bytes());
+        }
+        records[base + 20..base + 24].copy_from_slice(&entry.volume_variance.to_le_bytes());
+        records[base + 24..base + 28].copy_from_slice(&entry.pitch_variance.to_le_bytes());
+        let offset = u32::try_from(strings.len()).map_err(|_| {
+            tlk_error(
+                &table.source,
+                "TLK_SIZE_OVERFLOW",
+                "string offset exceeds u32".into(),
+            )
+        })?;
+        let text = entry.text.as_deref().unwrap_or_default().as_bytes();
+        let size = u32::try_from(text.len()).map_err(|_| {
+            tlk_error(
+                &table.source,
+                "TLK_SIZE_OVERFLOW",
+                "entry text exceeds u32".into(),
+            )
+        })?;
+        records[base + 28..base + 32].copy_from_slice(&offset.to_le_bytes());
+        records[base + 32..base + 36].copy_from_slice(&size.to_le_bytes());
+        records[base + 36..base + 40].copy_from_slice(&entry.sound_length.to_le_bytes());
+        strings.extend_from_slice(text);
+    }
+    let total = strings_offset.checked_add(strings.len()).ok_or_else(|| {
+        tlk_error(
+            &table.source,
+            "TLK_SIZE_OVERFLOW",
+            "output size overflow".into(),
+        )
+    })?;
+    let mut output = Vec::with_capacity(total);
+    output.extend_from_slice(b"TLK V3.0");
+    output.extend_from_slice(&table.language_id.to_le_bytes());
+    output.extend_from_slice(&(table.entries.len() as u32).to_le_bytes());
+    output.extend_from_slice(&(strings_offset as u32).to_le_bytes());
+    output.extend_from_slice(&records);
+    output.extend_from_slice(&strings);
+    Ok(output)
+}
+
+fn validate_sound(sound: Option<&str>, length: f32, source: &str) -> AppResult<()> {
+    if !length.is_finite() || length < 0.0 {
+        return Err(tlk_error(
+            source,
+            "TLK_SOUND_LENGTH_INVALID",
+            length.to_string(),
+        ));
+    }
+    if let Some(sound) = sound
+        && (sound.is_empty()
+            || sound.len() > 16
+            || !sound.is_ascii()
+            || sound.contains(['/', '\\', '\0']))
+    {
+        return Err(tlk_error(
+            source,
+            "TLK_SOUND_RESREF_INVALID",
+            sound.to_owned(),
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum LocalizedOrigin {
@@ -347,5 +531,48 @@ mod tests {
         });
         assert_eq!(resolved.text.as_deref(), Some("Hello"));
         assert_eq!(resolved.origin, LocalizedOrigin::CustomTlk);
+    }
+
+    #[test]
+    fn edits_writes_and_reopens_a_tlk_deterministically() {
+        let mut table = TalkTable {
+            language_id: 0,
+            entries: vec![TlkEntry {
+                index: 0,
+                flags: 0,
+                text: None,
+                sound_resref: None,
+                volume_variance: 0.0,
+                pitch_variance: 0.0,
+                sound_length: 0.0,
+            }],
+            source: "custom.tlk".into(),
+        };
+        apply_tlk_edit(
+            &mut table,
+            &TlkEditAction::SetEntry {
+                index: 0,
+                text: Some("Bonjour".into()),
+                sound_resref: Some("voice_01".into()),
+                sound_length: 1.5,
+            },
+        )
+        .expect("edit");
+        apply_tlk_edit(
+            &mut table,
+            &TlkEditAction::AppendEntry {
+                text: Some("Suite".into()),
+            },
+        )
+        .expect("append");
+        let first = write_tlk(&table).expect("write");
+        let reopened = parse_tlk(&first, "reopened.tlk").expect("reopen");
+        let second = write_tlk(&reopened).expect("rewrite");
+        assert_eq!(first, second);
+        assert_eq!(reopened.entries[0].text.as_deref(), Some("Bonjour"));
+        assert_eq!(
+            reopened.entries[0].sound_resref.as_deref(),
+            Some("voice_01")
+        );
     }
 }

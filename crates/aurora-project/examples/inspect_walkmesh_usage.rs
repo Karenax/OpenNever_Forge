@@ -50,8 +50,11 @@ fn main() -> ExitCode {
         .scenes
         .iter()
         .flat_map(|scene| {
-            scene.objects.iter().filter_map(|object| {
-                matches!(object.kind.as_str(), "tile" | "door" | "placeable").then(|| {
+            scene
+                .objects
+                .iter()
+                .filter(|object| matches!(object.kind.as_str(), "tile" | "door" | "placeable"))
+                .map(|object| {
                     let mut models = object.model_resrefs.clone();
                     if let Some(model) = &object.model_resref
                         && !models.contains(model)
@@ -66,7 +69,6 @@ fn main() -> ExitCode {
                         walkmesh_available: object.walkmesh_available,
                     }
                 })
-            })
         })
         .collect::<Vec<_>>();
     match serde_json::to_string_pretty(&usages) {

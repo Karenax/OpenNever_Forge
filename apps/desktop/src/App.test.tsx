@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App, { WalkmeshWorkbench } from "./App";
-import { buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, saveWorkspaceWalkmesh, selectModuleOutput, startModuleAnalysis, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
+import { applyAiChangeSet, applyAuroraWorkspaceSync, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, editWorkspaceModuleDependencies, planAuroraWorkspaceSync, previewAiChangeSet, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
 
 vi.mock("@monaco-editor/react", () => ({ default: ({ value }: { value: string }) => <pre data-testid="monaco-readonly">{value}</pre> }));
 vi.mock("@xyflow/react", () => ({ ReactFlow: ({ nodes, edges, children }: { nodes: Array<{id:string}>; edges:Array<{id:string}>; children: React.ReactNode }) => <div data-testid="dialogue-flow">{nodes.length} nodes · {edges.length} edges{children}</div>, Background:()=>null, Controls:()=>null, MiniMap:()=>null }));
@@ -275,6 +275,23 @@ vi.mock("./lib/tauri", () => ({
   buildWorkspaceModule: vi.fn().mockResolvedValue({ outputPath: "C:/output.mod", sha256: "BUILT", sizeBytes: 1024, resourceCount: 3, modifiedResources: 1, deletedResources: 0, sourceIntact: true }),
   buildWorkspaceHak: vi.fn(),
   exportWorkspaceSources: vi.fn(),
+  editWorkspaceTwoDa: vi.fn(),
+  editWorkspaceTlk: vi.fn(),
+  editWorkspaceModuleDependencies: vi.fn().mockResolvedValue({ workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [], deletedResources: [], journalEvents: 4, values: {} }, document: {} }),
+  listWorkspaceBuildProfiles: vi.fn().mockResolvedValue([]),
+  saveWorkspaceBuildProfile: vi.fn().mockResolvedValue([]),
+  verifyWorkspaceReproducibleBuild: vi.fn().mockResolvedValue({ profile: {}, firstSha256: "SAME", secondSha256: "SAME", identical: true, resourceCount: 3 }),
+  runWorkspaceBuildProfile: vi.fn(),
+  inspectGitWorkspace: vi.fn(),
+  listWorkspaceLaunchProfiles: vi.fn().mockResolvedValue([]),
+  saveWorkspaceLaunchProfile: vi.fn().mockResolvedValue([]),
+  launchWorkspaceTestProfile: vi.fn(),
+  selectNwnExecutable: vi.fn(),
+  planAuroraWorkspaceSync: vi.fn().mockResolvedValue({ schemaVersion: 2, root: "C:/toolset", baselineFound: false, identicalCount: 0, incomingCount: 1, outgoingCount: 0, conflictCount: 0, entries: [{ resource: { resref: "start", resourceType: 2009 }, relativePath: "start.nss", toolsetSha256: "TOOLSET", workspaceSha256: null, baselineToolsetSha256: null, baselineWorkspaceSha256: null, state: "toolset_only" }] }),
+  applyAuroraWorkspaceSync: vi.fn().mockResolvedValue({ schemaVersion: 2, root: "C:/toolset", applied: [{ resource: { resref: "start", resourceType: 2009 }, direction: "pull_from_toolset", sha256: "TOOLSET" }], backups: [], plan: { schemaVersion: 2, root: "C:/toolset", baselineFound: true, identicalCount: 1, incomingCount: 0, outgoingCount: 0, conflictCount: 0, entries: [] }, workspace: { schemaVersion: 3, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [], deletedResources: [], journalEvents: 4, values: {}, migrationHistory: [] } }),
+  previewAiChangeSet: vi.fn().mockImplementation(async ({ changeSet }) => ({ summary: changeSet.summary, proposalSha256: "A".repeat(64), allValid: true, previews: changeSet.commands.map((command: { kind: string }, index: number) => ({ command, target: `ai:${index}`, current: null, resulting: null, valid: true, diagnostic: null })) })),
+  requestAiChangeSet: vi.fn(),
+  applyAiChangeSet: vi.fn().mockResolvedValue({ proposalSha256: "A".repeat(64), appliedCommands: 1, workspace: { schemaVersion: 3, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "start", resourceType: 2009 }, sourceSha256: "OLD", outputSha256: "NEW", sizeBytes: 24, relativePath: "resources/start.nss" }], deletedResources: [], journalEvents: 5, values: {}, migrationHistory: [] } }),
   deployWorkspaceDevelopment: vi.fn().mockResolvedValue({ workspaceId: "workspace-1", developmentPath: "C:/NWN/development", files: [{ name: "module.ifo", sha256: "NEW", sizeBytes: 128 }] }),
   cleanWorkspaceDevelopment: vi.fn(),
   createWorkspaceArea: vi.fn().mockResolvedValue({ workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "newarea", resourceType: 2012 }, sourceSha256: null, outputSha256: "ARE", sizeBytes: 128, relativePath: "resources/newarea.are" }, { resource: { resref: "newarea", resourceType: 2023 }, sourceSha256: null, outputSha256: "GIT", sizeBytes: 128, relativePath: "resources/newarea.git" }, { resource: { resref: "newarea", resourceType: 2046 }, sourceSha256: null, outputSha256: "GIC", sizeBytes: 128, relativePath: "resources/newarea.gic" }], deletedResources: [], journalEvents: 5, values: {} }, area: { resref: "newarea", name: { stringRef: null, text: "Nouvelle zone" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 0, orientation: 0 }], instances: [], diagnostics: [], areSource: "workspace::newarea.are", gitSource: "workspace::newarea.git", gicSource: "workspace::newarea.gic" } }),
@@ -435,6 +452,80 @@ describe("OpenNever Forge shell", () => {
     await waitFor(() => expect(selectModuleOutput).toHaveBeenCalled());
     expect(buildWorkspaceModule).toHaveBeenCalledWith({ workspaceId: "workspace-1", outputPath: "C:/output.mod" });
     expect(await screen.findByText(/3 ressources sauvegardées/)).toBeInTheDocument();
+  });
+
+  it("stages HAK and TLK declarations through the dependency manager", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    const hakEditor = await screen.findByLabelText("HAK, dans l’ordre de priorité");
+    fireEvent.change(hakEditor, { target: { value: "base.hak\npatch.hak" } });
+    fireEvent.change(screen.getByLabelText("TLK personnalisé", { selector: "input" }), { target: { value: "custom.tlk" } });
+    fireEvent.click(screen.getByRole("button", { name: "Appliquer à module.ifo" }));
+    await waitFor(() => expect(editWorkspaceModuleDependencies).toHaveBeenCalledWith({
+      jobId: "job-1",
+      workspaceId: "workspace-1",
+      hakFiles: ["base.hak", "patch.hak"],
+      customTlk: "custom.tlk",
+    }));
+  });
+
+  it("persists a reproducible build profile in the workspace", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    expect(await screen.findByRole("heading", { name: "Profils de build et Git" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Sauvegarder" }));
+    await waitFor(() => expect(saveWorkspaceBuildProfile).toHaveBeenCalledWith({
+      workspaceId: "workspace-1",
+      profile: {
+        name: "Test local",
+        outputName: "opennever-test.mod",
+        blockOnWarnings: true,
+        deployDevelopment: false,
+        hakFiles: [],
+        customTlk: null,
+      },
+    }));
+  });
+
+  it("previews and applies a controlled Toolset synchronization", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    vi.mocked(selectDirectory).mockResolvedValueOnce("C:/toolset");
+    const panel = await screen.findByRole("region", { name: "Synchronisation avec Aurora Toolset" });
+    fireEvent.click(within(panel).getByRole("button", { name: "Parcourir" }));
+    await waitFor(() => expect(within(panel).getByDisplayValue("C:/toolset")).toBeInTheDocument());
+    fireEvent.click(within(panel).getByRole("button", { name: "Comparer" }));
+    expect(await within(panel).findByText("start.nss")).toBeInTheDocument();
+    fireEvent.click(within(panel).getByRole("button", { name: "Synchroniser la sélection" }));
+    await waitFor(() => expect(applyAuroraWorkspaceSync).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: "job-1", workspaceId: "workspace-1", root: "C:/toolset",
+      actions: [expect.objectContaining({ direction: "pull_from_toolset" })],
+    })));
+    expect(planAuroraWorkspaceSync).toHaveBeenCalled();
+  });
+
+  it("keeps AI offline by default and applies only a validated local proposal", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    const panel = await screen.findByRole("region", { name: "Assistant IA contrôlé" });
+    expect(within(panel).getByRole("button", { name: "Générer et prévisualiser" })).toBeDisabled();
+    fireEvent.click(within(panel).getByText("Prévisualiser une proposition JSON locale, sans réseau"));
+    const changeSet = { summary: "Modifier le script", commands: [{ kind: "replace_text", resource: { resref: "start", resourceType: 2009 }, before: "void main() {}", after: "void main() { int n = 1; }" }] };
+    fireEvent.change(within(panel).getByLabelText("Proposition JSON locale"), { target: { value: JSON.stringify(changeSet) } });
+    fireEvent.click(within(panel).getByRole("button", { name: "Valider localement" }));
+    await waitFor(() => expect(previewAiChangeSet).toHaveBeenCalledWith({ jobId: "job-1", workspaceId: "workspace-1", changeSet }));
+    expect(await within(panel).findByText("Précondition vérifiée")).toBeInTheDocument();
+    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    fireEvent.click(within(panel).getByRole("button", { name: "Confirmer et appliquer" }));
+    await waitFor(() => expect(applyAiChangeSet).toHaveBeenCalledWith(expect.objectContaining({ jobId: "job-1", workspaceId: "workspace-1", proposalSha256: "A".repeat(64), confirmed: true })));
   });
 
   it("creates and splits a walkmesh in the editable overlay", async () => {

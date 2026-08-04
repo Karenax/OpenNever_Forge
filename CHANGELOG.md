@@ -29,10 +29,25 @@ Tous les changements notables du projet sont consignés ici.
   découpe, suppression, extrusion et soudure dans l'aperçu SVG. Les writers autonomes WALKMESH,
   PWKMESH et DWKMESH produisent un AABB déterministe et sont relus avant staging. Le remplacement
   d'une ressource existante exige une confirmation explicite.
+- Lot 21 : writers déterministes 2DA V2.0 et TLK V3.0, éditions de cellules/lignes et chaînes/sons
+  via l'overlay annulable, ainsi qu'un gestionnaire HAK/TLK qui réécrit puis relit `module.ifo`
+  sans perdre ses champs inconnus.
+- Lot 22 : profils de build persistants avec cohérence des dépendances, vérification par deux MOD
+  reconstruits et comparés par SHA-256, exécution avec déploiement `development` facultatif et
+  inspection Git bornée en lecture seule via arguments sans shell. Profils `nwmain`/`nwserver`
+  persistants, lancement direct borné et journal local séparé.
+- Lot 23 : synchronisation bidirectionnelle avec un workspace Aurora Toolset, comparaison à trois
+  états, conflits arbitrés explicitement, préconditions SHA-256, imports annulables et sauvegardes
+  récupérables avant écriture ou suppression côté Toolset.
+- Lot 24 : schéma workspace v3, sauvegarde exacte et historique des migrations, rejet des versions
+  futures, moteur de synchronisation isolé, guide utilisateur, guide de migration et ADR dédié.
+- Lot 25 : fournisseur IA compatible choisi par l'utilisateur, réseau et partage de données
+  désactivés par défaut, clé uniquement en mémoire, import JSON local, opérations GFF/NSS bornées,
+  prévisualisation sur les octets courants, confirmation par SHA-256 et application annulable.
 - Construction d'un nouveau MOD, déploiement explicite dans `development` et nettoyage sélectif
   par manifeste et SHA-256.
 - Fondation Phase 3 : création d'un module vide et de zones ARE/GIT/GIC, palettes typées,
-  validation de walkmesh, profils HAK/TLK, export reproductible, scan Aurora en lecture seule et
+  validation de walkmesh, profils HAK/TLK, export reproductible, synchronisation Aurora contrôlée et
   prévisualisation de propositions IA sous forme de commandes annulables.
 
 - Socle initial Tauri 2, React 19, TypeScript strict et Rust stable.

@@ -15,6 +15,7 @@ par `pnpm-lock.yaml` et `Cargo.lock`.
 | React Flow / `@xyflow/react` | Graphe complet des dialogues | MIT | Inclus localement |
 | Babylon.js / `@babylonjs/core` / `@babylonjs/loaders` | Vues 3D, GLB et textures | Apache-2.0 | Inclus localement, chargé à la demande |
 | `png` | Encodage local des aperçus PLT | MIT OR Apache-2.0 | Inclus côté Rust |
+| `reqwest` + rustls | Appels HTTPS explicites vers le fournisseur IA choisi | MIT OR Apache-2.0 | Inclus côté Rust, réseau désactivé par défaut |
 | Khronos `gltf-validator` | Validation GLB de développement | Apache-2.0 | Développement uniquement |
 | xoreos-docs `NWN1MDL.bt` | Description du format MDL NWN1 | CC0-1.0 | Référence de spécification, aucun code embarqué |
 | rusqlite / libsqlite3-sys | Index SQLite côté Rust | MIT | Inclus |

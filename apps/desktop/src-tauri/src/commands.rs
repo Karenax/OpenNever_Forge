@@ -1,20 +1,26 @@
 use crate::jobs::JobSnapshot;
 use crate::state::AppState;
-use aurora_2da::{TwoDaTable, parse_2da};
+use aurora_2da::{TwoDaEditAction, TwoDaTable, apply_2da_edit, parse_2da, write_2da};
 use aurora_core::{AppError, AppResult, ResourceKey, decode_nwn_text};
 use aurora_dialogue::adapt_dialogue;
 use aurora_edit::{
-    AiChangeSet, AiChangeSetPreview, AreaStructureAction, AuroraSyncManifest,
-    BlueprintStructureAction, DevelopmentCleanupReport, DevelopmentDeployment,
-    DialogueStructureAction, EditCommand, EditWorkspace, FactionStructureAction, InstancePlacement,
-    JournalStructureAction, ModuleBuildReport, NewModuleDefinition, PaletteManifest,
+    AiApplyReport, AiChangeSet, AiChangeSetPreview, AreaStructureAction, AuroraSyncAction,
+    AuroraSyncAppliedFile, AuroraSyncDirection, AuroraSyncManifest, AuroraSyncPlan,
+    AuroraSyncReport, AuroraSyncState, AuroraSyncWorkspaceFile, BlueprintStructureAction,
+    DevelopmentCleanupReport, DevelopmentDeployment, DialogueStructureAction, EditCommand,
+    EditWorkspace, FactionStructureAction, GitWorkspaceStatus, InstancePlacement,
+    JournalStructureAction, ModuleBuildProfile, ModuleBuildReport, NewModuleDefinition,
+    NwnLaunchProfile, NwnLaunchReport, PaletteManifest, ReproducibleBuildVerification,
     ResourceContentDigest, TileState, Transform, WalkmeshDocument, WalkmeshDraft, WalkmeshKind,
     WalkmeshOperation, WalkmeshValidation, WorkspaceExportManifest, WorkspaceSnapshot,
-    add_area_instance, apply_walkmesh_operation, create_area_resources, create_empty_module,
-    edit_area_instance, edit_area_structure, edit_area_tile, edit_blueprint_structure,
-    edit_dialogue_structure, edit_faction_structure, edit_gff_field, edit_journal_structure,
-    inspect_walkmesh, remove_area_instance, scan_aurora_workspace, serialize_walkmesh_ascii,
-    validate_walkmesh_for_kind,
+    add_area_instance, ai_change_set_sha256, apply_walkmesh_operation, baseline_from_plan,
+    compare_aurora_sync, create_area_resources, create_empty_module, edit_area_instance,
+    edit_area_structure, edit_area_tile, edit_blueprint_structure, edit_dialogue_structure,
+    edit_faction_structure, edit_gff_field, edit_journal_structure, edit_module_dependencies,
+    inspect_git_repository, inspect_walkmesh, read_aurora_workspace_file, remove_area_instance,
+    resource_key_from_aurora_path, scan_aurora_workspace, serialize_walkmesh_ascii,
+    validate_build_profile, validate_walkmesh_for_kind, verify_sync_action,
+    write_aurora_workspace_file,
 };
 use aurora_gff::{GenericGff, parse_gff};
 use aurora_index::{CatalogPersistence, load_dependency_baseline, replace_resource_catalog};
@@ -25,7 +31,7 @@ use aurora_project::{
     ScriptDocument, ScriptPage, WorldIndex, analyze_module_file_with_roots, build_asset_preview,
     cached_model_preview, compare_dependency_reports,
 };
-use aurora_tlk::{TalkTable, parse_tlk};
+use aurora_tlk::{TalkTable, TlkEditAction, apply_tlk_edit, parse_tlk, write_tlk};
 use aurora_world::{AreaMap, adapt_area, adapt_narrative};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -354,8 +360,104 @@ pub struct WorkspaceOutputRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TwoDaEditRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub resource: ResourceKey,
+    pub action: TwoDaEditAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TlkEditRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub resource: ResourceKey,
+    pub action: TlkEditAction,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TableEditResult<T> {
+    pub workspace: WorkspaceSnapshot,
+    pub document: T,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModuleDependencyEditRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub hak_files: Vec<String>,
+    pub custom_tlk: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModuleDependencyEditResult {
+    pub workspace: WorkspaceSnapshot,
+    pub document: GenericGff,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildProfileRequest {
+    pub workspace_id: String,
+    pub profile: ModuleBuildProfile,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunBuildProfileRequest {
+    pub workspace_id: String,
+    pub profile: ModuleBuildProfile,
+    pub output_directory: String,
+    pub user_data_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildProfileRunReport {
+    pub profile: ModuleBuildProfile,
+    pub build: ModuleBuildReport,
+    pub deployment: Option<DevelopmentDeployment>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorkspaceRequest {
+    pub root: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchProfileRequest {
+    pub workspace_id: String,
+    pub profile: NwnLaunchProfile,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuroraSyncRequest {
     pub root: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuroraSyncPlanRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub root: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuroraSyncApplyRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub root: String,
+    pub actions: Vec<AuroraSyncAction>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -410,8 +512,57 @@ pub struct WalkmeshEditResult {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiChangeSetRequest {
+    pub job_id: String,
     pub workspace_id: String,
     pub change_set: AiChangeSet,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiConsent {
+    #[serde(default)]
+    pub allow_network: bool,
+    #[serde(default)]
+    pub include_module_metadata: bool,
+    #[serde(default)]
+    pub include_resource_contents: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiProviderRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub endpoint: String,
+    pub model: String,
+    pub api_key: Option<String>,
+    pub prompt: String,
+    #[serde(default)]
+    pub selected_resources: Vec<ResourceKey>,
+    pub consent: AiConsent,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiProviderProposal {
+    pub endpoint_origin: String,
+    pub model: String,
+    pub proposal_sha256: String,
+    pub change_set: AiChangeSet,
+    pub preview: AiChangeSetPreview,
+    pub shared_resources: usize,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplyAiChangeSetRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub proposal_sha256: String,
+    pub change_set: AiChangeSet,
+    #[serde(default)]
+    pub confirmed: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1391,8 +1542,455 @@ pub fn export_workspace_sources(
 }
 
 #[tauri::command]
+pub fn edit_workspace_2da(
+    state: State<'_, AppState>,
+    request: TwoDaEditRequest,
+) -> AppResult<TableEditResult<TwoDaTable>> {
+    if request.resource.resource_type != 2017 {
+        return Err(AppError::invalid_path(
+            request.resource.to_string(),
+            "2DA edit requires resource type 2017",
+        )
+        .into());
+    }
+    let source_bytes = try_resolved_resource_bytes(&state, &request.job_id, &request.resource)?;
+    let resource = request.resource.clone();
+    let (workspace, document) = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        let current = workspace
+            .staged_resource_bytes(&resource)?
+            .or_else(|| source_bytes.clone())
+            .ok_or_else(|| {
+                AppError::invalid_path(resource.to_string(), "2DA resource is not resolved")
+            })?;
+        let mut document = parse_2da(&current, &format!("workspace::{}", resource.file_name()))?;
+        apply_2da_edit(&mut document, &request.action)?;
+        let output = write_2da(&document)?;
+        let reopened = parse_2da(&output, &format!("workspace::{}", resource.file_name()))?;
+        let before_sha256 = hex::encode(Sha256::digest(&current));
+        let after_sha256 = hex::encode(Sha256::digest(&output));
+        workspace.stage_resource(resource.clone(), source_bytes.as_deref(), &output)?;
+        let snapshot = workspace.apply(EditCommand::TransformResource {
+            resource: resource.clone(),
+            operation: "edit_2da".into(),
+            before_sha256,
+            after_sha256,
+        })?;
+        Ok((snapshot, reopened))
+    })?;
+    Ok(TableEditResult {
+        workspace,
+        document,
+    })
+}
+
+#[tauri::command]
+pub fn edit_workspace_tlk(
+    state: State<'_, AppState>,
+    request: TlkEditRequest,
+) -> AppResult<TableEditResult<TalkTable>> {
+    if request.resource.resource_type != 2018 {
+        return Err(AppError::invalid_path(
+            request.resource.to_string(),
+            "TLK edit requires resource type 2018",
+        )
+        .into());
+    }
+    let source_bytes = try_resolved_resource_bytes(&state, &request.job_id, &request.resource)?;
+    let resource = request.resource.clone();
+    let (workspace, document) = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        let current = workspace
+            .staged_resource_bytes(&resource)?
+            .or_else(|| source_bytes.clone())
+            .ok_or_else(|| {
+                AppError::invalid_path(resource.to_string(), "TLK resource is not resolved")
+            })?;
+        let mut document = parse_tlk(&current, &format!("workspace::{}", resource.file_name()))?;
+        apply_tlk_edit(&mut document, &request.action)?;
+        let output = write_tlk(&document)?;
+        let reopened = parse_tlk(&output, &format!("workspace::{}", resource.file_name()))?;
+        let before_sha256 = hex::encode(Sha256::digest(&current));
+        let after_sha256 = hex::encode(Sha256::digest(&output));
+        workspace.stage_resource(resource.clone(), source_bytes.as_deref(), &output)?;
+        let snapshot = workspace.apply(EditCommand::TransformResource {
+            resource: resource.clone(),
+            operation: "edit_tlk".into(),
+            before_sha256,
+            after_sha256,
+        })?;
+        Ok((snapshot, reopened))
+    })?;
+    Ok(TableEditResult {
+        workspace,
+        document,
+    })
+}
+
+#[tauri::command]
+pub fn edit_workspace_module_dependencies(
+    state: State<'_, AppState>,
+    request: ModuleDependencyEditRequest,
+) -> AppResult<ModuleDependencyEditResult> {
+    let resource = ResourceKey::new("module", 2014);
+    let source_bytes = try_resolved_resource_bytes(&state, &request.job_id, &resource)?;
+    let (workspace, document) = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        let current = workspace
+            .staged_resource_bytes(&resource)?
+            .or_else(|| source_bytes.clone())
+            .ok_or_else(|| {
+                AppError::invalid_path(resource.to_string(), "module.ifo is not resolved")
+            })?;
+        let (output, document) = edit_module_dependencies(
+            &current,
+            "workspace::module.ifo",
+            &request.hak_files,
+            request.custom_tlk.as_deref(),
+        )?;
+        let before_sha256 = hex::encode(Sha256::digest(&current));
+        let after_sha256 = hex::encode(Sha256::digest(&output));
+        workspace.stage_resource(resource.clone(), source_bytes.as_deref(), &output)?;
+        let snapshot = workspace.apply(EditCommand::TransformResource {
+            resource: resource.clone(),
+            operation: "edit_module_dependencies".into(),
+            before_sha256,
+            after_sha256,
+        })?;
+        Ok((snapshot, document))
+    })?;
+    Ok(ModuleDependencyEditResult {
+        workspace,
+        document,
+    })
+}
+
+#[tauri::command]
+pub fn list_workspace_build_profiles(
+    state: State<'_, AppState>,
+    request: EditWorkspaceRequest,
+) -> AppResult<Vec<ModuleBuildProfile>> {
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.list_build_profiles()
+    })
+}
+
+#[tauri::command]
+pub fn save_workspace_build_profile(
+    state: State<'_, AppState>,
+    request: BuildProfileRequest,
+) -> AppResult<Vec<ModuleBuildProfile>> {
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.save_build_profile(request.profile)
+    })
+}
+
+#[tauri::command]
+pub fn verify_workspace_reproducible_build(
+    state: State<'_, AppState>,
+    request: BuildProfileRequest,
+) -> AppResult<ReproducibleBuildVerification> {
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.verify_reproducible_build(&request.profile)
+    })
+}
+
+#[tauri::command]
+pub fn run_workspace_build_profile(
+    state: State<'_, AppState>,
+    request: RunBuildProfileRequest,
+) -> AppResult<BuildProfileRunReport> {
+    validate_build_profile(&request.profile)?;
+    let output_root = PathBuf::from(&request.output_directory);
+    if !output_root.is_dir() {
+        return Err(AppError::invalid_path(
+            request.output_directory,
+            "build output directory does not exist",
+        )
+        .into());
+    }
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        let warnings = workspace.validate_build_profile_context(&request.profile)?;
+        let build = workspace.build_module(&output_root.join(&request.profile.output_name))?;
+        let deployment = if request.profile.deploy_development {
+            let user_data = request.user_data_path.as_deref().ok_or_else(|| {
+                AppError::invalid_path("userDataPath", "profile requires a NWN user data directory")
+            })?;
+            Some(workspace.deploy_development(Path::new(user_data))?)
+        } else {
+            None
+        };
+        Ok(BuildProfileRunReport {
+            profile: request.profile,
+            build,
+            deployment,
+            warnings,
+        })
+    })
+}
+
+#[tauri::command]
+pub fn inspect_git_workspace(request: GitWorkspaceRequest) -> AppResult<GitWorkspaceStatus> {
+    inspect_git_repository(Path::new(&request.root))
+}
+
+#[tauri::command]
+pub fn list_workspace_launch_profiles(
+    state: State<'_, AppState>,
+    request: EditWorkspaceRequest,
+) -> AppResult<Vec<NwnLaunchProfile>> {
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.list_launch_profiles()
+    })
+}
+
+#[tauri::command]
+pub fn save_workspace_launch_profile(
+    state: State<'_, AppState>,
+    request: LaunchProfileRequest,
+) -> AppResult<Vec<NwnLaunchProfile>> {
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.save_launch_profile(request.profile)
+    })
+}
+
+#[tauri::command]
+pub fn launch_workspace_test_profile(
+    state: State<'_, AppState>,
+    request: LaunchProfileRequest,
+) -> AppResult<NwnLaunchReport> {
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.launch_nwn_profile(&request.profile)
+    })
+}
+
+#[tauri::command]
 pub fn inspect_aurora_workspace(request: AuroraSyncRequest) -> AppResult<AuroraSyncManifest> {
     scan_aurora_workspace(&PathBuf::from(request.root))
+}
+
+#[tauri::command]
+pub fn plan_aurora_workspace_sync(
+    state: State<'_, AppState>,
+    request: AuroraSyncPlanRequest,
+) -> AppResult<AuroraSyncPlan> {
+    build_aurora_sync_plan(
+        &state,
+        &request.job_id,
+        &request.workspace_id,
+        &PathBuf::from(request.root),
+    )
+}
+
+#[tauri::command]
+pub fn apply_aurora_workspace_sync(
+    state: State<'_, AppState>,
+    request: AuroraSyncApplyRequest,
+) -> AppResult<AuroraSyncReport> {
+    if request.actions.is_empty() || request.actions.len() > 1_000 {
+        return Err(Box::new(AppError::new(
+            "EDIT_AURORA_SYNC_ACTIONS_INVALID",
+            "Sélectionnez entre 1 et 1000 opérations de synchronisation.",
+            format!("received {} synchronization actions", request.actions.len()),
+            aurora_core::ErrorSeverity::Warning,
+        )));
+    }
+    let root = PathBuf::from(&request.root);
+    let preview = build_aurora_sync_plan(&state, &request.job_id, &request.workspace_id, &root)?;
+    let by_resource = preview
+        .entries
+        .iter()
+        .map(|entry| (entry.resource.clone(), entry))
+        .collect::<BTreeMap<_, _>>();
+    let mut selected = BTreeSet::new();
+    for action in &request.actions {
+        if !selected.insert(action.resource.clone()) {
+            return Err(Box::new(AppError::new(
+                "EDIT_AURORA_SYNC_ACTION_DUPLICATE",
+                "Une ressource ne peut être synchronisée qu’une fois par opération.",
+                action.resource.to_string(),
+                aurora_core::ErrorSeverity::Warning,
+            )));
+        }
+        let entry = by_resource.get(&action.resource).ok_or_else(|| {
+            Box::new(AppError::new(
+                "EDIT_AURORA_SYNC_RESOURCE_UNKNOWN",
+                "La ressource sélectionnée n’est plus présente dans le plan.",
+                action.resource.to_string(),
+                aurora_core::ErrorSeverity::Error,
+            ))
+        })?;
+        verify_sync_action(entry, action)?;
+        if entry.state == AuroraSyncState::Identical {
+            return Err(Box::new(AppError::new(
+                "EDIT_AURORA_SYNC_ACTION_REDUNDANT",
+                "La ressource est déjà identique des deux côtés.",
+                action.resource.to_string(),
+                aurora_core::ErrorSeverity::Warning,
+            )));
+        }
+    }
+    if request.actions.iter().any(|action| {
+        action.direction == AuroraSyncDirection::PushToToolset
+            && action.resource.resource_type == 2009
+    }) {
+        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+            workspace.validate_compiled_scripts()
+        })?;
+    }
+
+    let mut applied = Vec::with_capacity(request.actions.len());
+    let mut backups = Vec::new();
+    for action in &request.actions {
+        let entry = by_resource
+            .get(&action.resource)
+            .expect("all synchronization actions were validated");
+        match action.direction {
+            AuroraSyncDirection::PullFromToolset => {
+                let incoming = read_aurora_workspace_file(&root, &entry.relative_path)?;
+                let current = workspace_sync_resource_bytes(
+                    &state,
+                    &request.job_id,
+                    &request.workspace_id,
+                    &action.resource,
+                )?;
+                if current
+                    .as_deref()
+                    .map(|bytes| hex::encode(Sha256::digest(bytes)))
+                    != action.expected_workspace_sha256
+                    || incoming
+                        .as_deref()
+                        .map(|bytes| hex::encode(Sha256::digest(bytes)))
+                        != action.expected_toolset_sha256
+                {
+                    return Err(Box::new(AppError::new(
+                        "EDIT_AURORA_SYNC_PRECONDITION_FAILED",
+                        "La ressource a changé depuis la prévisualisation.",
+                        action.resource.to_string(),
+                        aurora_core::ErrorSeverity::Error,
+                    )));
+                }
+                match (current.as_deref(), incoming.as_deref()) {
+                    (Some(current), Some(incoming)) => {
+                        let before_sha256 = hex::encode(Sha256::digest(current));
+                        let after_sha256 = hex::encode(Sha256::digest(incoming));
+                        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+                            workspace.stage_resource(
+                                action.resource.clone(),
+                                Some(current),
+                                incoming,
+                            )?;
+                            workspace.apply(EditCommand::TransformResource {
+                                resource: action.resource.clone(),
+                                operation: "aurora_sync_pull".to_owned(),
+                                before_sha256,
+                                after_sha256,
+                            })
+                        })?;
+                    }
+                    (None, Some(incoming)) => {
+                        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+                            workspace.create_resource(action.resource.clone(), incoming)
+                        })?;
+                    }
+                    (Some(current), None) => {
+                        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+                            workspace.delete_resource(action.resource.clone(), Some(current))
+                        })?;
+                    }
+                    (None, None) => unreachable!("identical missing resources are rejected"),
+                }
+                applied.push(AuroraSyncAppliedFile {
+                    resource: action.resource.clone(),
+                    direction: action.direction,
+                    sha256: incoming
+                        .as_deref()
+                        .map(|bytes| hex::encode(Sha256::digest(bytes))),
+                });
+            }
+            AuroraSyncDirection::PushToToolset => {
+                let current = workspace_sync_resource_bytes(
+                    &state,
+                    &request.job_id,
+                    &request.workspace_id,
+                    &action.resource,
+                )?;
+                if current
+                    .as_deref()
+                    .map(|bytes| hex::encode(Sha256::digest(bytes)))
+                    != action.expected_workspace_sha256
+                {
+                    return Err(Box::new(AppError::new(
+                        "EDIT_AURORA_SYNC_PRECONDITION_FAILED",
+                        "La ressource OpenNever a changé depuis la prévisualisation.",
+                        action.resource.to_string(),
+                        aurora_core::ErrorSeverity::Error,
+                    )));
+                }
+                if let Some(backup) =
+                    write_aurora_workspace_file(&root, &entry.relative_path, current.as_deref())?
+                {
+                    backups.push(backup);
+                }
+                applied.push(AuroraSyncAppliedFile {
+                    resource: action.resource.clone(),
+                    direction: action.direction,
+                    sha256: current
+                        .as_deref()
+                        .map(|bytes| hex::encode(Sha256::digest(bytes))),
+                });
+            }
+        }
+    }
+
+    let current_plan =
+        build_aurora_sync_plan(&state, &request.job_id, &request.workspace_id, &root)?;
+    let old_baseline = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.load_aurora_sync_baseline(&root)
+    })?;
+    let mut next_baseline = baseline_from_plan(&current_plan);
+    let old_entries = old_baseline
+        .map(|baseline| {
+            baseline
+                .entries
+                .into_iter()
+                .map(|entry| (entry.resource.clone(), entry))
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
+    next_baseline.entries.retain(|entry| {
+        selected.contains(&entry.resource)
+            || current_plan
+                .entries
+                .iter()
+                .find(|current| current.resource == entry.resource)
+                .is_some_and(|current| current.state == AuroraSyncState::Identical)
+            || old_entries.contains_key(&entry.resource)
+    });
+    for entry in &mut next_baseline.entries {
+        let resolved = selected.contains(&entry.resource)
+            || current_plan
+                .entries
+                .iter()
+                .find(|current| current.resource == entry.resource)
+                .is_some_and(|current| current.state == AuroraSyncState::Identical);
+        if !resolved && let Some(old) = old_entries.get(&entry.resource) {
+            *entry = old.clone();
+        }
+    }
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace
+            .save_aurora_sync_baseline(&root, &next_baseline)
+            .map(|_| ())
+    })?;
+    backups.sort();
+    backups.dedup();
+    let plan = build_aurora_sync_plan(&state, &request.job_id, &request.workspace_id, &root)?;
+    Ok(AuroraSyncReport {
+        schema_version: 2,
+        root: plan.root.clone(),
+        applied,
+        backups,
+        plan,
+        workspace: get_open_edit_workspace_snapshot(&state, &request.workspace_id)?,
+    })
 }
 
 #[tauri::command]
@@ -1506,8 +2104,233 @@ pub fn preview_ai_change_set(
     state: State<'_, AppState>,
     request: AiChangeSetRequest,
 ) -> AppResult<AiChangeSetPreview> {
+    let source_resources = ai_source_resources(&state, &request.job_id, &request.change_set)?;
     with_edit_workspace(&state, &request.workspace_id, |workspace| {
-        Ok(workspace.preview_ai_change_set(&request.change_set))
+        workspace.preview_controlled_ai_change_set(&request.change_set, &source_resources)
+    })
+}
+
+#[tauri::command]
+pub async fn request_ai_change_set(
+    state: State<'_, AppState>,
+    request: AiProviderRequest,
+) -> AppResult<AiProviderProposal> {
+    if !request.consent.allow_network {
+        return Err(ai_error(
+            "EDIT_AI_NETWORK_CONSENT_REQUIRED",
+            "Activez explicitement l’accès réseau avant de contacter le fournisseur IA.",
+            "AI network access is disabled by default",
+        ));
+    }
+    if request.prompt.trim().is_empty() || request.prompt.len() > 16 * 1024 {
+        return Err(ai_error(
+            "EDIT_AI_PROMPT_INVALID",
+            "La demande doit contenir entre 1 et 16 Kio.",
+            "AI prompt is empty or exceeds 16 KiB",
+        ));
+    }
+    if request.model.trim().is_empty() || request.model.len() > 128 {
+        return Err(ai_error(
+            "EDIT_AI_MODEL_INVALID",
+            "Choisissez explicitement un modèle valide.",
+            "AI model is empty or exceeds 128 bytes",
+        ));
+    }
+    if request.selected_resources.len() > 8 {
+        return Err(ai_error(
+            "EDIT_AI_CONTEXT_TOO_LARGE",
+            "Sélectionnez au maximum huit ressources pour une demande.",
+            "AI context contains more than eight selected resources",
+        ));
+    }
+    let endpoint = validated_ai_endpoint(&request.endpoint)?;
+    let endpoint_origin = endpoint.origin().ascii_serialization();
+    let mut warnings = Vec::new();
+    let mut shared_resources = Vec::new();
+    if request.consent.include_resource_contents {
+        for resource in unique_resource_keys(&request.selected_resources) {
+            let bytes = workspace_or_resolved_resource_bytes(
+                &state,
+                &request.job_id,
+                &request.workspace_id,
+                &resource,
+            )?
+            .ok_or_else(|| {
+                ai_error(
+                    "EDIT_AI_CONTEXT_RESOURCE_MISSING",
+                    "Une ressource sélectionnée n’est plus disponible.",
+                    format!("selected AI context resource is missing: {resource}"),
+                )
+            })?;
+            let content = ai_resource_context(&resource, &bytes)?;
+            let encoded = serde_json::to_vec(&content).map_err(|error| {
+                ai_error(
+                    "EDIT_AI_CONTEXT_SERIALIZE_FAILED",
+                    "Le contexte IA n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })?;
+            if encoded.len() > 64 * 1024 {
+                warnings.push(format!(
+                    "{} dépasse 64 Kio et n’a pas été transmis.",
+                    resource.file_name()
+                ));
+                continue;
+            }
+            shared_resources.push(serde_json::json!({
+                "resource": resource,
+                "sha256": hex::encode(Sha256::digest(&bytes)),
+                "content": content,
+            }));
+        }
+    } else if !request.selected_resources.is_empty() {
+        warnings.push(
+            "Les ressources sélectionnées n’ont pas été transmises faute de consentement."
+                .to_owned(),
+        );
+    }
+    let module_metadata = if request.consent.include_module_metadata {
+        let snapshot = get_open_edit_workspace_snapshot(&state, &request.workspace_id)?;
+        Some(serde_json::json!({
+            "sourceSha256": snapshot.source.sha256,
+            "sourceSizeBytes": snapshot.source.size_bytes,
+            "workspaceCursor": snapshot.cursor,
+            "modifiedResourceCount": snapshot.modified_resources.len(),
+        }))
+    } else {
+        None
+    };
+
+    let system_prompt = concat!(
+        "You are a controlled Neverwinter Nights editing assistant. Return one JSON object only ",
+        "with {\"summary\":string,\"commands\":array}. The only allowed commands are ",
+        "{\"kind\":\"set_field\",\"resource\":{\"resref\":string,\"resourceType\":number},",
+        "\"path\":string,\"before\":typedGffValue,\"after\":typedGffValue} and ",
+        "{\"kind\":\"replace_text\",\"resource\":{\"resref\":string,\"resourceType\":2009},",
+        "\"before\":string,\"after\":string}. Never invent a before value: copy it exactly from context. ",
+        "Do not output markdown, prose outside the JSON, binary data, paths, secrets, or commands for tools. ",
+        "Limit the proposal to 32 operations. A human will preview and explicitly confirm every proposal."
+    );
+    let user_payload = serde_json::json!({
+        "request": request.prompt,
+        "moduleMetadata": module_metadata,
+        "resources": shared_resources,
+    });
+    let body = serde_json::json!({
+        "model": request.model,
+        "temperature": 0,
+        "response_format": { "type": "json_object" },
+        "messages": [
+            { "role": "system", "content": system_prompt },
+            { "role": "user", "content": user_payload.to_string() }
+        ]
+    });
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(45))
+        .build()
+        .map_err(|error| {
+            ai_error(
+                "EDIT_AI_CLIENT_FAILED",
+                "Le client réseau IA n’a pas pu être initialisé.",
+                error.to_string(),
+            )
+        })?;
+    let mut builder = client.post(endpoint).json(&body);
+    if let Some(api_key) = request.api_key.as_deref().filter(|value| !value.is_empty()) {
+        builder = builder.bearer_auth(api_key);
+    }
+    let response = builder.send().await.map_err(|error| {
+        ai_error(
+            "EDIT_AI_PROVIDER_UNREACHABLE",
+            "Le fournisseur IA n’a pas répondu.",
+            error.without_url().to_string(),
+        )
+    })?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(ai_error(
+            "EDIT_AI_PROVIDER_REJECTED",
+            "Le fournisseur IA a refusé la demande.",
+            format!("AI provider returned HTTP {status}"),
+        ));
+    }
+    if response
+        .content_length()
+        .is_some_and(|length| length > 1024 * 1024)
+    {
+        return Err(ai_error(
+            "EDIT_AI_RESPONSE_TOO_LARGE",
+            "La réponse IA dépasse la limite de sécurité.",
+            "AI provider declared a response larger than 1 MiB",
+        ));
+    }
+    let bytes = response.bytes().await.map_err(|error| {
+        ai_error(
+            "EDIT_AI_RESPONSE_READ_FAILED",
+            "La réponse IA n’a pas pu être lue.",
+            error.to_string(),
+        )
+    })?;
+    if bytes.len() > 1024 * 1024 {
+        return Err(ai_error(
+            "EDIT_AI_RESPONSE_TOO_LARGE",
+            "La réponse IA dépasse la limite de sécurité.",
+            format!("AI provider returned {} bytes", bytes.len()),
+        ));
+    }
+    let envelope: serde_json::Value = serde_json::from_slice(&bytes).map_err(|error| {
+        ai_error(
+            "EDIT_AI_RESPONSE_INVALID",
+            "Le fournisseur IA n’a pas renvoyé un JSON compatible.",
+            error.to_string(),
+        )
+    })?;
+    let content = envelope
+        .pointer("/choices/0/message/content")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| {
+            ai_error(
+                "EDIT_AI_RESPONSE_INVALID",
+                "La réponse du fournisseur ne contient aucune proposition textuelle.",
+                "missing choices[0].message.content in OpenAI-compatible response",
+            )
+        })?;
+    let change_set = decode_ai_change_set(content)?;
+    let proposal_sha256 = ai_change_set_sha256(&change_set)?;
+    let source_resources = ai_source_resources(&state, &request.job_id, &change_set)?;
+    let preview = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.preview_controlled_ai_change_set(&change_set, &source_resources)
+    })?;
+    Ok(AiProviderProposal {
+        endpoint_origin,
+        model: request.model,
+        proposal_sha256,
+        change_set,
+        preview,
+        shared_resources: shared_resources.len(),
+        warnings,
+    })
+}
+
+#[tauri::command]
+pub fn apply_ai_change_set(
+    state: State<'_, AppState>,
+    request: ApplyAiChangeSetRequest,
+) -> AppResult<AiApplyReport> {
+    if !request.confirmed {
+        return Err(ai_error(
+            "EDIT_AI_CONFIRMATION_REQUIRED",
+            "Confirmez explicitement la proposition prévisualisée avant application.",
+            "AI proposal application requires confirmed=true",
+        ));
+    }
+    let source_resources = ai_source_resources(&state, &request.job_id, &request.change_set)?;
+    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.apply_controlled_ai_change_set(
+            &request.change_set,
+            &request.proposal_sha256,
+            &source_resources,
+        )
     })
 }
 
@@ -1734,6 +2557,131 @@ pub fn remove_workspace_area_instance(
     workspace.apply(command)
 }
 
+fn validated_ai_endpoint(value: &str) -> AppResult<reqwest::Url> {
+    let endpoint = reqwest::Url::parse(value).map_err(|error| {
+        ai_error(
+            "EDIT_AI_ENDPOINT_INVALID",
+            "L’adresse du fournisseur IA n’est pas valide.",
+            error.to_string(),
+        )
+    })?;
+    if !endpoint.username().is_empty()
+        || endpoint.password().is_some()
+        || endpoint.fragment().is_some()
+    {
+        return Err(ai_error(
+            "EDIT_AI_ENDPOINT_INVALID",
+            "L’adresse IA ne doit contenir ni identifiants ni fragment.",
+            "AI endpoint contains userinfo or a URL fragment",
+        ));
+    }
+    let host = endpoint.host_str().unwrap_or_default();
+    let local = host.eq_ignore_ascii_case("localhost")
+        || host == "127.0.0.1"
+        || host == "::1"
+        || host.ends_with(".localhost");
+    if endpoint.scheme() != "https" && !(endpoint.scheme() == "http" && local) {
+        return Err(ai_error(
+            "EDIT_AI_ENDPOINT_INSECURE",
+            "Utilisez HTTPS, ou HTTP uniquement pour un modèle local.",
+            format!("unsupported AI endpoint scheme for host {host}"),
+        ));
+    }
+    Ok(endpoint)
+}
+
+fn decode_ai_change_set(content: &str) -> AppResult<AiChangeSet> {
+    let trimmed = content.trim();
+    if trimmed.starts_with("```") {
+        return Err(ai_error(
+            "EDIT_AI_RESPONSE_INVALID",
+            "La réponse IA contient du Markdown au lieu du JSON strict attendu.",
+            "AI response is wrapped in a Markdown code fence",
+        ));
+    }
+    serde_json::from_str::<AiChangeSet>(trimmed).map_err(|error| {
+        ai_error(
+            "EDIT_AI_CHANGE_SET_INVALID",
+            "La proposition IA ne respecte pas le contrat d’opérations typées.",
+            error.to_string(),
+        )
+    })
+}
+
+fn ai_resource_context(resource: &ResourceKey, bytes: &[u8]) -> AppResult<serde_json::Value> {
+    if resource.resource_type == 2009 {
+        return Ok(serde_json::json!({
+            "kind": "nss",
+            "text": decode_nwn_text(bytes),
+        }));
+    }
+    if is_gff(resource.resource_type) {
+        let document = parse_gff(bytes, &format!("ai-context::{resource}"))?;
+        return serde_json::to_value(document).map_err(|error| {
+            ai_error(
+                "EDIT_AI_CONTEXT_SERIALIZE_FAILED",
+                "La ressource GFF sélectionnée n’a pas pu être préparée.",
+                error.to_string(),
+            )
+        });
+    }
+    Err(ai_error(
+        "EDIT_AI_CONTEXT_RESOURCE_UNSUPPORTED",
+        "Seuls les GFF et scripts NSS peuvent être transmis au fournisseur IA.",
+        format!("unsupported AI context resource {resource}"),
+    ))
+}
+
+fn unique_resource_keys(resources: &[ResourceKey]) -> Vec<ResourceKey> {
+    resources
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn ai_source_resources(
+    state: &AppState,
+    job_id: &str,
+    change_set: &AiChangeSet,
+) -> AppResult<BTreeMap<String, Vec<u8>>> {
+    ai_change_set_sha256(change_set)?;
+    let resources = change_set
+        .commands
+        .iter()
+        .filter_map(|command| match command {
+            EditCommand::SetField { resource, .. } | EditCommand::ReplaceText { resource, .. } => {
+                Some(resource.clone())
+            }
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    resources
+        .into_iter()
+        .map(|resource| {
+            resolved_resource_bytes(state, job_id, &resource)
+                .map(|bytes| (resource.to_string(), bytes))
+        })
+        .collect()
+}
+
+fn ai_error(
+    code: &str,
+    user_message: impl Into<String>,
+    technical_message: impl Into<String>,
+) -> Box<AppError> {
+    Box::new(
+        AppError::new(
+            code,
+            user_message,
+            technical_message,
+            aurora_core::ErrorSeverity::Error,
+        )
+        .with_import_stage("ai_assistant"),
+    )
+}
+
 fn resolved_resource_bytes(
     state: &AppState,
     job_id: &str,
@@ -1779,6 +2727,80 @@ fn workspace_or_resolved_resource_bytes(
         Some(bytes) => Ok(Some(bytes)),
         None => try_resolved_resource_bytes(state, job_id, resource),
     }
+}
+
+fn workspace_sync_resource_bytes(
+    state: &AppState,
+    job_id: &str,
+    workspace_id: &str,
+    resource: &ResourceKey,
+) -> AppResult<Option<Vec<u8>>> {
+    let snapshot = get_open_edit_workspace_snapshot(state, workspace_id)?;
+    if snapshot
+        .deleted_resources
+        .iter()
+        .any(|deleted| deleted == resource)
+    {
+        return Ok(None);
+    }
+    workspace_or_resolved_resource_bytes(state, job_id, workspace_id, resource)
+}
+
+fn build_aurora_sync_plan(
+    state: &AppState,
+    job_id: &str,
+    workspace_id: &str,
+    root: &Path,
+) -> AppResult<AuroraSyncPlan> {
+    let toolset = scan_aurora_workspace(root)?;
+    let snapshot = get_open_edit_workspace_snapshot(state, workspace_id)?;
+    let deleted = snapshot
+        .deleted_resources
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let modified = snapshot
+        .modified_resources
+        .iter()
+        .map(|resource| (resource.resource.clone(), resource))
+        .collect::<BTreeMap<_, _>>();
+    let mut keys = BTreeSet::new();
+    for file in &toolset.files {
+        keys.insert(resource_key_from_aurora_path(&file.name)?);
+    }
+    keys.extend(modified.keys().cloned());
+    keys.extend(deleted.iter().cloned());
+    let mut workspace_files = Vec::with_capacity(keys.len());
+    for resource in keys {
+        if deleted.contains(&resource) {
+            workspace_files.push(AuroraSyncWorkspaceFile {
+                resource,
+                sha256: None,
+                size_bytes: None,
+            });
+            continue;
+        }
+        if let Some(modified) = modified.get(&resource) {
+            workspace_files.push(AuroraSyncWorkspaceFile {
+                resource,
+                sha256: Some(modified.output_sha256.clone()),
+                size_bytes: Some(modified.size_bytes),
+            });
+            continue;
+        }
+        let bytes = workspace_or_resolved_resource_bytes(state, job_id, workspace_id, &resource)?;
+        workspace_files.push(AuroraSyncWorkspaceFile {
+            resource,
+            sha256: bytes
+                .as_deref()
+                .map(|bytes| hex::encode(Sha256::digest(bytes))),
+            size_bytes: bytes.as_ref().map(|bytes| bytes.len() as u64),
+        });
+    }
+    let baseline = with_edit_workspace(state, workspace_id, |workspace| {
+        workspace.load_aurora_sync_baseline(root)
+    })?;
+    compare_aurora_sync(&toolset, &workspace_files, baseline.as_ref())
 }
 
 fn edit_workspace_not_open(workspace_id: &str, stage: &str) -> Box<AppError> {
@@ -2570,5 +3592,43 @@ fn is_gff(resource_type: u16) -> bool {
 fn emit_snapshot(app: &AppHandle, snapshot: &JobSnapshot) {
     if let Err(error) = app.emit(JOB_PROGRESS_EVENT, snapshot) {
         tracing::warn!(job_id = snapshot.id, %error, "cannot emit job progress");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ai_endpoints_require_https_except_for_local_models() {
+        assert!(validated_ai_endpoint("http://127.0.0.1:11434/v1/chat/completions").is_ok());
+        assert!(validated_ai_endpoint("http://localhost:1234/v1/chat/completions").is_ok());
+        assert_eq!(
+            validated_ai_endpoint("http://example.com/v1/chat/completions")
+                .expect_err("remote HTTP")
+                .code,
+            "EDIT_AI_ENDPOINT_INSECURE"
+        );
+        assert_eq!(
+            validated_ai_endpoint("https://secret@example.com/v1/chat/completions")
+                .expect_err("embedded credentials")
+                .code,
+            "EDIT_AI_ENDPOINT_INVALID"
+        );
+    }
+
+    #[test]
+    fn ai_response_decoder_accepts_strict_json_and_rejects_markdown() {
+        let decoded = decode_ai_change_set(
+            r#"{"summary":"Edit script","commands":[{"kind":"replace_text","resource":{"resref":"start","resourceType":2009},"before":"void main() {}","after":"void main() { int n = 1; }"}]}"#,
+        )
+        .expect("strict JSON change set");
+        assert_eq!(decoded.commands.len(), 1);
+        assert_eq!(
+            decode_ai_change_set("```json\n{}\n```")
+                .expect_err("Markdown response")
+                .code,
+            "EDIT_AI_RESPONSE_INVALID"
+        );
     }
 }

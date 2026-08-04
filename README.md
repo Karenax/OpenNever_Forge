@@ -1,5 +1,10 @@
 # OpenNever Forge
 
+Les Lots 21 à 25 ajoutent les éditeurs transactionnels TLK/2DA, les profils reproductibles, la
+synchronisation contrôlée avec les dossiers temporaires d’Aurora Toolset et les migrations
+sauvegardées des workspaces, puis l’assistant IA à consentements explicites. Toutes les sorties
+restent séparées du module source, qui n'est jamais ouvert en écriture.
+
 OpenNever Forge est un éditeur tiers moderne pour Neverwinter Nights: Enhanced Edition. Les sources
 NWN restent strictement en lecture seule : l'application ouvre une copie de travail, indexe ses
 ressources et applique les modifications dans un overlay transactionnel séparé avant de construire
@@ -13,10 +18,13 @@ Le contexte complet est dans [`CONTEXT.md`](CONTEXT.md) et le séquencement dans
 Les Lots 0 à 10 disposent de leur porte de sortie et la Phase 1 de lecture est complète. Les Lots
 11 à 16 fournissent le socle transactionnel récupérable, les writers GFF/ERF en streaming, l'édition
 NSS, la compilation NCS liée aux includes exacts, l'édition 2D des zones et la construction d'un
-nouveau MOD. La Phase 3 possède une
-fondation exécutable pour créer un module et des zones, gérer les palettes, valider les walkmeshes,
-produire un HAK, exporter un état reproductible et prévisualiser des changements assistés ; elle
-n'est pas encore déclarée complète. Le shell Tauri/React calcule l'empreinte d'une copie `.mod`, résout
+nouveau MOD. La Phase 3 est exécutable jusqu’au Lot 25 : création de module et de zones, palettes,
+walkmeshes, contenus personnalisés, builds reproductibles, synchronisation Toolset et migrations de
+projets. L’assistance IA propose uniquement des opérations GFF/NSS bornées, prévisualisées contre
+les octets courants et confirmées par empreinte avant application annulable. Tous les lots planifiés
+sont implémentés ; les dernières preuves externes Toolset/NWN restent à observer manuellement sur
+un environnement moteur fonctionnel.
+Le shell Tauri/React calcule l'empreinte d'une copie `.mod`, résout
 son catalogue MOD/HAK/override/development/patch/KEY-BIF et explique la provenance de chaque
 version. L'explorateur paginé ouvre à la demande les GFF, TLK et 2DA, ou un aperçu binaire pour les
 formats inconnus. Le cœur expose déjà le module, les zones ARE, les instances GIT, les données GIC
@@ -54,9 +62,14 @@ Les revues de sortie et leurs limites sont consignées dans
 [`docs/validation/lot4-exit-review.md`](docs/validation/lot4-exit-review.md) et
 [`docs/validation/lot5-exit-review.md`](docs/validation/lot5-exit-review.md), puis
 [`docs/validation/lot6-lot10-exit-review.md`](docs/validation/lot6-lot10-exit-review.md) et
-[`docs/validation/lot20-exit-review.md`](docs/validation/lot20-exit-review.md).
+[`docs/validation/lot20-exit-review.md`](docs/validation/lot20-exit-review.md), puis
+[`docs/validation/lot21-lot22-exit-review.md`](docs/validation/lot21-lot22-exit-review.md) et
+[`docs/validation/lot23-lot24-exit-review.md`](docs/validation/lot23-lot24-exit-review.md), puis
+[`docs/validation/lot25-exit-review.md`](docs/validation/lot25-exit-review.md).
 L'état précis des Lots 11 à 25, les contrôles d'oracle et l'ordre restant sont dans
 [`docs/validation/phase2-phase3-foundation-review.md`](docs/validation/phase2-phase3-foundation-review.md).
+Le parcours opérationnel est décrit dans [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) et la politique
+de compatibilité dans [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
 ## Prérequis Windows
 
