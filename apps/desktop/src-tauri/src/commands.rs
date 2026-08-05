@@ -1,6 +1,15 @@
 use crate::jobs::JobSnapshot;
 use crate::state::AppState;
 use aurora_2da::{TwoDaEditAction, TwoDaTable, apply_2da_edit, parse_2da, write_2da};
+use aurora_agent::{
+    AgentEventKind, AgentPolicy, AgentRun, AgentRunStatus, AgentWorkspaceStore, ApprovalRequest,
+    ApprovalStatus, CapabilityRegistry, CapabilitySideEffect, EffectiveCapability, ModuleBlueprint,
+    PolicyDecision, ProviderKind, ProviderProfile, ProviderRequestContext, ProviderToolOutput,
+    SecurityLevel, ToolCallRecord, ToolCallStatus, build_provider_request, built_in_policy,
+    compile_module_blueprint, context_allows_capability, decode_provider_response,
+    evaluate_capability, sanitize_context_value, validate_agent_policy, validate_module_blueprint,
+    validate_tool_scope,
+};
 use aurora_core::{AppError, AppResult, ResourceKey, decode_nwn_text};
 use aurora_dialogue::adapt_dialogue;
 use aurora_edit::{
@@ -9,19 +18,21 @@ use aurora_edit::{
     AuroraSyncReport, AuroraSyncState, AuroraSyncWorkspaceFile, BlueprintStructureAction,
     DevelopmentCleanupReport, DevelopmentDeployment, DialogueStructureAction, EditCommand,
     EditWorkspace, FactionStructureAction, GitWorkspaceStatus, InstancePlacement,
-    JournalStructureAction, ModuleBuildProfile, ModuleBuildReport, NewModuleDefinition,
-    NwnLaunchProfile, NwnLaunchReport, PaletteManifest, ReproducibleBuildVerification,
-    ResourceContentDigest, TileState, Transform, WalkmeshDocument, WalkmeshDraft, WalkmeshKind,
-    WalkmeshOperation, WalkmeshValidation, WorkspaceExportManifest, WorkspaceSnapshot,
-    add_area_instance, ai_change_set_sha256, apply_walkmesh_operation, baseline_from_plan,
-    compare_aurora_sync, create_area_resources, create_empty_module, edit_area_instance,
-    edit_area_structure, edit_area_tile, edit_blueprint_structure, edit_dialogue_structure,
-    edit_faction_structure, edit_gff_field, edit_journal_structure, edit_module_dependencies,
-    inspect_git_repository, inspect_walkmesh, read_aurora_workspace_file, remove_area_instance,
+    JournalStructureAction, ModuleBuildProfile, ModuleBuildReport, ModuleManifestDefinition,
+    NewModuleDefinition, NwnLaunchMode, NwnLaunchProfile, NwnLaunchReport, PaletteManifest,
+    ReproducibleBuildVerification, ResourceContentDigest, TileState, Transform, WalkmeshDocument,
+    WalkmeshDraft, WalkmeshKind, WalkmeshOperation, WalkmeshValidation, WorkspaceExportManifest,
+    WorkspaceSnapshot, add_area_instance, ai_change_set_sha256, apply_walkmesh_operation,
+    baseline_from_plan, compare_aurora_sync, create_area_resources, create_dialogue_resource,
+    create_empty_module, edit_area_instance, edit_area_structure, edit_area_tile,
+    edit_blueprint_structure, edit_dialogue_structure, edit_faction_structure, edit_gff_field,
+    edit_journal_structure, edit_module_dependencies, edit_module_manifest, inspect_git_repository,
+    inspect_walkmesh, read_aurora_workspace_file, remove_area_instance,
     resource_key_from_aurora_path, scan_aurora_workspace, serialize_walkmesh_ascii,
     validate_build_profile, validate_walkmesh_for_kind, verify_sync_action,
     write_aurora_workspace_file,
 };
+use aurora_erf::ErfResourceInput;
 use aurora_gff::{GenericGff, parse_gff};
 use aurora_index::{CatalogPersistence, load_dependency_baseline, replace_resource_catalog};
 use aurora_nwscript::{CompileResult, CompilerConfig, NssDocument, compile_nss, parse_nss};
@@ -35,11 +46,14 @@ use aurora_tlk::{TalkTable, TlkEditAction, apply_tlk_edit, parse_tlk, write_tlk}
 use aurora_world::{AreaMap, adapt_area, adapt_narrative};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs::{self, File};
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicBool;
+use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, State, ipc::Response};
 
 const JOB_PROGRESS_EVENT: &str = "job-progress";
@@ -567,6 +581,218 @@ pub struct ApplyAiChangeSetRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AgentWorkspaceRequest {
+    pub workspace_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveAgentPolicyRequest {
+    pub workspace_id: String,
+    pub policy: AgentPolicy,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStudioState {
+    pub policy: AgentPolicy,
+    pub presets: Vec<AgentPolicy>,
+    pub registry: CapabilityRegistry,
+    pub effective_capabilities: Vec<EffectiveCapability>,
+    pub runs: Vec<AgentRun>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateAgentRunRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub objective: String,
+    pub provider: ProviderProfile,
+    pub policy: Option<AgentPolicy>,
+    pub blueprint: Option<ModuleBlueprint>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ValidateBlueprintRequest {
+    pub blueprint: ModuleBlueprint,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvanceAgentRunRequest {
+    pub workspace_id: String,
+    pub run_id: String,
+    pub api_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolveAgentApprovalRequest {
+    pub workspace_id: String,
+    pub run_id: String,
+    pub approval_id: String,
+    pub approved: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelAgentRunRequest {
+    pub workspace_id: String,
+    pub run_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentResourceSearchArguments {
+    query: String,
+    limit: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentSetFieldArguments {
+    resource: ResourceKey,
+    path: String,
+    before: serde_json::Value,
+    after: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentReplaceScriptArguments {
+    resource: ResourceKey,
+    before: String,
+    after: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentAreaCreateArguments {
+    resref: String,
+    name: String,
+    width: u32,
+    height: u32,
+    tileset: String,
+    #[serde(default)]
+    tile_id: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentScriptCreateArguments {
+    resref: String,
+    event: String,
+    purpose: String,
+    source: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentScriptCompileArguments {
+    resref: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentUndoBatchArguments {
+    checkpoint_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentModuleBuildArguments {
+    output_path: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentDialogueEditArguments {
+    resref: String,
+    action: DialogueStructureAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentJournalEditArguments {
+    resource: ResourceKey,
+    action: JournalStructureAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentFactionEditArguments {
+    resource: ResourceKey,
+    action: FactionStructureAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentBlueprintEditArguments {
+    resource: ResourceKey,
+    action: BlueprintStructureAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentToolsetSyncArguments {
+    actions: Vec<AuroraSyncAction>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentModuleDependenciesArguments {
+    hak_files: Vec<String>,
+    custom_tlk: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentModuleCreateArguments {
+    output_path: String,
+    name: String,
+    tag: String,
+    entry_area: String,
+    tileset: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentTwoDaEditArguments {
+    resource: ResourceKey,
+    action: TwoDaEditAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentTlkEditArguments {
+    resource: ResourceKey,
+    action: TlkEditAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentAreaInstanceArguments {
+    area: String,
+    placement: InstancePlacement,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentWalkmeshEditArguments {
+    resref: String,
+    kind: WalkmeshKind,
+    operation: WalkmeshOperation,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct AgentArchitectureQueryArguments {
+    query: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateNewModuleRequest {
     pub output_path: String,
     pub name: String,
@@ -920,6 +1146,13 @@ pub fn compile_workspace_script(
     state: State<'_, AppState>,
     request: CompileScriptRequest,
 ) -> AppResult<CompileScriptResult> {
+    compile_workspace_script_inner(&state, request)
+}
+
+fn compile_workspace_script_inner(
+    state: &AppState,
+    request: CompileScriptRequest,
+) -> AppResult<CompileScriptResult> {
     let nss_key = ResourceKey::new(&request.resref, 2009);
     let ncs_key = ResourceKey::new(&request.resref, 2010);
     let source_ncs = state.jobs.with_analysis(&request.job_id, |analysis| {
@@ -962,7 +1195,7 @@ pub fn compile_workspace_script(
         .map(PathBuf::from)
         .collect::<Vec<_>>();
     let (exact_include_path, compilation_inputs) = prepare_exact_compiler_inputs(
-        &state,
+        state,
         &request.job_id,
         &workspace_root,
         &request.resref,
@@ -992,7 +1225,7 @@ pub fn compile_workspace_script(
         ));
     }
     if !compilation.success {
-        let snapshot = get_open_edit_workspace_snapshot(&state, &request.workspace_id)?;
+        let snapshot = get_open_edit_workspace_snapshot(state, &request.workspace_id)?;
         return Ok(CompileScriptResult {
             workspace: snapshot,
             compilation,
@@ -1784,6 +2017,13 @@ pub fn apply_aurora_workspace_sync(
     state: State<'_, AppState>,
     request: AuroraSyncApplyRequest,
 ) -> AppResult<AuroraSyncReport> {
+    apply_aurora_workspace_sync_inner(&state, request)
+}
+
+fn apply_aurora_workspace_sync_inner(
+    state: &AppState,
+    request: AuroraSyncApplyRequest,
+) -> AppResult<AuroraSyncReport> {
     if request.actions.is_empty() || request.actions.len() > 1_000 {
         return Err(Box::new(AppError::new(
             "EDIT_AURORA_SYNC_ACTIONS_INVALID",
@@ -1793,7 +2033,7 @@ pub fn apply_aurora_workspace_sync(
         )));
     }
     let root = PathBuf::from(&request.root);
-    let preview = build_aurora_sync_plan(&state, &request.job_id, &request.workspace_id, &root)?;
+    let preview = build_aurora_sync_plan(state, &request.job_id, &request.workspace_id, &root)?;
     let by_resource = preview
         .entries
         .iter()
@@ -1831,7 +2071,7 @@ pub fn apply_aurora_workspace_sync(
         action.direction == AuroraSyncDirection::PushToToolset
             && action.resource.resource_type == 2009
     }) {
-        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        with_edit_workspace(state, &request.workspace_id, |workspace| {
             workspace.validate_compiled_scripts()
         })?;
     }
@@ -1846,7 +2086,7 @@ pub fn apply_aurora_workspace_sync(
             AuroraSyncDirection::PullFromToolset => {
                 let incoming = read_aurora_workspace_file(&root, &entry.relative_path)?;
                 let current = workspace_sync_resource_bytes(
-                    &state,
+                    state,
                     &request.job_id,
                     &request.workspace_id,
                     &action.resource,
@@ -1871,7 +2111,7 @@ pub fn apply_aurora_workspace_sync(
                     (Some(current), Some(incoming)) => {
                         let before_sha256 = hex::encode(Sha256::digest(current));
                         let after_sha256 = hex::encode(Sha256::digest(incoming));
-                        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+                        with_edit_workspace(state, &request.workspace_id, |workspace| {
                             workspace.stage_resource(
                                 action.resource.clone(),
                                 Some(current),
@@ -1886,12 +2126,12 @@ pub fn apply_aurora_workspace_sync(
                         })?;
                     }
                     (None, Some(incoming)) => {
-                        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+                        with_edit_workspace(state, &request.workspace_id, |workspace| {
                             workspace.create_resource(action.resource.clone(), incoming)
                         })?;
                     }
                     (Some(current), None) => {
-                        with_edit_workspace(&state, &request.workspace_id, |workspace| {
+                        with_edit_workspace(state, &request.workspace_id, |workspace| {
                             workspace.delete_resource(action.resource.clone(), Some(current))
                         })?;
                     }
@@ -1907,7 +2147,7 @@ pub fn apply_aurora_workspace_sync(
             }
             AuroraSyncDirection::PushToToolset => {
                 let current = workspace_sync_resource_bytes(
-                    &state,
+                    state,
                     &request.job_id,
                     &request.workspace_id,
                     &action.resource,
@@ -1941,8 +2181,8 @@ pub fn apply_aurora_workspace_sync(
     }
 
     let current_plan =
-        build_aurora_sync_plan(&state, &request.job_id, &request.workspace_id, &root)?;
-    let old_baseline = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        build_aurora_sync_plan(state, &request.job_id, &request.workspace_id, &root)?;
+    let old_baseline = with_edit_workspace(state, &request.workspace_id, |workspace| {
         workspace.load_aurora_sync_baseline(&root)
     })?;
     let mut next_baseline = baseline_from_plan(&current_plan);
@@ -1975,21 +2215,21 @@ pub fn apply_aurora_workspace_sync(
             *entry = old.clone();
         }
     }
-    with_edit_workspace(&state, &request.workspace_id, |workspace| {
+    with_edit_workspace(state, &request.workspace_id, |workspace| {
         workspace
             .save_aurora_sync_baseline(&root, &next_baseline)
             .map(|_| ())
     })?;
     backups.sort();
     backups.dedup();
-    let plan = build_aurora_sync_plan(&state, &request.job_id, &request.workspace_id, &root)?;
+    let plan = build_aurora_sync_plan(state, &request.job_id, &request.workspace_id, &root)?;
     Ok(AuroraSyncReport {
         schema_version: 2,
         root: plan.root.clone(),
         applied,
         backups,
         plan,
-        workspace: get_open_edit_workspace_snapshot(&state, &request.workspace_id)?,
+        workspace: get_open_edit_workspace_snapshot(state, &request.workspace_id)?,
     })
 }
 
@@ -2335,6 +2575,2261 @@ pub fn apply_ai_change_set(
 }
 
 #[tauri::command]
+pub fn get_agent_studio_state(
+    state: State<'_, AppState>,
+    request: AgentWorkspaceRequest,
+) -> AppResult<AgentStudioState> {
+    let snapshot = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.snapshot()
+    })?;
+    let store = AgentWorkspaceStore::new(&snapshot.root);
+    let policy = store
+        .load_policy()?
+        .unwrap_or_else(|| built_in_policy(SecurityLevel::Advisor));
+    let registry = CapabilityRegistry::standard();
+    let effective_capabilities = registry
+        .capabilities
+        .iter()
+        .map(|descriptor| evaluate_capability(&policy, descriptor, 0).0)
+        .collect();
+    Ok(AgentStudioState {
+        policy,
+        presets: [
+            SecurityLevel::Observer,
+            SecurityLevel::Advisor,
+            SecurityLevel::Assisted,
+            SecurityLevel::Supervised,
+            SecurityLevel::Autonomous,
+            SecurityLevel::Operator,
+        ]
+        .into_iter()
+        .map(built_in_policy)
+        .collect(),
+        registry,
+        effective_capabilities,
+        runs: store.list_runs()?,
+    })
+}
+
+#[tauri::command]
+pub fn save_agent_policy(
+    state: State<'_, AppState>,
+    request: SaveAgentPolicyRequest,
+) -> AppResult<AgentStudioState> {
+    validate_agent_policy(&request.policy).map_err(|error| {
+        agent_error(
+            "AGENT_POLICY_INVALID",
+            "Le profil de sécurité IA n’est pas valide.",
+            error,
+        )
+    })?;
+    let snapshot = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.snapshot()
+    })?;
+    AgentWorkspaceStore::new(&snapshot.root).save_policy(&request.policy)?;
+    get_agent_studio_state(
+        state,
+        AgentWorkspaceRequest {
+            workspace_id: request.workspace_id,
+        },
+    )
+}
+
+#[tauri::command]
+pub fn create_agent_run(
+    state: State<'_, AppState>,
+    request: CreateAgentRunRequest,
+) -> AppResult<AgentRun> {
+    let snapshot = with_edit_workspace(&state, &request.workspace_id, |workspace| {
+        workspace.snapshot()
+    })?;
+    let store = AgentWorkspaceStore::new(&snapshot.root);
+    let policy = request
+        .policy
+        .or(store.load_policy()?)
+        .unwrap_or_else(|| built_in_policy(SecurityLevel::Advisor));
+    validate_agent_policy(&policy).map_err(|error| {
+        agent_error(
+            "AGENT_POLICY_INVALID",
+            "Le profil de sécurité IA n’est pas valide.",
+            error,
+        )
+    })?;
+    if request.objective.trim().is_empty()
+        || request.objective.len() > policy.limits.max_prompt_bytes
+    {
+        return Err(agent_error(
+            "AGENT_OBJECTIVE_INVALID",
+            "L’objectif IA est vide ou dépasse la limite du profil.",
+            format!(
+                "objective contains {} bytes with a {} byte limit",
+                request.objective.len(),
+                policy.limits.max_prompt_bytes
+            ),
+        ));
+    }
+    if request.provider.id.trim().is_empty()
+        || request.provider.id.len() > 128
+        || request.provider.name.trim().is_empty()
+        || request.provider.name.len() > 128
+        || request.provider.endpoint.len() > 2_048
+        || request.provider.model.len() > 256
+        || request
+            .provider
+            .temperature_milli
+            .is_some_and(|value| value > 2_000)
+        || request
+            .provider
+            .reasoning_effort
+            .as_ref()
+            .is_some_and(|value| value.len() > 32)
+    {
+        return Err(agent_error(
+            "AGENT_PROVIDER_PROFILE_INVALID",
+            "La configuration du fournisseur est hors limites.",
+            "provider identity, endpoint, model, reasoning or temperature is invalid",
+        ));
+    }
+    if request.provider.kind != aurora_agent::ProviderKind::Manual {
+        validated_agent_endpoint(&request.provider.endpoint, &policy.context)?;
+        if request.provider.model.trim().is_empty() || !request.provider.supports_tools {
+            return Err(agent_error(
+                "AGENT_PROVIDER_MODEL_INVALID",
+                "La configuration du fournisseur est incomplète ou hors limites.",
+                "provider identity, model, tool support, reasoning or temperature is invalid",
+            ));
+        }
+    }
+    if let Some(blueprint) = &request.blueprint {
+        let validation = validate_module_blueprint(blueprint);
+        if !validation.valid {
+            return Err(agent_error(
+                "AGENT_BLUEPRINT_INVALID",
+                "Le plan de module contient des erreurs.",
+                serde_json::to_string(&validation.diagnostics).unwrap_or_default(),
+            ));
+        }
+    }
+    let mut run = AgentRun::new(
+        request.job_id,
+        request.workspace_id,
+        request.objective,
+        request.provider,
+        policy,
+        unix_time_ms(),
+    );
+    run.blueprint = request.blueprint;
+    store.save_run(&run)?;
+    Ok(run)
+}
+
+#[tauri::command]
+pub fn validate_agent_blueprint(
+    request: ValidateBlueprintRequest,
+) -> aurora_agent::BlueprintValidation {
+    validate_module_blueprint(&request.blueprint)
+}
+
+struct AgentCancellationGuard<'a> {
+    registry: &'a Mutex<HashMap<String, Arc<AtomicBool>>>,
+    run_id: String,
+}
+
+impl Drop for AgentCancellationGuard<'_> {
+    fn drop(&mut self) {
+        self.registry
+            .lock()
+            .expect("agent cancellation registry poisoned")
+            .remove(&self.run_id);
+    }
+}
+
+fn register_agent_cancellation<'a>(
+    state: &'a AppState,
+    run_id: &str,
+) -> AppResult<(Arc<AtomicBool>, AgentCancellationGuard<'a>)> {
+    let cancellation = Arc::new(AtomicBool::new(false));
+    let mut registry = state
+        .agent_cancellations
+        .lock()
+        .expect("agent cancellation registry poisoned");
+    if registry.contains_key(run_id) {
+        return Err(agent_error(
+            "AGENT_RUN_ALREADY_ACTIVE",
+            "Cette exécution IA est déjà active.",
+            run_id.to_owned(),
+        ));
+    }
+    registry.insert(run_id.to_owned(), Arc::clone(&cancellation));
+    drop(registry);
+    Ok((
+        cancellation,
+        AgentCancellationGuard {
+            registry: &state.agent_cancellations,
+            run_id: run_id.to_owned(),
+        },
+    ))
+}
+
+fn stop_cancelled_agent_run(
+    cancellation: &AtomicBool,
+    run: &mut AgentRun,
+    store: &AgentWorkspaceStore,
+) -> AppResult<bool> {
+    if !cancellation.load(Ordering::Acquire) {
+        return Ok(false);
+    }
+    run.status = AgentRunStatus::Cancelled;
+    run.push_event(
+        unix_time_ms(),
+        AgentEventKind::Cancelled,
+        "Exécution interrompue à la demande de l’utilisateur.",
+        None,
+    );
+    store.save_run(run)?;
+    Ok(true)
+}
+
+#[tauri::command]
+pub async fn advance_agent_run(
+    state: State<'_, AppState>,
+    request: AdvanceAgentRunRequest,
+) -> AppResult<AgentRun> {
+    if request
+        .api_key
+        .as_ref()
+        .is_some_and(|key| key.len() > 16 * 1024)
+    {
+        return Err(agent_error(
+            "AGENT_API_KEY_TOO_LARGE",
+            "La clé temporaire dépasse la limite autorisée.",
+            "ephemeral API key exceeds 16 KiB",
+        ));
+    }
+    let store = agent_store_for_workspace(&state, &request.workspace_id)?;
+    let mut run = store.load_run(&request.run_id)?.ok_or_else(|| {
+        agent_error(
+            "AGENT_RUN_NOT_FOUND",
+            "L’exécution IA demandée est introuvable.",
+            format!("no persisted agent run has id {}", request.run_id),
+        )
+    })?;
+    if run.workspace_id != request.workspace_id {
+        return Err(agent_error(
+            "AGENT_RUN_WORKSPACE_MISMATCH",
+            "L’exécution IA n’appartient pas à ce workspace.",
+            format!("run {} belongs to workspace {}", run.id, run.workspace_id),
+        ));
+    }
+    if matches!(
+        run.status,
+        AgentRunStatus::Completed | AgentRunStatus::Failed | AgentRunStatus::Cancelled
+    ) {
+        return Ok(run);
+    }
+    if run.status == AgentRunStatus::WaitingApproval {
+        return Err(agent_error(
+            "AGENT_APPROVAL_PENDING",
+            "Une décision est requise avant de poursuivre l’exécution.",
+            format!("run {} has a pending approval", run.id),
+        ));
+    }
+    if run
+        .tool_calls
+        .iter()
+        .any(|call| call.status == ToolCallStatus::Running)
+    {
+        run.status = AgentRunStatus::Failed;
+        run.push_event(
+            unix_time_ms(),
+            AgentEventKind::Failed,
+            "Une opération était active lors de l’interruption précédente ; vérifiez le workspace et restaurez son checkpoint si nécessaire.",
+            None,
+        );
+        store.save_run(&run)?;
+        return Ok(run);
+    }
+    if run.provider.kind == ProviderKind::Manual {
+        return Err(agent_error(
+            "AGENT_PROVIDER_MANUAL",
+            "Le fournisseur manuel ne peut pas exécuter une boucle automatique.",
+            "manual provider requires imported tool calls or blueprint",
+        ));
+    }
+    if !run.policy.context.allow_network {
+        return Err(agent_error(
+            "AGENT_NETWORK_DISABLED",
+            "Le réseau est désactivé dans le profil de sécurité.",
+            "agent run cannot contact its provider while network is disabled",
+        ));
+    }
+    validated_agent_endpoint(&run.provider.endpoint, &run.policy.context)?;
+    let (cancellation, _cancellation_guard) = register_agent_cancellation(&state, &run.id)?;
+    run.status = AgentRunStatus::Running;
+    run.push_event(
+        unix_time_ms(),
+        AgentEventKind::Started,
+        "Boucle agentique démarrée.",
+        None,
+    );
+    store.save_run(&run)?;
+
+    while run.current_turn < run.policy.limits.max_turns
+        && run.tool_calls.len() < run.policy.limits.max_tool_calls as usize
+    {
+        if stop_cancelled_agent_run(&cancellation, &mut run, &store)? {
+            return Ok(run);
+        }
+        if unix_time_ms().saturating_sub(run.created_unix_ms)
+            > run.policy.limits.max_duration_seconds.saturating_mul(1_000)
+        {
+            run.status = AgentRunStatus::Failed;
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::Failed,
+                "Le budget de durée total de l’exécution est épuisé.",
+                None,
+            );
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        let registry = CapabilityRegistry::standard();
+        let available_tools = registry
+            .capabilities
+            .iter()
+            .filter(|descriptor| agent_tool_is_implemented(&descriptor.id))
+            .filter(|descriptor| context_allows_capability(&run.policy, &descriptor.id))
+            .filter(|descriptor| {
+                !matches!(
+                    evaluate_capability(
+                        &run.policy,
+                        descriptor,
+                        tool_call_count(&run, &descriptor.id),
+                    )
+                    .1,
+                    PolicyDecision::Denied { .. }
+                )
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        if available_tools.is_empty() {
+            run.status = AgentRunStatus::Failed;
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::Failed,
+                "Aucun outil exécutable n’est autorisé par la politique.",
+                None,
+            );
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        let mut context_budget = run.policy.limits.max_prompt_bytes;
+        let (body, request_task_context) = loop {
+            let task_context = agent_task_context(&run, context_budget);
+            let candidate = build_provider_request(
+                &run.provider,
+                ProviderRequestContext {
+                    system_prompt: agent_system_prompt(),
+                    task_context: &task_context,
+                    tools: &available_tools,
+                    allow_parallel: run.provider.supports_parallel_tools
+                        && run.policy.limits.max_parallel_calls > 1,
+                    max_output_tokens: run.policy.limits.max_output_tokens,
+                    previous_response_id: run.provider_conversation.previous_response_id.as_deref(),
+                    tool_outputs: &run.provider_conversation.pending_tool_outputs,
+                    replay_items: &run.provider_conversation.replay_items,
+                },
+            );
+            let encoded_size =
+                serde_json::to_vec(&candidate).map_or(usize::MAX, |bytes| bytes.len());
+            if encoded_size <= run.policy.limits.max_prompt_bytes {
+                break (candidate, task_context);
+            }
+            if context_budget <= 1_024 {
+                run.status = AgentRunStatus::Failed;
+                run.push_event(
+                    unix_time_ms(),
+                    AgentEventKind::Failed,
+                    "Les schémas des outils autorisés dépassent le budget de prompt.",
+                    Some(serde_json::json!({
+                        "requestBytes": encoded_size,
+                        "budgetBytes": run.policy.limits.max_prompt_bytes,
+                    })),
+                );
+                store.save_run(&run)?;
+                return Ok(run);
+            }
+            let overflow = encoded_size.saturating_sub(run.policy.limits.max_prompt_bytes);
+            context_budget = context_budget
+                .saturating_sub(overflow.max(1_024))
+                .max(1_024);
+        };
+        run.current_turn += 1;
+        run.push_event(
+            unix_time_ms(),
+            AgentEventKind::ModelRequest,
+            format!("Appel fournisseur du tour {}.", run.current_turn),
+            Some(serde_json::json!({
+                "provider": run.provider.kind,
+                "model": run.provider.model,
+                "availableTools": available_tools.len(),
+            })),
+        );
+        store.save_run(&run)?;
+
+        let elapsed_ms = unix_time_ms().saturating_sub(run.created_unix_ms);
+        let remaining_ms = run
+            .policy
+            .limits
+            .max_duration_seconds
+            .saturating_mul(1_000)
+            .saturating_sub(elapsed_ms)
+            .max(1);
+        let timeout = Duration::from_millis(remaining_ms.min(300_000));
+        let client = reqwest::Client::builder()
+            .timeout(timeout)
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .map_err(|error| {
+                agent_error(
+                    "AGENT_PROVIDER_CLIENT_FAILED",
+                    "Le client du fournisseur IA n’a pas pu être initialisé.",
+                    error.to_string(),
+                )
+            })?;
+        let mut attempt = 0;
+        let mut response = loop {
+            let mut builder = client.post(&run.provider.endpoint).json(&body);
+            if let Some(api_key) = request.api_key.as_deref().filter(|value| !value.is_empty()) {
+                builder = builder.bearer_auth(api_key);
+            }
+            match builder.send().await {
+                Ok(response) => break response,
+                Err(error) if attempt < run.policy.limits.max_retries => {
+                    attempt += 1;
+                    run.push_event(
+                        unix_time_ms(),
+                        AgentEventKind::Validation,
+                        format!(
+                            "Fournisseur indisponible ; nouvelle tentative {attempt}/{}.",
+                            run.policy.limits.max_retries
+                        ),
+                        None,
+                    );
+                    store.save_run(&run)?;
+                    if stop_cancelled_agent_run(&cancellation, &mut run, &store)? {
+                        return Ok(run);
+                    }
+                    let _ = error;
+                }
+                Err(error) => {
+                    return Err(agent_error(
+                        "AGENT_PROVIDER_UNREACHABLE",
+                        "Le fournisseur IA n’a pas répondu.",
+                        error.without_url().to_string(),
+                    ));
+                }
+            }
+        };
+        if stop_cancelled_agent_run(&cancellation, &mut run, &store)? {
+            return Ok(run);
+        }
+        let status = response.status();
+        if !status.is_success() {
+            run.status = AgentRunStatus::Failed;
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::Failed,
+                format!("Le fournisseur a renvoyé HTTP {status}."),
+                None,
+            );
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        if response
+            .content_length()
+            .is_some_and(|length| length > run.policy.limits.max_response_bytes as u64)
+        {
+            return Err(agent_error(
+                "AGENT_PROVIDER_RESPONSE_TOO_LARGE",
+                "La réponse du fournisseur dépasse la limite du profil.",
+                "provider content length exceeds policy limit",
+            ));
+        }
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(|error| {
+            agent_error(
+                "AGENT_PROVIDER_RESPONSE_READ_FAILED",
+                "La réponse du fournisseur n’a pas pu être lue.",
+                error.without_url().to_string(),
+            )
+        })? {
+            if bytes.len().saturating_add(chunk.len()) > run.policy.limits.max_response_bytes {
+                return Err(agent_error(
+                    "AGENT_PROVIDER_RESPONSE_TOO_LARGE",
+                    "La réponse du fournisseur dépasse la limite du profil.",
+                    "chunked provider response exceeds policy limit",
+                ));
+            }
+            bytes.extend_from_slice(&chunk);
+            if stop_cancelled_agent_run(&cancellation, &mut run, &store)? {
+                return Ok(run);
+            }
+        }
+        let step = decode_provider_response(run.provider.kind, &bytes)?;
+        if run.provider.kind == ProviderKind::OpenAiResponses
+            && run.provider.store_responses
+            && !step.tool_calls.is_empty()
+            && step.response_id.is_none()
+        {
+            run.status = AgentRunStatus::Failed;
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::Failed,
+                "La rÃ©ponse Responses ne contient pas dâ€™identifiant de continuation.",
+                None,
+            );
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        if (run.provider.input_cost_micro_usd_per_million_tokens > 0 && step.input_tokens.is_none())
+            || (run.provider.output_cost_micro_usd_per_million_tokens > 0
+                && step.output_tokens.is_none())
+        {
+            run.status = AgentRunStatus::Failed;
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::Failed,
+                "Le fournisseur n’indique pas l’usage token nécessaire au budget de coût.",
+                None,
+            );
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        let turn_cost = token_cost_micro_usd(
+            step.input_tokens.unwrap_or(0),
+            run.provider.input_cost_micro_usd_per_million_tokens,
+        )
+        .saturating_add(token_cost_micro_usd(
+            step.output_tokens.unwrap_or(0),
+            run.provider.output_cost_micro_usd_per_million_tokens,
+        ));
+        run.estimated_cost_micro_usd = run.estimated_cost_micro_usd.saturating_add(turn_cost);
+        if run.provider.kind == ProviderKind::OpenAiResponses {
+            if run.provider.store_responses {
+                run.provider_conversation.previous_response_id = step.response_id.clone();
+            } else {
+                if run.provider_conversation.replay_items.is_empty() {
+                    run.provider_conversation
+                        .replay_items
+                        .push(serde_json::json!({"role":"user","content":request_task_context}));
+                }
+                run.provider_conversation.replay_items.extend(
+                    run.provider_conversation
+                        .pending_tool_outputs
+                        .iter()
+                        .map(|result| {
+                            serde_json::json!({
+                                "type": "function_call_output",
+                                "call_id": result.call_id,
+                                "output": serde_json::to_string(&result.output).unwrap_or_else(|_| "null".to_owned()),
+                            })
+                        }),
+                );
+                run.provider_conversation
+                    .replay_items
+                    .extend(step.output_items.iter().cloned());
+                run.provider_conversation.previous_response_id = None;
+            }
+            run.provider_conversation.pending_tool_outputs.clear();
+        }
+        run.push_event(
+            unix_time_ms(),
+            AgentEventKind::ModelResponse,
+            step.assistant_text
+                .as_deref()
+                .unwrap_or("Le fournisseur a proposé des appels d’outils."),
+            Some(serde_json::json!({
+                "responseId": step.response_id,
+                "toolCalls": step.tool_calls.len(),
+                "inputTokens": step.input_tokens,
+                "outputTokens": step.output_tokens,
+            })),
+        );
+        if run.estimated_cost_micro_usd > run.policy.limits.max_cost_micro_usd {
+            run.status = AgentRunStatus::Failed;
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::Failed,
+                "Le budget de coût de l’exécution est dépassé.",
+                Some(serde_json::json!({
+                    "estimatedCostMicroUsd": run.estimated_cost_micro_usd,
+                    "budgetMicroUsd": run.policy.limits.max_cost_micro_usd,
+                })),
+            );
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        if step.tool_calls.is_empty() {
+            if step
+                .assistant_text
+                .as_deref()
+                .is_some_and(|text| !text.trim().is_empty())
+            {
+                run.status = AgentRunStatus::Completed;
+                run.push_event(
+                    unix_time_ms(),
+                    AgentEventKind::Completed,
+                    "Le fournisseur a terminé l’exécution sans nouvel appel d’outil.",
+                    None,
+                );
+            } else {
+                run.status = AgentRunStatus::Failed;
+                run.push_event(
+                    unix_time_ms(),
+                    AgentEventKind::Failed,
+                    "Le fournisseur n’a renvoyé ni résultat ni appel d’outil.",
+                    None,
+                );
+            }
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+
+        let remaining_tool_calls =
+            (run.policy.limits.max_tool_calls as usize).saturating_sub(run.tool_calls.len());
+        let turn_parallel_limit = if run.provider.supports_parallel_tools {
+            run.policy.limits.max_parallel_calls as usize
+        } else {
+            1
+        };
+        let allowed_tool_calls = remaining_tool_calls.min(turn_parallel_limit);
+        if step.tool_calls.len() > allowed_tool_calls {
+            run.status = AgentRunStatus::Failed;
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::Failed,
+                "Le fournisseur a proposé plus d’outils que le budget de ce tour ne l’autorise.",
+                Some(serde_json::json!({
+                    "proposed": step.tool_calls.len(),
+                    "allowed": allowed_tool_calls,
+                })),
+            );
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        let mut waiting_for_approval = false;
+        let mut batch_approval_calls = Vec::<String>::new();
+        let mut seen_tool_call_ids = run
+            .tool_calls
+            .iter()
+            .map(|call| call.id.clone())
+            .collect::<HashSet<_>>();
+        for proposed in step.tool_calls {
+            if !seen_tool_call_ids.insert(proposed.id.clone()) {
+                run.status = AgentRunStatus::Failed;
+                run.push_event(
+                    unix_time_ms(),
+                    AgentEventKind::Failed,
+                    "Le fournisseur a réutilisé un identifiant d’appel d’outil.",
+                    Some(serde_json::json!({ "toolCallId": proposed.id })),
+                );
+                break;
+            }
+            let arguments_sha256 = hex::encode(Sha256::digest(
+                serde_json::to_vec(&proposed.arguments).unwrap_or_default(),
+            ));
+            let descriptor = registry.get(&proposed.capability_id);
+            let Some(descriptor) = descriptor else {
+                let record = ToolCallRecord {
+                    id: proposed.id,
+                    capability_id: proposed.capability_id,
+                    arguments: proposed.arguments,
+                    arguments_sha256,
+                    status: ToolCallStatus::Rejected,
+                    result: None,
+                    error: Some("Capacité inconnue.".to_owned()),
+                    started_unix_ms: None,
+                    completed_unix_ms: Some(unix_time_ms()),
+                };
+                queue_provider_tool_output(&mut run, &record);
+                run.tool_calls.push(record);
+                continue;
+            };
+            if !agent_tool_is_implemented(&descriptor.id) {
+                let record = ToolCallRecord {
+                    id: proposed.id,
+                    capability_id: proposed.capability_id,
+                    arguments: proposed.arguments,
+                    arguments_sha256,
+                    status: ToolCallStatus::Rejected,
+                    result: None,
+                    error: Some("Capacité enregistrée mais pas encore exécutable.".to_owned()),
+                    started_unix_ms: None,
+                    completed_unix_ms: Some(unix_time_ms()),
+                };
+                queue_provider_tool_output(&mut run, &record);
+                run.tool_calls.push(record);
+                continue;
+            }
+            let (effective, mut decision) = evaluate_capability(
+                &run.policy,
+                descriptor,
+                tool_call_count(&run, &descriptor.id),
+            );
+            if !matches!(decision, PolicyDecision::Denied { .. })
+                && let Err(reason) =
+                    validate_tool_scope(&run.policy, &effective, descriptor, &proposed.arguments)
+            {
+                decision = PolicyDecision::Denied { reason };
+            }
+            let mut record = ToolCallRecord {
+                id: proposed.id,
+                capability_id: proposed.capability_id,
+                arguments: proposed.arguments,
+                arguments_sha256,
+                status: ToolCallStatus::Proposed,
+                result: None,
+                error: None,
+                started_unix_ms: None,
+                completed_unix_ms: None,
+            };
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::ToolProposed,
+                format!("Outil proposé : {}.", descriptor.id),
+                Some(serde_json::json!({ "toolCallId": record.id, "argumentsSha256": record.arguments_sha256 })),
+            );
+            match decision {
+                PolicyDecision::Denied { reason } => {
+                    record.status = ToolCallStatus::Rejected;
+                    record.error = Some(reason);
+                    record.completed_unix_ms = Some(unix_time_ms());
+                    queue_provider_tool_output(&mut run, &record);
+                    run.tool_calls.push(record);
+                }
+                PolicyDecision::ApprovalRequired { reason } => {
+                    record.status = ToolCallStatus::WaitingApproval;
+                    if effective.approval == aurora_agent::ApprovalMode::PerBatch {
+                        batch_approval_calls.push(record.id.clone());
+                        run.tool_calls.push(record);
+                        waiting_for_approval = true;
+                        continue;
+                    }
+                    let approval = ApprovalRequest {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        tool_call_id: record.id.clone(),
+                        tool_call_ids: vec![record.id.clone()],
+                        capability_id: record.capability_id.clone(),
+                        summary: reason,
+                        status: ApprovalStatus::Pending,
+                        created_unix_ms: unix_time_ms(),
+                        resolved_unix_ms: None,
+                    };
+                    run.push_event(
+                        unix_time_ms(),
+                        AgentEventKind::ApprovalRequested,
+                        format!("Approbation requise pour {}.", record.capability_id),
+                        Some(serde_json::json!({ "approvalId": approval.id, "toolCallId": record.id })),
+                    );
+                    run.tool_calls.push(record);
+                    run.approvals.push(approval);
+                    waiting_for_approval = true;
+                }
+                PolicyDecision::Allowed => {
+                    record.status = ToolCallStatus::Running;
+                    record.started_unix_ms = Some(unix_time_ms());
+                    record_agent_checkpoint(&state, &mut run, descriptor)?;
+                    let record_index = run.tool_calls.len();
+                    run.tool_calls.push(record.clone());
+                    store.save_run(&run)?;
+                    match execute_agent_tool(&state, &run, &record) {
+                        Ok(result) => {
+                            record.status = ToolCallStatus::Completed;
+                            record.result = Some(result);
+                            record.completed_unix_ms = Some(unix_time_ms());
+                            run.push_event(
+                                unix_time_ms(),
+                                AgentEventKind::ToolCompleted,
+                                format!("Outil terminé : {}.", record.capability_id),
+                                Some(serde_json::json!({ "toolCallId": record.id })),
+                            );
+                        }
+                        Err(error) => {
+                            record.status = ToolCallStatus::Failed;
+                            record.error = Some(error.user_message.clone());
+                            record.completed_unix_ms = Some(unix_time_ms());
+                            run.push_event(
+                                unix_time_ms(),
+                                AgentEventKind::Validation,
+                                error.user_message.clone(),
+                                Some(serde_json::json!({ "toolCallId": record.id, "code": error.code })),
+                            );
+                            if run.policy.stop_on_validation_error {
+                                run.status = AgentRunStatus::Failed;
+                            }
+                        }
+                    }
+                    run.tool_calls[record_index] = record;
+                    let completed_record = run.tool_calls[record_index].clone();
+                    queue_provider_tool_output(&mut run, &completed_record);
+                }
+            }
+            if run.status == AgentRunStatus::Failed {
+                break;
+            }
+        }
+        if !batch_approval_calls.is_empty() {
+            let approval = ApprovalRequest {
+                id: uuid::Uuid::new_v4().to_string(),
+                tool_call_id: batch_approval_calls[0].clone(),
+                tool_call_ids: batch_approval_calls.clone(),
+                capability_id: "batch".to_owned(),
+                summary: format!(
+                    "La politique exige une confirmation unique pour ce lot de {} appels.",
+                    batch_approval_calls.len()
+                ),
+                status: ApprovalStatus::Pending,
+                created_unix_ms: unix_time_ms(),
+                resolved_unix_ms: None,
+            };
+            run.push_event(
+                unix_time_ms(),
+                AgentEventKind::ApprovalRequested,
+                format!(
+                    "Approbation requise pour un lot de {} outils.",
+                    batch_approval_calls.len()
+                ),
+                Some(serde_json::json!({
+                    "approvalId": approval.id,
+                    "toolCallIds": batch_approval_calls,
+                })),
+            );
+            run.approvals.push(approval);
+        }
+        if waiting_for_approval {
+            run.status = AgentRunStatus::WaitingApproval;
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        if run.status == AgentRunStatus::Failed {
+            store.save_run(&run)?;
+            return Ok(run);
+        }
+        store.save_run(&run)?;
+    }
+    if run.status == AgentRunStatus::Running {
+        run.status = AgentRunStatus::Failed;
+        run.push_event(
+            unix_time_ms(),
+            AgentEventKind::Failed,
+            "La boucle a atteint une limite de tours ou d’appels d’outils.",
+            None,
+        );
+        store.save_run(&run)?;
+    }
+    Ok(run)
+}
+
+#[tauri::command]
+pub fn resolve_agent_approval(
+    state: State<'_, AppState>,
+    request: ResolveAgentApprovalRequest,
+) -> AppResult<AgentRun> {
+    let store = agent_store_for_workspace(&state, &request.workspace_id)?;
+    let mut run = store.load_run(&request.run_id)?.ok_or_else(|| {
+        agent_error(
+            "AGENT_RUN_NOT_FOUND",
+            "L’exécution IA demandée est introuvable.",
+            format!("no persisted agent run has id {}", request.run_id),
+        )
+    })?;
+    let approval_index = run
+        .approvals
+        .iter()
+        .position(|approval| approval.id == request.approval_id)
+        .ok_or_else(|| {
+            agent_error(
+                "AGENT_APPROVAL_NOT_FOUND",
+                "La demande d’approbation est introuvable.",
+                format!("no approval has id {}", request.approval_id),
+            )
+        })?;
+    if run.approvals[approval_index].status != ApprovalStatus::Pending {
+        return Err(agent_error(
+            "AGENT_APPROVAL_ALREADY_RESOLVED",
+            "Cette demande d’approbation a déjà été traitée.",
+            request.approval_id,
+        ));
+    }
+    let call_ids = if run.approvals[approval_index].tool_call_ids.is_empty() {
+        vec![run.approvals[approval_index].tool_call_id.clone()]
+    } else {
+        run.approvals[approval_index].tool_call_ids.clone()
+    };
+    let call_indexes = call_ids
+        .iter()
+        .map(|call_id| {
+            run.tool_calls
+                .iter()
+                .position(|call| call.id == *call_id)
+                .ok_or_else(|| {
+                    agent_error(
+                        "AGENT_TOOL_CALL_NOT_FOUND",
+                        "L’appel d’outil associé est introuvable.",
+                        call_id.clone(),
+                    )
+                })
+        })
+        .collect::<AppResult<Vec<_>>>()?;
+    let now = unix_time_ms();
+    run.approvals[approval_index].status = if request.approved {
+        ApprovalStatus::Approved
+    } else {
+        ApprovalStatus::Rejected
+    };
+    run.approvals[approval_index].resolved_unix_ms = Some(now);
+    if request.approved {
+        let registry = CapabilityRegistry::standard();
+        run.status = AgentRunStatus::Planned;
+        for (position, call_index) in call_indexes.iter().copied().enumerate() {
+            if run.status == AgentRunStatus::Failed {
+                run.tool_calls[call_index].status = ToolCallStatus::Rejected;
+                run.tool_calls[call_index].error =
+                    Some("Lot interrompu après l’échec d’un outil précédent.".to_owned());
+                run.tool_calls[call_index].completed_unix_ms = Some(unix_time_ms());
+                let rejected = run.tool_calls[call_index].clone();
+                queue_provider_tool_output(&mut run, &rejected);
+                continue;
+            }
+            let mut record = run.tool_calls[call_index].clone();
+            record.status = ToolCallStatus::Running;
+            record.started_unix_ms = Some(unix_time_ms());
+            let descriptor = registry.get(&record.capability_id).ok_or_else(|| {
+                agent_error(
+                    "AGENT_CAPABILITY_UNKNOWN",
+                    "La capacité approuvée n’existe plus dans le registre.",
+                    record.capability_id.clone(),
+                )
+            })?;
+            record_agent_checkpoint(&state, &mut run, descriptor)?;
+            run.tool_calls[call_index] = record.clone();
+            store.save_run(&run)?;
+            match execute_agent_tool(&state, &run, &record) {
+                Ok(result) => {
+                    record.status = ToolCallStatus::Completed;
+                    record.result = Some(result);
+                    record.completed_unix_ms = Some(unix_time_ms());
+                    run.push_event(
+                        unix_time_ms(),
+                        AgentEventKind::ToolCompleted,
+                        format!(
+                            "Outil {}/{} du lot terminé : {}.",
+                            position + 1,
+                            call_indexes.len(),
+                            record.capability_id
+                        ),
+                        Some(serde_json::json!({ "toolCallId": record.id })),
+                    );
+                }
+                Err(error) => {
+                    record.status = ToolCallStatus::Failed;
+                    record.error = Some(error.user_message.clone());
+                    record.completed_unix_ms = Some(unix_time_ms());
+                    if run.policy.stop_on_validation_error {
+                        run.status = AgentRunStatus::Failed;
+                    }
+                }
+            }
+            run.tool_calls[call_index] = record;
+            let completed_record = run.tool_calls[call_index].clone();
+            queue_provider_tool_output(&mut run, &completed_record);
+        }
+    } else {
+        for call_index in call_indexes {
+            run.tool_calls[call_index].status = ToolCallStatus::Rejected;
+            run.tool_calls[call_index].error = Some("Appel refusé par l’utilisateur.".to_owned());
+            run.tool_calls[call_index].completed_unix_ms = Some(now);
+            let rejected = run.tool_calls[call_index].clone();
+            queue_provider_tool_output(&mut run, &rejected);
+        }
+        run.status = AgentRunStatus::Planned;
+    }
+    run.push_event(
+        now,
+        AgentEventKind::ApprovalResolved,
+        if request.approved {
+            "Lot approuvé et exécuté."
+        } else {
+            "Lot refusé par l’utilisateur."
+        },
+        Some(
+            serde_json::json!({ "approvalId": request.approval_id, "approved": request.approved }),
+        ),
+    );
+    store.save_run(&run)?;
+    Ok(run)
+}
+
+fn queue_provider_tool_output(run: &mut AgentRun, call: &ToolCallRecord) {
+    if run.provider.kind != ProviderKind::OpenAiResponses {
+        return;
+    }
+    let output = match call.status {
+        ToolCallStatus::Completed => serde_json::json!({
+            "ok": true,
+            "result": call.result,
+        }),
+        ToolCallStatus::Rejected | ToolCallStatus::Failed => serde_json::json!({
+            "ok": false,
+            "status": call.status,
+            "error": call.error,
+        }),
+        _ => return,
+    };
+    run.provider_conversation
+        .pending_tool_outputs
+        .push(ProviderToolOutput {
+            call_id: call.id.clone(),
+            output,
+        });
+}
+
+#[tauri::command]
+pub fn cancel_agent_run(
+    state: State<'_, AppState>,
+    request: CancelAgentRunRequest,
+) -> AppResult<AgentRun> {
+    let store = agent_store_for_workspace(&state, &request.workspace_id)?;
+    let mut run = store.load_run(&request.run_id)?.ok_or_else(|| {
+        agent_error(
+            "AGENT_RUN_NOT_FOUND",
+            "L’exécution IA demandée est introuvable.",
+            format!("no persisted agent run has id {}", request.run_id),
+        )
+    })?;
+    if run.workspace_id != request.workspace_id {
+        return Err(agent_error(
+            "AGENT_RUN_WORKSPACE_MISMATCH",
+            "L’exécution IA n’appartient pas à ce workspace.",
+            format!("run {} belongs to workspace {}", run.id, run.workspace_id),
+        ));
+    }
+    if matches!(
+        run.status,
+        AgentRunStatus::Completed | AgentRunStatus::Failed | AgentRunStatus::Cancelled
+    ) {
+        return Ok(run);
+    }
+    let active = state
+        .agent_cancellations
+        .lock()
+        .expect("agent cancellation registry poisoned")
+        .get(&request.run_id)
+        .cloned();
+    if let Some(cancellation) = active {
+        cancellation.store(true, Ordering::Release);
+        run.status = AgentRunStatus::Cancelled;
+        return Ok(run);
+    }
+    run.status = AgentRunStatus::Cancelled;
+    run.push_event(
+        unix_time_ms(),
+        AgentEventKind::Cancelled,
+        "Exécution annulée avant le prochain tour.",
+        None,
+    );
+    store.save_run(&run)?;
+    Ok(run)
+}
+
+fn agent_store_for_workspace(
+    state: &AppState,
+    workspace_id: &str,
+) -> AppResult<AgentWorkspaceStore> {
+    let snapshot = with_edit_workspace(state, workspace_id, |workspace| workspace.snapshot())?;
+    Ok(AgentWorkspaceStore::new(snapshot.root))
+}
+
+fn record_agent_checkpoint(
+    state: &AppState,
+    run: &mut AgentRun,
+    descriptor: &aurora_agent::CapabilityDescriptor,
+) -> AppResult<()> {
+    if !run.policy.checkpoint_before_write
+        || descriptor.side_effect != CapabilitySideEffect::ReversibleWorkspace
+    {
+        return Ok(());
+    }
+    let snapshot = with_edit_workspace(state, &run.workspace_id, |workspace| workspace.snapshot())?;
+    run.push_event(
+        unix_time_ms(),
+        AgentEventKind::Checkpoint,
+        format!("Checkpoint créé avant {}.", descriptor.id),
+        Some(serde_json::json!({
+            "checkpointId": format!("{}:{}", run.id, snapshot.cursor),
+            "cursor": snapshot.cursor,
+            "sourceSha256": snapshot.source.sha256,
+            "capabilityId": descriptor.id,
+        })),
+    );
+    Ok(())
+}
+
+fn agent_tool_is_implemented(id: &str) -> bool {
+    matches!(
+        id,
+        "module.inspect"
+            | "architecture.query"
+            | "resource.search"
+            | "resource.read"
+            | "diagnostics.run"
+            | "resource.set_field"
+            | "script.replace"
+            | "script.create"
+            | "script.compile"
+            | "area.create"
+            | "area.instance.add"
+            | "dialogue.create"
+            | "dialogue.edit"
+            | "journal.edit"
+            | "faction.edit"
+            | "blueprint.edit"
+            | "blueprint.validate"
+            | "blueprint.apply"
+            | "workspace.checkpoint"
+            | "workspace.undo_batch"
+            | "module.validate"
+            | "module.build"
+            | "module.create"
+            | "module.dependencies"
+            | "2da.edit"
+            | "tlk.edit"
+            | "walkmesh.edit"
+            | "development.deploy"
+            | "toolset.compare"
+            | "toolset.sync"
+            | "nwn.launch"
+    )
+}
+
+fn tool_call_count(run: &AgentRun, capability_id: &str) -> u32 {
+    run.tool_calls
+        .iter()
+        .filter(|call| call.capability_id == capability_id)
+        .count() as u32
+}
+
+fn agent_system_prompt() -> &'static str {
+    "You are the controlled OpenNever Forge module construction agent. Use only the supplied tools. Every write is applied by the local transactional engine; never claim a change before its tool succeeds. Inspect before editing, preserve unknown NWN data, and use exact before-values. When the objective is satisfied, return a concise completion report without another tool call. Do not request shell access, arbitrary paths, secrets, or direct writes to source modules."
+}
+
+fn agent_task_context(run: &AgentRun, max_bytes: usize) -> String {
+    let mut history = run
+        .tool_calls
+        .iter()
+        .rev()
+        .take(32)
+        .rev()
+        .map(|call| {
+            serde_json::json!({
+                "capability": call.capability_id,
+                "argumentsSha256": call.arguments_sha256,
+                "status": call.status,
+                "result": bounded_agent_value(
+                    call.result.as_ref(),
+                    8 * 1024,
+                    run.policy.context.include_local_paths,
+                ),
+                "error": call.error,
+            })
+        })
+        .collect::<Vec<_>>();
+    let mut objective = run.objective.clone();
+    let objective_limit = max_bytes / 2;
+    if objective.len() > objective_limit {
+        objective.truncate(objective.floor_char_boundary(objective_limit));
+    }
+    loop {
+        let encoded = serde_json::json!({
+            "objective": objective,
+            "workspaceId": run.workspace_id,
+            "turn": run.current_turn,
+            "limits": run.policy.limits,
+            "moduleBlueprint": bounded_agent_value(
+                run.blueprint.as_ref().and_then(|value| serde_json::to_value(value).ok()).as_ref(),
+                max_bytes / 3,
+                run.policy.context.include_local_paths,
+            ),
+            "previousToolResults": history,
+        })
+        .to_string();
+        if encoded.len() <= max_bytes || history.is_empty() {
+            return encoded;
+        }
+        history.remove(0);
+    }
+}
+
+fn bounded_agent_value(
+    value: Option<&serde_json::Value>,
+    max_bytes: usize,
+    include_local_paths: bool,
+) -> serde_json::Value {
+    let Some(value) = value else {
+        return serde_json::Value::Null;
+    };
+    let safe = sanitize_context_value(value, include_local_paths);
+    let encoded = serde_json::to_vec(&safe).unwrap_or_default();
+    if encoded.len() <= max_bytes {
+        return safe;
+    }
+    serde_json::json!({
+        "truncated": true,
+        "sizeBytes": encoded.len(),
+        "sha256": hex::encode(Sha256::digest(encoded)),
+    })
+}
+
+fn token_cost_micro_usd(tokens: u64, price_per_million: u64) -> u64 {
+    ((u128::from(tokens) * u128::from(price_per_million)) / 1_000_000).min(u128::from(u64::MAX))
+        as u64
+}
+
+fn execute_agent_tool(
+    state: &AppState,
+    run: &AgentRun,
+    call: &ToolCallRecord,
+) -> AppResult<serde_json::Value> {
+    let current_arguments_sha256 = hex::encode(Sha256::digest(
+        serde_json::to_vec(&call.arguments).unwrap_or_default(),
+    ));
+    if current_arguments_sha256 != call.arguments_sha256 {
+        return Err(agent_error(
+            "AGENT_TOOL_ARGUMENTS_CHANGED",
+            "Les paramètres de l’outil ont changé depuis leur validation.",
+            call.id.clone(),
+        ));
+    }
+    match call.capability_id.as_str() {
+        "module.inspect" => {
+            let workspace =
+                with_edit_workspace(state, &run.workspace_id, |workspace| workspace.snapshot())?;
+            state.jobs.with_analysis(&run.job_id, |analysis| {
+                Ok(serde_json::json!({
+                    "module": analysis.module_info,
+                    "fingerprint": analysis.fingerprint,
+                    "resourceCount": analysis.inventory.resource_count,
+                    "workspace": workspace,
+                }))
+            })
+        }
+        "architecture.query" => {
+            let arguments: AgentArchitectureQueryArguments =
+                decode_agent_arguments(call, "architecture.query")?;
+            if arguments.query.trim().is_empty() || arguments.query.len() > 128 {
+                return Err(agent_error(
+                    "AGENT_ARCHITECTURE_QUERY_INVALID",
+                    "La requête d’architecture doit contenir entre 1 et 128 caractères.",
+                    arguments.query,
+                ));
+            }
+            let script = std::env::current_dir()
+                .map_err(|error| {
+                    agent_error(
+                        "AGENT_ARCHITECTURE_ROOT_UNAVAILABLE",
+                        "La racine du projet ne peut pas être résolue.",
+                        error.to_string(),
+                    )
+                })?
+                .join("scripts")
+                .join("architecture_graph.py");
+            if !script.is_file() {
+                return Err(agent_error(
+                    "AGENT_ARCHITECTURE_GRAPH_UNAVAILABLE",
+                    "Le graphe d’architecture développeur n’est pas installé.",
+                    script.display().to_string(),
+                ));
+            }
+            let output = Command::new("python")
+                .arg(script)
+                .arg("query")
+                .arg(&arguments.query)
+                .arg("--depth")
+                .arg("1")
+                .arg("--max-nodes")
+                .arg("40")
+                .output()
+                .map_err(|error| {
+                    agent_error(
+                        "AGENT_ARCHITECTURE_QUERY_FAILED",
+                        "La requête d’architecture n’a pas pu être exécutée.",
+                        error.to_string(),
+                    )
+                })?;
+            if !output.status.success() || output.stdout.len() > 64 * 1024 {
+                return Err(agent_error(
+                    "AGENT_ARCHITECTURE_QUERY_FAILED",
+                    "Le générateur d’architecture a refusé la requête.",
+                    String::from_utf8_lossy(&output.stderr).to_string(),
+                ));
+            }
+            Ok(serde_json::json!({
+                "query": arguments.query,
+                "result": String::from_utf8_lossy(&output.stdout).to_string(),
+            }))
+        }
+        "resource.search" => {
+            let arguments: AgentResourceSearchArguments =
+                decode_agent_arguments(call, "resource.search")?;
+            state.jobs.with_analysis(&run.job_id, |analysis| {
+                serde_json::to_value(analysis.resource_catalog.search_many(
+                    &arguments.query,
+                    &[],
+                    None,
+                    0,
+                    arguments.limit.clamp(1, 200),
+                ))
+                .map_err(|error| {
+                    agent_error(
+                        "AGENT_TOOL_RESULT_INVALID",
+                        "Le résultat de recherche n’a pas pu être préparé.",
+                        error.to_string(),
+                    )
+                })
+            })
+        }
+        "resource.read" => {
+            if tool_call_count(run, "resource.read")
+                > run.policy.limits.max_context_resources as u32
+            {
+                return Err(agent_error(
+                    "AGENT_CONTEXT_RESOURCE_LIMIT",
+                    "Le nombre maximal de ressources de contexte est atteint.",
+                    run.policy.limits.max_context_resources.to_string(),
+                ));
+            }
+            let resource: ResourceKey = decode_agent_arguments(call, "resource.read")?;
+            let bytes = workspace_or_resolved_resource_bytes(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &resource,
+            )?
+            .ok_or_else(|| {
+                agent_error(
+                    "AGENT_RESOURCE_MISSING",
+                    "La ressource demandée est introuvable.",
+                    resource.to_string(),
+                )
+            })?;
+            if bytes.len() > run.policy.limits.max_context_resource_bytes {
+                return Err(agent_error(
+                    "AGENT_CONTEXT_RESOURCE_TOO_LARGE",
+                    "La ressource dépasse la taille maximale de contexte.",
+                    format!(
+                        "{} bytes exceeds {}",
+                        bytes.len(),
+                        run.policy.limits.max_context_resource_bytes
+                    ),
+                ));
+            }
+            Ok(serde_json::json!({
+                "resource": resource,
+                "sha256": hex::encode(Sha256::digest(&bytes)),
+                "content": ai_resource_context(&resource, &bytes)?,
+            }))
+        }
+        "diagnostics.run" | "module.validate" => {
+            let (workspace, compilation_error) =
+                with_edit_workspace(state, &run.workspace_id, |workspace| {
+                    let compilation_error =
+                        workspace.validate_compiled_scripts().err().map(|error| {
+                            serde_json::json!({
+                                "code": error.code,
+                                "message": error.user_message,
+                                "technicalMessage": error.technical_message,
+                            })
+                        });
+                    Ok((workspace.snapshot()?, compilation_error))
+                })?;
+            state.jobs.with_analysis(&run.job_id, |analysis| {
+                let report = analysis
+                    .world_index
+                    .report(analysis.fingerprint.sha256.clone());
+                let compiled_scripts_valid = compilation_error.is_none();
+                Ok(serde_json::json!({
+                    "sourceIntact": workspace.source_intact,
+                    "modifiedResources": workspace.modified_resources.len(),
+                    "deletedResources": workspace.deleted_resources.len(),
+                    "compiledScriptsValid": compiled_scripts_valid,
+                    "compilationDiagnostic": compilation_error,
+                    "diagnostics": report.diagnostics,
+                    "valid": workspace.source_intact && compiled_scripts_valid && report.diagnostics.iter().all(|diagnostic| diagnostic.severity != aurora_world::DiagnosticSeverity::Error),
+                }))
+            })
+        }
+        "resource.set_field" => {
+            let arguments: AgentSetFieldArguments =
+                decode_agent_arguments(call, "resource.set_field")?;
+            let change_set = AiChangeSet {
+                summary: format!(
+                    "Agent : modifier {} dans {}",
+                    arguments.path, arguments.resource
+                ),
+                commands: vec![EditCommand::SetField {
+                    resource: arguments.resource,
+                    path: arguments.path,
+                    before: arguments.before,
+                    after: arguments.after,
+                }],
+            };
+            apply_agent_change_set(state, run, change_set)
+        }
+        "script.replace" => {
+            let arguments: AgentReplaceScriptArguments =
+                decode_agent_arguments(call, "script.replace")?;
+            let change_set = AiChangeSet {
+                summary: format!("Agent : remplacer {}", arguments.resource),
+                commands: vec![EditCommand::ReplaceText {
+                    resource: arguments.resource,
+                    before: arguments.before,
+                    after: arguments.after,
+                }],
+            };
+            apply_agent_change_set(state, run, change_set)
+        }
+        "script.create" => {
+            let arguments: AgentScriptCreateArguments =
+                decode_agent_arguments(call, "script.create")?;
+            parse_nss(
+                arguments.source.as_bytes(),
+                &format!("agent-create::{}.nss", arguments.resref),
+            )?;
+            let resource = ResourceKey::new(&arguments.resref, 2009);
+            state.jobs.with_analysis(&run.job_id, |analysis| {
+                if analysis.resource_catalog.get(&resource).is_some() {
+                    return Err(agent_error(
+                        "AGENT_SCRIPT_ALREADY_EXISTS",
+                        "Le script à créer existe déjà.",
+                        resource.to_string(),
+                    ));
+                }
+                Ok(())
+            })?;
+            let workspace = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                workspace.create_resources_atomic(&[ErfResourceInput {
+                    key: resource.clone(),
+                    bytes: arguments.source.into_bytes(),
+                }])
+            })?;
+            Ok(serde_json::json!({
+                "resource": resource,
+                "event": arguments.event,
+                "purpose": arguments.purpose,
+                "requiresCompilation": true,
+                "workspace": workspace,
+            }))
+        }
+        "script.compile" => {
+            let arguments: AgentScriptCompileArguments =
+                decode_agent_arguments(call, "script.compile")?;
+            let runtime = &run.policy.tool_runtime;
+            if runtime.compiler_path.trim().is_empty()
+                || runtime.game_install_path.trim().is_empty()
+            {
+                return Err(agent_error(
+                    "AGENT_COMPILER_NOT_CONFIGURED",
+                    "Configurez le compilateur NWScript et l’installation du jeu dans Agent Studio.",
+                    "toolRuntime.compilerPath or toolRuntime.gameInstallPath is empty",
+                ));
+            }
+            let result = compile_workspace_script_inner(
+                state,
+                CompileScriptRequest {
+                    job_id: run.job_id.clone(),
+                    workspace_id: run.workspace_id.clone(),
+                    resref: arguments.resref,
+                    compiler_path: runtime.compiler_path.clone(),
+                    game_install_path: runtime.game_install_path.clone(),
+                    include_paths: runtime.include_paths.clone(),
+                },
+            )?;
+            serde_json::to_value(result).map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le résultat de compilation n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        "area.create" => {
+            let arguments: AgentAreaCreateArguments = decode_agent_arguments(call, "area.create")?;
+            let resources = create_area_resources(
+                &arguments.resref,
+                &arguments.name,
+                &arguments.tileset,
+                arguments.width,
+                arguments.height,
+                arguments.tile_id,
+            )?;
+            state.jobs.with_analysis(&run.job_id, |analysis| {
+                for resource in &resources {
+                    if analysis.resource_catalog.get(&resource.key).is_some() {
+                        return Err(agent_error(
+                            "AGENT_AREA_ALREADY_EXISTS",
+                            "Une ressource de cette zone existe déjà.",
+                            resource.key.to_string(),
+                        ));
+                    }
+                }
+                Ok(())
+            })?;
+            let workspace = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                workspace.create_resources_atomic(&resources)
+            })?;
+            Ok(serde_json::json!({
+                "createdResources": resources.iter().map(|resource| resource.key.to_string()).collect::<Vec<_>>(),
+                "workspace": workspace,
+            }))
+        }
+        "area.instance.add" => {
+            let arguments: AgentAreaInstanceArguments =
+                decode_agent_arguments(call, "area.instance.add")?;
+            let resource = ResourceKey::new(&arguments.area, 2023);
+            let source_bytes = try_resolved_resource_bytes(state, &run.job_id, &resource)?;
+            let placement = arguments.placement;
+            let area = arguments.area;
+            let (workspace, instance_id) =
+                with_edit_workspace(state, &run.workspace_id, |workspace| {
+                    let current = workspace
+                        .staged_resource_bytes(&resource)?
+                        .or_else(|| source_bytes.clone())
+                        .ok_or_else(|| {
+                            agent_error(
+                                "AGENT_AREA_RESOURCE_MISSING",
+                                "La ressource GIT de la zone est introuvable.",
+                                resource.to_string(),
+                            )
+                        })?;
+                    let (output, instance_id) = add_area_instance(
+                        &current,
+                        &format!("workspace::{resource}"),
+                        &area,
+                        &placement,
+                    )?;
+                    workspace.stage_resource(resource.clone(), source_bytes.as_deref(), &output)?;
+                    let snapshot = workspace.apply(EditCommand::AddInstance {
+                        area: area.clone(),
+                        instance_id: instance_id.clone(),
+                        placement: placement.clone(),
+                    })?;
+                    Ok((snapshot, instance_id))
+                })?;
+            Ok(serde_json::json!({ "instanceId": instance_id, "workspace": workspace }))
+        }
+        "dialogue.create" => {
+            let dialogue: aurora_agent::DialogueBlueprint =
+                decode_agent_arguments(call, "dialogue.create")?;
+            let resource = create_dialogue_resource(
+                &dialogue.resref,
+                &dialogue.owner_tag,
+                &dialogue.purpose,
+                &dialogue.required_nodes,
+            )?;
+            state.jobs.with_analysis(&run.job_id, |analysis| {
+                if analysis.resource_catalog.get(&resource.key).is_some() {
+                    return Err(agent_error(
+                        "AGENT_DIALOGUE_ALREADY_EXISTS",
+                        "Le dialogue à créer existe déjà.",
+                        resource.key.to_string(),
+                    ));
+                }
+                Ok(())
+            })?;
+            let key = resource.key.clone();
+            let workspace = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                workspace.create_resources_atomic(&[resource])
+            })?;
+            Ok(serde_json::json!({ "resource": key, "workspace": workspace }))
+        }
+        "dialogue.edit" => {
+            let arguments: AgentDialogueEditArguments =
+                decode_agent_arguments(call, "dialogue.edit")?;
+            let action = arguments.action;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new(&arguments.resref, 2029),
+                serde_json::to_string(&action).unwrap_or_else(|_| "dialogue_edit".to_owned()),
+                move |bytes, source| {
+                    edit_dialogue_structure(bytes, source, &action).map(|(output, _)| output)
+                },
+            )
+        }
+        "journal.edit" => {
+            let arguments: AgentJournalEditArguments =
+                decode_agent_arguments(call, "journal.edit")?;
+            if arguments.resource.resource_type != 2056 {
+                return Err(agent_error(
+                    "AGENT_JOURNAL_RESOURCE_INVALID",
+                    "La ressource ciblée n’est pas un journal JRL.",
+                    arguments.resource.to_string(),
+                ));
+            }
+            let action = arguments.action;
+            apply_agent_resource_transform(
+                state,
+                run,
+                arguments.resource,
+                serde_json::to_string(&action).unwrap_or_else(|_| "journal_edit".to_owned()),
+                move |bytes, source| {
+                    edit_journal_structure(bytes, source, &action).map(|(output, _)| output)
+                },
+            )
+        }
+        "faction.edit" => {
+            let arguments: AgentFactionEditArguments =
+                decode_agent_arguments(call, "faction.edit")?;
+            if arguments.resource.resource_type != 2038 {
+                return Err(agent_error(
+                    "AGENT_FACTION_RESOURCE_INVALID",
+                    "La ressource ciblée n’est pas une matrice FAC.",
+                    arguments.resource.to_string(),
+                ));
+            }
+            let action = arguments.action;
+            apply_agent_resource_transform(
+                state,
+                run,
+                arguments.resource,
+                serde_json::to_string(&action).unwrap_or_else(|_| "faction_edit".to_owned()),
+                move |bytes, source| {
+                    edit_faction_structure(bytes, source, &action).map(|(output, _)| output)
+                },
+            )
+        }
+        "blueprint.edit" => {
+            let arguments: AgentBlueprintEditArguments =
+                decode_agent_arguments(call, "blueprint.edit")?;
+            let action = arguments.action;
+            apply_agent_resource_transform(
+                state,
+                run,
+                arguments.resource,
+                serde_json::to_string(&action).unwrap_or_else(|_| "blueprint_edit".to_owned()),
+                move |bytes, source| {
+                    edit_blueprint_structure(bytes, source, &action).map(|(output, _)| output)
+                },
+            )
+        }
+        "workspace.checkpoint" => {
+            let workspace =
+                with_edit_workspace(state, &run.workspace_id, |workspace| workspace.snapshot())?;
+            Ok(serde_json::json!({
+                "checkpointId": format!("{}:{}", run.id, workspace.cursor),
+                "cursor": workspace.cursor,
+                "sourceSha256": workspace.source.sha256,
+            }))
+        }
+        "workspace.undo_batch" => {
+            let arguments: AgentUndoBatchArguments =
+                decode_agent_arguments(call, "workspace.undo_batch")?;
+            let (checkpoint_run, cursor_text) =
+                arguments.checkpoint_id.rsplit_once(':').ok_or_else(|| {
+                    agent_error(
+                        "AGENT_CHECKPOINT_INVALID",
+                        "L’identifiant de checkpoint n’est pas valide.",
+                        arguments.checkpoint_id.clone(),
+                    )
+                })?;
+            if checkpoint_run != run.id {
+                return Err(agent_error(
+                    "AGENT_CHECKPOINT_RUN_MISMATCH",
+                    "Ce checkpoint appartient à une autre exécution.",
+                    arguments.checkpoint_id,
+                ));
+            }
+            let target_cursor = cursor_text.parse::<usize>().map_err(|error| {
+                agent_error(
+                    "AGENT_CHECKPOINT_INVALID",
+                    "Le curseur du checkpoint n’est pas valide.",
+                    error.to_string(),
+                )
+            })?;
+            let workspace = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                let current = workspace.snapshot()?;
+                if target_cursor > current.cursor {
+                    return Err(agent_error(
+                        "AGENT_CHECKPOINT_AHEAD",
+                        "Le checkpoint est postérieur à l’état courant.",
+                        format!("target {target_cursor}, current {}", current.cursor),
+                    ));
+                }
+                while workspace.snapshot()?.cursor > target_cursor {
+                    workspace.undo()?;
+                }
+                workspace.snapshot()
+            })?;
+            Ok(serde_json::json!({
+                "restoredCheckpointId": format!("{}:{}", run.id, target_cursor),
+                "workspace": workspace,
+            }))
+        }
+        "blueprint.validate" => {
+            let blueprint: ModuleBlueprint = decode_agent_arguments(call, "blueprint.validate")?;
+            serde_json::to_value(compile_module_blueprint(&blueprint)).map_err(|error| {
+                agent_error(
+                    "AGENT_BLUEPRINT_RESULT_INVALID",
+                    "Le plan de module n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        "blueprint.apply" => {
+            let blueprint: ModuleBlueprint = decode_agent_arguments(call, "blueprint.apply")?;
+            let plan = compile_module_blueprint(&blueprint);
+            if !plan.validation.valid {
+                return Err(agent_error(
+                    "AGENT_BLUEPRINT_INVALID",
+                    "Le plan de module contient des erreurs.",
+                    serde_json::to_string(&plan.validation.diagnostics).unwrap_or_default(),
+                ));
+            }
+            let mut occupied = state.jobs.with_analysis(&run.job_id, |analysis| {
+                Ok(analysis
+                    .resource_catalog
+                    .entries
+                    .iter()
+                    .map(|entry| entry.key.clone())
+                    .collect::<BTreeSet<_>>())
+            })?;
+            let staged =
+                with_edit_workspace(state, &run.workspace_id, |workspace| workspace.snapshot())?;
+            occupied.extend(
+                staged
+                    .modified_resources
+                    .iter()
+                    .map(|resource| resource.resource.clone()),
+            );
+            let mut resources = Vec::<ErfResourceInput>::new();
+            let mut reused_resources = Vec::<String>::new();
+            for area in &blueprint.areas {
+                let area_resources = create_area_resources(
+                    &area.resref,
+                    &area.name,
+                    &area.tileset,
+                    u32::from(area.width),
+                    u32::from(area.height),
+                    0,
+                )?;
+                let existing = area_resources
+                    .iter()
+                    .filter(|resource| occupied.contains(&resource.key))
+                    .count();
+                if existing == area_resources.len() {
+                    reused_resources.extend(
+                        area_resources
+                            .iter()
+                            .map(|resource| resource.key.to_string()),
+                    );
+                } else if existing == 0 {
+                    resources.extend(area_resources);
+                } else {
+                    return Err(agent_error(
+                        "AGENT_BLUEPRINT_AREA_PARTIAL",
+                        "La zone existe partiellement ; réparez ARE/GIT/GIC avant de poursuivre.",
+                        area.resref.clone(),
+                    ));
+                }
+            }
+            for script in &blueprint.scripts {
+                let source = script.source.as_deref().ok_or_else(|| {
+                    agent_error(
+                        "AGENT_BLUEPRINT_SCRIPT_SOURCE_REQUIRED",
+                        "Chaque script du plan doit contenir sa source NSS avant application.",
+                        script.resref.clone(),
+                    )
+                })?;
+                parse_nss(
+                    source.as_bytes(),
+                    &format!("agent-blueprint::{}.nss", script.resref),
+                )?;
+                let key = ResourceKey::new(&script.resref, 2009);
+                if occupied.contains(&key) {
+                    return Err(agent_error(
+                        "AGENT_BLUEPRINT_RESOURCE_EXISTS",
+                        "Un script planifié existe déjà.",
+                        key.to_string(),
+                    ));
+                }
+                resources.push(ErfResourceInput {
+                    key,
+                    bytes: source.as_bytes().to_vec(),
+                });
+            }
+            for dialogue in &blueprint.dialogues {
+                let resource = create_dialogue_resource(
+                    &dialogue.resref,
+                    &dialogue.owner_tag,
+                    &dialogue.purpose,
+                    &dialogue.required_nodes,
+                )?;
+                if occupied.contains(&resource.key) {
+                    return Err(agent_error(
+                        "AGENT_BLUEPRINT_RESOURCE_EXISTS",
+                        "Un dialogue planifié existe déjà.",
+                        resource.key.to_string(),
+                    ));
+                }
+                resources.push(resource);
+            }
+            let module_resource = ResourceKey::new("module", 2014);
+            let source_ifo = resolved_resource_bytes(state, &run.job_id, &module_resource)?;
+            let current_ifo = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                workspace.staged_resource_bytes(&module_resource)
+            })?
+            .unwrap_or_else(|| source_ifo.clone());
+            let manifest = ModuleManifestDefinition {
+                name: blueprint.name.clone(),
+                tag: blueprint.tag.clone(),
+                description: blueprint.synopsis.clone(),
+                entry_area: blueprint.entry_area.clone(),
+                areas: blueprint
+                    .areas
+                    .iter()
+                    .map(|area| area.resref.clone())
+                    .collect(),
+                hak_files: blueprint.hak_dependencies.clone(),
+                custom_tlk: blueprint.custom_tlk.clone(),
+            };
+            let (updated_ifo, _) =
+                edit_module_manifest(&current_ifo, "agent-blueprint::module.ifo", &manifest)?;
+            let workspace = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                if !resources.is_empty() {
+                    workspace.create_resources_atomic(&resources)?;
+                }
+                let before_sha256 = hex::encode(Sha256::digest(&current_ifo));
+                let after_sha256 = hex::encode(Sha256::digest(&updated_ifo));
+                workspace.stage_resource(
+                    module_resource.clone(),
+                    Some(&source_ifo),
+                    &updated_ifo,
+                )?;
+                workspace.apply(EditCommand::TransformResource {
+                    resource: module_resource,
+                    operation: format!("apply_module_blueprint:{}", plan.blueprint_sha256),
+                    before_sha256,
+                    after_sha256,
+                })
+            })?;
+            Ok(serde_json::json!({
+                "blueprintSha256": plan.blueprint_sha256,
+                "createdResources": resources.iter().map(|resource| resource.key.to_string()).collect::<Vec<_>>(),
+                "reusedResources": reused_resources,
+                "scriptsRequireCompilation": blueprint.scripts.iter().map(|script| script.resref.clone()).collect::<Vec<_>>(),
+                "workspace": workspace,
+            }))
+        }
+        "module.build" => {
+            let arguments: AgentModuleBuildArguments =
+                decode_agent_arguments(call, "module.build")?;
+            let output = PathBuf::from(&arguments.output_path);
+            ensure_agent_output_path(&output, &run.policy.tool_runtime.allowed_output_roots)?;
+            let report = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                workspace.validate_compiled_scripts()?;
+                workspace.build_module(&output)
+            })?;
+            serde_json::to_value(report).map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le rapport de build n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        "module.create" => {
+            let arguments: AgentModuleCreateArguments =
+                decode_agent_arguments(call, "module.create")?;
+            let output = PathBuf::from(&arguments.output_path);
+            ensure_agent_output_path(&output, &run.policy.tool_runtime.allowed_output_roots)?;
+            let report = create_empty_module(
+                &output,
+                &NewModuleDefinition {
+                    name: arguments.name,
+                    tag: arguments.tag,
+                    entry_area: arguments.entry_area,
+                    tileset: arguments.tileset,
+                },
+            )?;
+            serde_json::to_value(report).map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le rapport de création n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        "module.dependencies" => {
+            let arguments: AgentModuleDependenciesArguments =
+                decode_agent_arguments(call, "module.dependencies")?;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new("module", 2014),
+                "edit_module_dependencies".to_owned(),
+                move |bytes, source| {
+                    edit_module_dependencies(
+                        bytes,
+                        source,
+                        &arguments.hak_files,
+                        arguments.custom_tlk.as_deref(),
+                    )
+                    .map(|(output, _)| output)
+                },
+            )
+        }
+        "2da.edit" => {
+            let arguments: AgentTwoDaEditArguments = decode_agent_arguments(call, "2da.edit")?;
+            if arguments.resource.resource_type != 2017 {
+                return Err(agent_error(
+                    "AGENT_2DA_RESOURCE_INVALID",
+                    "La ressource ciblée n’est pas une table 2DA.",
+                    arguments.resource.to_string(),
+                ));
+            }
+            let action = arguments.action;
+            apply_agent_resource_transform(
+                state,
+                run,
+                arguments.resource,
+                serde_json::to_string(&action).unwrap_or_else(|_| "2da_edit".to_owned()),
+                move |bytes, source| {
+                    let mut table = parse_2da(bytes, source)?;
+                    apply_2da_edit(&mut table, &action)?;
+                    write_2da(&table)
+                },
+            )
+        }
+        "tlk.edit" => {
+            let arguments: AgentTlkEditArguments = decode_agent_arguments(call, "tlk.edit")?;
+            if arguments.resource.resource_type != 2018 {
+                return Err(agent_error(
+                    "AGENT_TLK_RESOURCE_INVALID",
+                    "La ressource ciblée n’est pas une table TLK.",
+                    arguments.resource.to_string(),
+                ));
+            }
+            let action = arguments.action;
+            apply_agent_resource_transform(
+                state,
+                run,
+                arguments.resource,
+                serde_json::to_string(&action).unwrap_or_else(|_| "tlk_edit".to_owned()),
+                move |bytes, source| {
+                    let mut table = parse_tlk(bytes, source)?;
+                    apply_tlk_edit(&mut table, &action)?;
+                    write_tlk(&table)
+                },
+            )
+        }
+        "walkmesh.edit" => {
+            let arguments: AgentWalkmeshEditArguments =
+                decode_agent_arguments(call, "walkmesh.edit")?;
+            let resource = ResourceKey::new(&arguments.resref, arguments.kind.resource_type());
+            let resref = arguments.resref;
+            let kind = arguments.kind;
+            let operation = arguments.operation;
+            apply_agent_resource_transform(
+                state,
+                run,
+                resource,
+                serde_json::to_string(&operation).unwrap_or_else(|_| "walkmesh_edit".to_owned()),
+                move |bytes, _source| {
+                    let mut document = inspect_walkmesh(&resref, kind, bytes)?;
+                    let validation = apply_walkmesh_operation(&mut document.draft, &operation)?;
+                    if !validation.valid {
+                        return Err(agent_error(
+                            "AGENT_WALKMESH_INVALID",
+                            "L’opération produit un walkmesh invalide.",
+                            validation.diagnostics.join("; "),
+                        ));
+                    }
+                    serialize_walkmesh_ascii(&resref, kind, &document.draft)
+                },
+            )
+        }
+        "development.deploy" => {
+            let configured = run.policy.tool_runtime.development_path.trim();
+            if configured.is_empty() {
+                return Err(agent_error(
+                    "AGENT_DEVELOPMENT_NOT_CONFIGURED",
+                    "Configurez le dossier development dans Agent Studio.",
+                    "toolRuntime.developmentPath is empty",
+                ));
+            }
+            let configured = PathBuf::from(configured);
+            let user_data = if configured
+                .file_name()
+                .and_then(|value| value.to_str())
+                .is_some_and(|value| value.eq_ignore_ascii_case("development"))
+            {
+                configured.parent().map(PathBuf::from).ok_or_else(|| {
+                    agent_error(
+                        "AGENT_DEVELOPMENT_PATH_INVALID",
+                        "Le dossier development configuré n’a pas de parent valide.",
+                        configured.display().to_string(),
+                    )
+                })?
+            } else {
+                configured
+            };
+            let deployment = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                workspace.validate_compiled_scripts()?;
+                workspace.deploy_development(&user_data)
+            })?;
+            serde_json::to_value(deployment).map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le rapport de déploiement n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        "toolset.compare" => {
+            let root = run.policy.tool_runtime.toolset_temp_path.trim();
+            if root.is_empty() {
+                return Err(agent_error(
+                    "AGENT_TOOLSET_NOT_CONFIGURED",
+                    "Configurez le dossier temporaire Toolset dans Agent Studio.",
+                    "toolRuntime.toolsetTempPath is empty",
+                ));
+            }
+            let plan = build_aurora_sync_plan(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &PathBuf::from(root),
+            )?;
+            serde_json::to_value(plan).map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le plan de comparaison Toolset n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        "toolset.sync" => {
+            let arguments: AgentToolsetSyncArguments =
+                decode_agent_arguments(call, "toolset.sync")?;
+            let root = run.policy.tool_runtime.toolset_temp_path.trim();
+            if root.is_empty() {
+                return Err(agent_error(
+                    "AGENT_TOOLSET_NOT_CONFIGURED",
+                    "Configurez le dossier temporaire Toolset dans Agent Studio.",
+                    "toolRuntime.toolsetTempPath is empty",
+                ));
+            }
+            let report = apply_aurora_workspace_sync_inner(
+                state,
+                AuroraSyncApplyRequest {
+                    job_id: run.job_id.clone(),
+                    workspace_id: run.workspace_id.clone(),
+                    root: root.to_owned(),
+                    actions: arguments.actions,
+                },
+            )?;
+            serde_json::to_value(report).map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le rapport Toolset n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        "nwn.launch" => {
+            let runtime = &run.policy.tool_runtime;
+            if runtime.nwn_executable_path.trim().is_empty()
+                || runtime.nwn_working_directory.trim().is_empty()
+            {
+                return Err(agent_error(
+                    "AGENT_NWN_NOT_CONFIGURED",
+                    "Configurez l’exécutable et le dossier de travail NWN dans Agent Studio.",
+                    "NWN runtime paths are empty",
+                ));
+            }
+            let mode = if Path::new(&runtime.nwn_executable_path)
+                .file_name()
+                .and_then(|value| value.to_str())
+                .is_some_and(|value| value.eq_ignore_ascii_case("nwserver.exe"))
+            {
+                NwnLaunchMode::Server
+            } else {
+                NwnLaunchMode::Client
+            };
+            let report = with_edit_workspace(state, &run.workspace_id, |workspace| {
+                workspace.validate_compiled_scripts()?;
+                workspace.launch_nwn_profile(&NwnLaunchProfile {
+                    name: format!("Agent {}", &run.id[..8.min(run.id.len())]),
+                    mode,
+                    executable_path: runtime.nwn_executable_path.clone(),
+                    working_directory: runtime.nwn_working_directory.clone(),
+                    arguments: runtime.nwn_arguments.clone(),
+                })
+            })?;
+            serde_json::to_value(report).map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le rapport de lancement n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            })
+        }
+        _ => Err(agent_error(
+            "AGENT_TOOL_NOT_IMPLEMENTED",
+            "La capacité demandée n’est pas encore exécutable.",
+            call.capability_id.clone(),
+        )),
+    }
+}
+
+fn apply_agent_change_set(
+    state: &AppState,
+    run: &AgentRun,
+    change_set: AiChangeSet,
+) -> AppResult<serde_json::Value> {
+    let digest = ai_change_set_sha256(&change_set)?;
+    let sources = ai_source_resources(state, &run.job_id, &change_set)?;
+    let report = with_edit_workspace(state, &run.workspace_id, |workspace| {
+        workspace.apply_controlled_ai_change_set(&change_set, &digest, &sources)
+    })?;
+    serde_json::to_value(report).map_err(|error| {
+        agent_error(
+            "AGENT_TOOL_RESULT_INVALID",
+            "Le résultat d’édition n’a pas pu être préparé.",
+            error.to_string(),
+        )
+    })
+}
+
+fn apply_agent_resource_transform(
+    state: &AppState,
+    run: &AgentRun,
+    resource: ResourceKey,
+    operation: String,
+    transform: impl FnOnce(&[u8], &str) -> AppResult<Vec<u8>>,
+) -> AppResult<serde_json::Value> {
+    let source_bytes = try_resolved_resource_bytes(state, &run.job_id, &resource)?;
+    let (current, source_for_parser) =
+        with_edit_workspace(state, &run.workspace_id, |workspace| {
+            workspace.staged_resource_bytes(&resource)
+        })?
+        .map(|bytes| (bytes, format!("workspace::{}", resource.file_name())))
+        .or_else(|| {
+            source_bytes
+                .clone()
+                .map(|bytes| (bytes, format!("source::{}", resource.file_name())))
+        })
+        .ok_or_else(|| {
+            agent_error(
+                "AGENT_RESOURCE_MISSING",
+                "La ressource à transformer est introuvable.",
+                resource.to_string(),
+            )
+        })?;
+    let output = transform(&current, &source_for_parser)?;
+    let before_sha256 = hex::encode(Sha256::digest(&current));
+    let after_sha256 = hex::encode(Sha256::digest(&output));
+    let workspace = with_edit_workspace(state, &run.workspace_id, |workspace| {
+        workspace.stage_resource(resource.clone(), source_bytes.as_deref(), &output)?;
+        workspace.apply(EditCommand::TransformResource {
+            resource,
+            operation,
+            before_sha256,
+            after_sha256,
+        })
+    })?;
+    serde_json::to_value(workspace).map_err(|error| {
+        agent_error(
+            "AGENT_TOOL_RESULT_INVALID",
+            "Le résultat de transformation n’a pas pu être préparé.",
+            error.to_string(),
+        )
+    })
+}
+
+fn decode_agent_arguments<T: serde::de::DeserializeOwned>(
+    call: &ToolCallRecord,
+    capability: &str,
+) -> AppResult<T> {
+    serde_json::from_value(call.arguments.clone()).map_err(|error| {
+        agent_error(
+            "AGENT_TOOL_ARGUMENTS_INVALID",
+            "Les paramètres proposés pour l’outil sont invalides.",
+            format!("{capability}: {error}"),
+        )
+    })
+}
+
+fn ensure_agent_output_path(output: &Path, allowed_roots: &[String]) -> AppResult<()> {
+    if allowed_roots.is_empty() || !output.is_absolute() {
+        return Err(agent_error(
+            "AGENT_OUTPUT_PATH_DENIED",
+            "La sortie doit être absolue et appartenir à une racine autorisée.",
+            output.display().to_string(),
+        ));
+    }
+    let parent = output.parent().ok_or_else(|| {
+        agent_error(
+            "AGENT_OUTPUT_PATH_DENIED",
+            "La sortie ne possède pas de dossier parent valide.",
+            output.display().to_string(),
+        )
+    })?;
+    let parent = parent.canonicalize().map_err(|error| {
+        agent_error(
+            "AGENT_OUTPUT_PARENT_INVALID",
+            "Le dossier parent de sortie n’existe pas ou n’est pas accessible.",
+            error.to_string(),
+        )
+    })?;
+    let allowed = allowed_roots.iter().any(|root| {
+        PathBuf::from(root)
+            .canonicalize()
+            .is_ok_and(|root| parent.starts_with(root))
+    });
+    if !allowed {
+        return Err(agent_error(
+            "AGENT_OUTPUT_PATH_DENIED",
+            "La sortie se trouve hors des racines autorisées.",
+            output.display().to_string(),
+        ));
+    }
+    if output.exists() {
+        let canonical_output = output.canonicalize().map_err(|error| {
+            agent_error(
+                "AGENT_OUTPUT_PATH_DENIED",
+                "La sortie existante ne peut pas être résolue en sécurité.",
+                error.to_string(),
+            )
+        })?;
+        let existing_allowed = allowed_roots.iter().any(|root| {
+            PathBuf::from(root)
+                .canonicalize()
+                .is_ok_and(|root| canonical_output.starts_with(root))
+        });
+        if !existing_allowed {
+            return Err(agent_error(
+                "AGENT_OUTPUT_PATH_DENIED",
+                "La sortie existante redirige hors des racines autorisées.",
+                canonical_output.display().to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub fn create_new_module(request: CreateNewModuleRequest) -> AppResult<ModuleBuildReport> {
     create_empty_module(
         &PathBuf::from(request.output_path),
@@ -2590,6 +5085,33 @@ fn validated_ai_endpoint(value: &str) -> AppResult<reqwest::Url> {
     Ok(endpoint)
 }
 
+fn validated_agent_endpoint(
+    value: &str,
+    context: &aurora_agent::ContextPolicy,
+) -> AppResult<reqwest::Url> {
+    let endpoint = validated_ai_endpoint(value)?;
+    let host = endpoint.host_str().unwrap_or_default();
+    if !context
+        .allowed_provider_hosts
+        .iter()
+        .any(|allowed| allowed.eq_ignore_ascii_case(host))
+    {
+        return Err(agent_error(
+            "AGENT_PROVIDER_HOST_DENIED",
+            "L’hôte du fournisseur n’est pas autorisé par le profil.",
+            host.to_owned(),
+        ));
+    }
+    if endpoint.scheme() == "http" && !context.allow_insecure_local_http {
+        return Err(agent_error(
+            "AGENT_PROVIDER_HTTP_DISABLED",
+            "Le profil interdit HTTP, y compris pour les modèles locaux.",
+            host.to_owned(),
+        ));
+    }
+    Ok(endpoint)
+}
+
 fn decode_ai_change_set(content: &str) -> AppResult<AiChangeSet> {
     let trimmed = content.trim();
     if trimmed.starts_with("```") {
@@ -2625,9 +5147,46 @@ fn ai_resource_context(resource: &ResourceKey, bytes: &[u8]) -> AppResult<serde_
             )
         });
     }
+    if resource.resource_type == 2017 {
+        return serde_json::to_value(parse_2da(bytes, &format!("ai-context::{resource}"))?)
+            .map_err(|error| {
+                ai_error(
+                    "EDIT_AI_CONTEXT_SERIALIZE_FAILED",
+                    "La table 2DA sélectionnée n’a pas pu être préparée.",
+                    error.to_string(),
+                )
+            });
+    }
+    if resource.resource_type == 2018 {
+        return serde_json::to_value(parse_tlk(bytes, &format!("ai-context::{resource}"))?)
+            .map_err(|error| {
+                ai_error(
+                    "EDIT_AI_CONTEXT_SERIALIZE_FAILED",
+                    "La table TLK sélectionnée n’a pas pu être préparée.",
+                    error.to_string(),
+                )
+            });
+    }
+    let walkmesh_kind = match resource.resource_type {
+        2016 => Some(WalkmeshKind::Wok),
+        2052 => Some(WalkmeshKind::Dwk),
+        2053 => Some(WalkmeshKind::Pwk),
+        _ => None,
+    };
+    if let Some(kind) = walkmesh_kind {
+        return serde_json::to_value(inspect_walkmesh(&resource.resref, kind, bytes)?).map_err(
+            |error| {
+                ai_error(
+                    "EDIT_AI_CONTEXT_SERIALIZE_FAILED",
+                    "Le walkmesh sélectionné n’a pas pu être préparé.",
+                    error.to_string(),
+                )
+            },
+        );
+    }
     Err(ai_error(
         "EDIT_AI_CONTEXT_RESOURCE_UNSUPPORTED",
-        "Seuls les GFF et scripts NSS peuvent être transmis au fournisseur IA.",
+        "Seuls les GFF, NSS, 2DA, TLK et walkmeshes peuvent être transmis au fournisseur IA.",
         format!("unsupported AI context resource {resource}"),
     ))
 }
@@ -2680,6 +5239,29 @@ fn ai_error(
         )
         .with_import_stage("ai_assistant"),
     )
+}
+
+fn agent_error(
+    code: impl Into<String>,
+    user_message: impl Into<String>,
+    technical_message: impl Into<String>,
+) -> Box<AppError> {
+    Box::new(
+        AppError::new(
+            code,
+            user_message,
+            technical_message,
+            aurora_core::ErrorSeverity::Error,
+        )
+        .with_import_stage("agent_runtime"),
+    )
+}
+
+fn unix_time_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 fn resolved_resource_bytes(
@@ -3630,5 +6212,36 @@ mod tests {
                 .code,
             "EDIT_AI_RESPONSE_INVALID"
         );
+    }
+
+    #[test]
+    fn every_registered_agent_capability_has_a_local_executor() {
+        let registry = CapabilityRegistry::standard();
+        let missing = registry
+            .capabilities
+            .iter()
+            .filter(|capability| !agent_tool_is_implemented(&capability.id))
+            .map(|capability| capability.id.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            missing.is_empty(),
+            "registered capabilities without executor: {missing:?}"
+        );
+    }
+
+    #[test]
+    fn provider_context_redacts_local_paths_unless_explicitly_allowed() {
+        let value = serde_json::json!({
+            "root": "C:\\Users\\karen\\workspace",
+            "nested": {
+                "outputPath": "E:\\build\\module.mod",
+                "label": "safe"
+            }
+        });
+        let redacted = sanitize_context_value(&value, false);
+        assert_eq!(redacted["root"], "[local path redacted]");
+        assert_eq!(redacted["nested"]["outputPath"], "[local path redacted]");
+        assert_eq!(redacted["nested"]["label"], "safe");
+        assert_eq!(sanitize_context_value(&value, true), value);
     }
 }

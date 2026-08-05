@@ -85,6 +85,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurora-agent"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
 name = "aurora-core"
 version = "0.1.0"
 dependencies = [
@@ -2302,6 +2315,7 @@ name = "opennever-forge-desktop"
 version = "0.1.0"
 dependencies = [
  "aurora-2da",
+ "aurora-agent",
  "aurora-core",
  "aurora-dialogue",
  "aurora-edit",
@@ -2325,6 +2339,23 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "uuid",
+]
+
+[[package]]
+name = "opennever-mcp"
+version = "0.1.0"
+dependencies = [
+ "aurora-agent",
+ "aurora-core",
+ "aurora-edit",
+ "aurora-erf",
+ "aurora-gff",
+ "aurora-nwscript",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]

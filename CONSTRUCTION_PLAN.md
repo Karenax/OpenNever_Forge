@@ -384,6 +384,31 @@ prévisualisation sur les octets courants, confirmation par SHA-256 et applicati
 
 Le critère final est fonctionnel : créer, maintenir, compiler et tester un module complexe sans ouvrir Aurora.
 
+## 7 bis. Phase 4 — construction agentique configurable
+
+Ordre de livraison Lots 26 à 35 :
+
+1. **Lot 26** — politiques persistées, niveaux de sécurité et budgets ;
+2. **Lot 27** — registre typé des capacités et matrice d’approbation ;
+3. **Lot 28** — boucle multi-outils et adaptateurs Responses/Chat/Ollama ;
+4. **Lot 29** — Agent Studio et configuration fine dans l’interface ;
+5. **Lot 30** — `ModuleBlueprint` et plan de tâches déterministe ;
+6. **Lot 31** — outils de construction, narration, scripts et dépendances ;
+7. **Lot 32** — checkpoints, annulation, reprise, audit et budgets de coût ;
+8. **Lot 33** — adaptateur MCP stdio partageant les mêmes politiques ;
+9. **Lot 34** — build, `development`, Toolset et lancement NWN sous double autorisation ;
+10. **Lot 35** — qualification sur module synthétique et module utilisateur, documentation et
+    paquet Windows.
+
+**Statut au 4 août 2026 : Lots 26 à 34 implémentés et qualifiés localement ; Lot 35 terminé pour
+son périmètre logiciel.** Le fournisseur ne voit que les capacités implémentées et autorisées. Les
+outils externes restent masqués ou exigent une approbation critique tant que leurs chemins et
+périmètres ne sont pas configurés. La candidate Windows, le serveur MCP release, la compilation
+NSS→NCS et l’intégrité du module utilisateur sont contrôlés dans
+`docs/validation/lot35-exit-review.md`. L’acceptation auprès d’un fournisseur réel et le chargement
+moteur restent des contrôles externes : Ollama local dépasse actuellement le délai borné et le
+témoin `nwserver` local reste affecté par l’arrêt environnemental déjà documenté.
+
 ## 8. Chantiers transversaux obligatoires
 
 ### Tests et corpus

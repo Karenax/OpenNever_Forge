@@ -8,6 +8,48 @@ vi.mock("@monaco-editor/react", () => ({ default: ({ value }: { value: string })
 vi.mock("@xyflow/react", () => ({ ReactFlow: ({ nodes, edges, children }: { nodes: Array<{id:string}>; edges:Array<{id:string}>; children: React.ReactNode }) => <div data-testid="dialogue-flow">{nodes.length} nodes · {edges.length} edges{children}</div>, Background:()=>null, Controls:()=>null, MiniMap:()=>null }));
 
 vi.mock("./lib/tauri", () => ({
+  getAgentStudioState: vi.fn().mockResolvedValue({
+    policy: {
+      schemaVersion: 2,
+      name: "Conseiller",
+      level: "advisor",
+      context: { allowNetwork: false, includeModuleMetadata: false, includeResourceContents: false, includeDiagnostics: true, includeArchitectureGraph: false, includeLocalPaths: false, retainConversation: true, retentionDays: 30, allowInsecureLocalHttp: true, allowedProviderHosts: ["api.openai.com", "localhost", "127.0.0.1", "::1"] },
+      limits: { maxTurns: 12, maxToolCalls: 48, maxParallelCalls: 4, maxRetries: 2, maxPromptBytes: 32768, maxContextResources: 16, maxContextResourceBytes: 262144, maxResponseBytes: 2097152, maxOutputTokens: 8192, maxDurationSeconds: 900, maxCostMicroUsd: 5000000 },
+      toolRuntime: { compilerPath: "", gameInstallPath: "", includePaths: [], developmentPath: "", toolsetTempPath: "", allowedOutputRoots: [], nwnExecutablePath: "", nwnWorkingDirectory: "", nwnArguments: [] },
+      capabilityOverrides: { "*": { access: "preview", approval: "always", scope: "workspace", maxCalls: 48 } },
+      scopeGrants: { selectedResources: [], areas: [] },
+      allowDevelopmentDeploy: false,
+      allowToolsetSync: false,
+      allowProcessLaunch: false,
+      stopOnValidationError: true,
+      checkpointBeforeWrite: true,
+    },
+    presets: [
+      {
+        schemaVersion: 2,
+        name: "Agent supervisé",
+        level: "supervised",
+        context: { allowNetwork: false, includeModuleMetadata: true, includeResourceContents: true, includeDiagnostics: true, includeArchitectureGraph: false, includeLocalPaths: false, retainConversation: true, retentionDays: 30, allowInsecureLocalHttp: true, allowedProviderHosts: ["api.openai.com", "localhost", "127.0.0.1", "::1"] },
+        limits: { maxTurns: 24, maxToolCalls: 128, maxParallelCalls: 4, maxRetries: 2, maxPromptBytes: 32768, maxContextResources: 16, maxContextResourceBytes: 262144, maxResponseBytes: 2097152, maxOutputTokens: 8192, maxDurationSeconds: 900, maxCostMicroUsd: 5000000 },
+        toolRuntime: { compilerPath: "", gameInstallPath: "", includePaths: [], developmentPath: "", toolsetTempPath: "", allowedOutputRoots: [], nwnExecutablePath: "", nwnWorkingDirectory: "", nwnArguments: [] },
+        capabilityOverrides: { "*": { access: "execute", approval: "above_risk", scope: "workspace", maxCalls: 128 } },
+        scopeGrants: { selectedResources: [], areas: [] },
+        allowDevelopmentDeploy: false,
+        allowToolsetSync: false,
+        allowProcessLaunch: false,
+        stopOnValidationError: true,
+        checkpointBeforeWrite: true,
+      },
+    ],
+    registry: { schemaVersion: 2, capabilities: [] },
+    effectiveCapabilities: [],
+    runs: [],
+  }),
+  saveAgentPolicy: vi.fn(),
+  createAgentRun: vi.fn(),
+  advanceAgentRun: vi.fn(),
+  resolveAgentApproval: vi.fn(),
+  cancelAgentRun: vi.fn(),
   getAppStatus: vi.fn().mockResolvedValue({
     appVersion: "0.1.0-test",
     readOnly: true,
@@ -619,5 +661,26 @@ describe("OpenNever Forge shell", () => {
     await waitFor(() => expect(deployWorkspaceDevelopment).toHaveBeenCalledWith({ workspaceId: "workspace-1", userDataPath: "C:/NWN" }));
     fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
     await waitFor(() => expect(undoEditCommand).toHaveBeenCalledWith({ workspaceId: "workspace-1" }));
+  });
+
+  it("exposes fine-grained provider, safety, scope and runtime controls in Agent Studio", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    const studio = await screen.findByRole("region", { name: "Agent Studio" });
+    const controls = within(studio);
+    expect(controls.getByLabelText("Niveau")).toHaveValue("advisor");
+    expect(controls.getByLabelText("Autoriser le réseau")).not.toBeChecked();
+    expect(controls.getByLabelText("Chemins locaux dans le contexte")).not.toBeChecked();
+    expect(controls.getByLabelText("Compilateur NWScript")).toBeInTheDocument();
+    expect(controls.getByLabelText("Ressources sélectionnées (`resref:type`)")).toBeInTheDocument();
+    expect(controls.getByRole("button", { name: "Enregistrer le profil" })).toBeInTheDocument();
+    fireEvent.change(controls.getByLabelText("Protocole"), { target: { value: "open_ai_responses" } });
+    expect(controls.getByLabelText("Stockage de la conversation chez le fournisseur")).not.toBeChecked();
+    fireEvent.change(controls.getByLabelText("Niveau"), { target: { value: "supervised" } });
+    fireEvent.click(controls.getByLabelText("Autoriser le réseau"));
+    expect(controls.getByLabelText("Niveau")).toHaveValue("supervised");
+    expect(controls.getByLabelText("Autoriser le réseau")).toBeChecked();
   });
 });

@@ -98,3 +98,31 @@ ni au système de fichiers, ni aux commandes du système, ni à l’archive sour
 utiliser un adaptateur externe sans réseau, ouvrir **Prévisualiser une proposition JSON locale** et
 coller un `AiChangeSet` conforme. Après toute modification NSS, compiler le NCS avant build,
 déploiement ou sauvegarde Toolset.
+
+## Agent Studio
+
+La carte **Construction agentique** étend l’assistant ponctuel avec des exécutions multi-outils
+persistées. Commencez avec le niveau **Assistant** ou **Agent supervisé**, configurez explicitement
+le fournisseur et les dossiers d’outils, puis examinez la matrice des fonctions. Changer de niveau
+charge le preset correspondant sans effacer les chemins, les ressources/zones accordées ni les
+hôtes déjà configurés. Une clé saisie dans
+la carte est effacée après l’appel et n’est jamais sauvegardée.
+
+Les métadonnées, contenus de ressources, diagnostics, graphe d’architecture et chemins locaux sont
+cinq consentements distincts. Les chemins absolus sont masqués dans le contexte du modèle par
+défaut, même lorsqu’un résultat d’outil interne en contient.
+
+Avec Responses API, **Stockage de la conversation chez le fournisseur** est désactivé par défaut.
+L’application rejoue alors localement l’historique nécessaire. Activez-le seulement si vous
+acceptez la conservation distante prévue par votre fournisseur ; la reprise utilise alors les
+identifiants de réponse au lieu du rejeu local.
+Le plafond **Sortie modèle (tokens)** borne la génération côté fournisseur ; **Réponse (octets)**
+reste une seconde barrière locale indépendante.
+
+Pour créer un module complexe, décrivez les critères d’acceptation et fournissez facultativement un
+`ModuleBlueprint` JSON. Les scripts créés doivent être compilés avant build, `development`, Toolset
+ou lancement. Utilisez les demandes d’approbation affichées dans le journal ; **Arrêter** empêche le
+prochain tour ou outil. Les checkpoints permettent de revenir au début d’un lot.
+
+La configuration détaillée, les garanties de reprise et le lancement du serveur MCP sont décrits
+dans [AGENT_STUDIO.md](AGENT_STUDIO.md).

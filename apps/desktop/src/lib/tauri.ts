@@ -153,6 +153,69 @@ export type AiProviderProposal = {
   preview: AiChangeSetPreview; sharedResources: number; warnings: string[];
 };
 export type AiApplyReport = { proposalSha256: string; appliedCommands: number; workspace: WorkspaceSnapshot };
+export type SecurityLevel = "observer" | "advisor" | "assisted" | "supervised" | "autonomous" | "operator";
+export type CapabilityAccess = "deny" | "read" | "preview" | "execute";
+export type ApprovalMode = "always" | "per_batch" | "above_risk" | "never";
+export type ToolScope = "selected_resource" | "area" | "module" | "workspace";
+export type CapabilityRisk = "low" | "moderate" | "high" | "critical";
+export type CapabilitySideEffect = "none" | "reversible_workspace" | "build_output" | "external";
+export type AgentLimits = {
+  maxTurns: number; maxToolCalls: number; maxParallelCalls: number; maxRetries: number;
+  maxPromptBytes: number; maxContextResources: number; maxContextResourceBytes: number;
+  maxResponseBytes: number; maxOutputTokens: number; maxDurationSeconds: number; maxCostMicroUsd: number;
+};
+export type ContextPolicy = {
+  allowNetwork: boolean; includeModuleMetadata: boolean; includeResourceContents: boolean;
+  includeDiagnostics: boolean; includeArchitectureGraph: boolean; includeLocalPaths: boolean; retainConversation: boolean;
+  retentionDays: number; allowInsecureLocalHttp: boolean; allowedProviderHosts: string[];
+};
+export type ToolRuntimePolicy = {
+  compilerPath: string; gameInstallPath: string; includePaths: string[]; developmentPath: string;
+  toolsetTempPath: string; allowedOutputRoots: string[];
+  nwnExecutablePath: string; nwnWorkingDirectory: string; nwnArguments: string[];
+};
+export type CapabilityOverride = { access: CapabilityAccess; approval: ApprovalMode; scope: ToolScope; maxCalls: number };
+export type ScopeGrants = { selectedResources: ResourceKey[]; areas: string[] };
+export type AgentPolicy = {
+  schemaVersion: number; name: string; level: SecurityLevel; context: ContextPolicy; limits: AgentLimits;
+  toolRuntime: ToolRuntimePolicy; capabilityOverrides: Record<string, CapabilityOverride>; scopeGrants: ScopeGrants; allowDevelopmentDeploy: boolean;
+  allowToolsetSync: boolean; allowProcessLaunch: boolean; stopOnValidationError: boolean;
+  checkpointBeforeWrite: boolean;
+};
+export type CapabilityDescriptor = {
+  id: string; title: string; description: string; category: string; risk: CapabilityRisk;
+  sideEffect: CapabilitySideEffect; reversible: boolean; inputSchema: unknown; outputSchema: unknown;
+};
+export type CapabilityRegistry = { schemaVersion: number; capabilities: CapabilityDescriptor[] };
+export type EffectiveCapability = { id: string; access: CapabilityAccess; approval: ApprovalMode; scope: ToolScope; maxCalls: number; reason: string };
+export type ProviderKind = "open_ai_responses" | "open_ai_chat_completions" | "ollama" | "compatible" | "manual";
+export type ProviderProfile = {
+  id: string; name: string; kind: ProviderKind; endpoint: string; model: string;
+  reasoningEffort?: string; temperatureMilli?: number; supportsTools: boolean;
+  supportsParallelTools: boolean; supportsStructuredOutput: boolean;
+  storeResponses: boolean;
+  inputCostMicroUsdPerMillionTokens: number; outputCostMicroUsdPerMillionTokens: number;
+};
+export type AgentToolCall = {
+  id: string; capabilityId: string; arguments: unknown; argumentsSha256: string;
+  status: "proposed" | "waiting_approval" | "running" | "completed" | "rejected" | "failed";
+  result?: unknown; error?: string; startedUnixMs?: number; completedUnixMs?: number;
+};
+export type AgentApproval = {
+  id: string; toolCallId: string; capabilityId: string; summary: string;
+  toolCallIds: string[];
+  status: "pending" | "approved" | "rejected"; createdUnixMs: number; resolvedUnixMs?: number;
+};
+export type AgentEvent = { sequence: number; unixMs: number; kind: string; message: string; data?: unknown };
+export type AgentRun = {
+  schemaVersion: number; id: string; jobId: string; workspaceId: string; objective: string;
+  status: "planned" | "running" | "waiting_approval" | "completed" | "failed" | "cancelled";
+  provider: ProviderProfile; policy: AgentPolicy; blueprint?: unknown; currentTurn: number; estimatedCostMicroUsd: number;
+  toolCalls: AgentToolCall[]; approvals: AgentApproval[]; events: AgentEvent[]; createdUnixMs: number; updatedUnixMs: number;
+};
+export type AgentStudioState = {
+  policy: AgentPolicy; presets: AgentPolicy[]; registry: CapabilityRegistry; effectiveCapabilities: EffectiveCapability[]; runs: AgentRun[];
+};
 
 export type HashProgress = {
   bytesRead: number;
@@ -723,6 +786,38 @@ export async function applyAiChangeSet(request: {
 }): Promise<AiApplyReport> {
   requireTauri();
   return invoke<AiApplyReport>("apply_ai_change_set", { request });
+}
+
+export async function getAgentStudioState(workspaceId: string): Promise<AgentStudioState> {
+  requireTauri();
+  return invoke<AgentStudioState>("get_agent_studio_state", { request: { workspaceId } });
+}
+
+export async function saveAgentPolicy(workspaceId: string, policy: AgentPolicy): Promise<AgentStudioState> {
+  requireTauri();
+  return invoke<AgentStudioState>("save_agent_policy", { request: { workspaceId, policy } });
+}
+
+export async function createAgentRun(request: {
+  jobId: string; workspaceId: string; objective: string; provider: ProviderProfile; policy?: AgentPolicy; blueprint?: unknown;
+}): Promise<AgentRun> {
+  requireTauri();
+  return invoke<AgentRun>("create_agent_run", { request });
+}
+
+export async function advanceAgentRun(request: { workspaceId: string; runId: string; apiKey?: string }): Promise<AgentRun> {
+  requireTauri();
+  return invoke<AgentRun>("advance_agent_run", { request });
+}
+
+export async function resolveAgentApproval(request: { workspaceId: string; runId: string; approvalId: string; approved: boolean }): Promise<AgentRun> {
+  requireTauri();
+  return invoke<AgentRun>("resolve_agent_approval", { request });
+}
+
+export async function cancelAgentRun(request: { workspaceId: string; runId: string }): Promise<AgentRun> {
+  requireTauri();
+  return invoke<AgentRun>("cancel_agent_run", { request });
 }
 
 export async function createNewModule(request: {

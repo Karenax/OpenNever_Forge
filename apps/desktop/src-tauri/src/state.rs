@@ -3,6 +3,7 @@ use aurora_edit::EditWorkspace;
 use aurora_index::DatabaseInfo;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use tracing_appender::non_blocking::WorkerGuard;
 
@@ -12,6 +13,7 @@ pub struct AppState {
     pub asset_cache_root: PathBuf,
     pub edit_workspace_root: PathBuf,
     pub edit_workspaces: Mutex<HashMap<String, EditWorkspace>>,
+    pub agent_cancellations: Mutex<HashMap<String, Arc<AtomicBool>>>,
     _log_guard: WorkerGuard,
 }
 
@@ -24,6 +26,7 @@ impl AppState {
             asset_cache_root,
             edit_workspace_root,
             edit_workspaces: Mutex::new(HashMap::new()),
+            agent_cancellations: Mutex::new(HashMap::new()),
             _log_guard: log_guard,
         }
     }

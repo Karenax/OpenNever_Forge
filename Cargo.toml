@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "apps/desktop/src-tauri",
+  "apps/opennever-mcp",
   "crates/aurora-core",
   "crates/aurora-erf",
   "crates/aurora-gff",
@@ -14,6 +15,7 @@ members = [
   "crates/aurora-edit",
   "crates/aurora-project",
   "crates/aurora-index",
+  "crates/aurora-agent",
 ]
 resolver = "2"
 

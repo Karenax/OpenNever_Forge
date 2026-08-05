@@ -3813,6 +3813,107 @@ pub fn edit_module_dependencies(
     Ok((output, reopened))
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ModuleManifestDefinition {
+    pub name: String,
+    pub tag: String,
+    pub description: String,
+    pub entry_area: String,
+    pub areas: Vec<String>,
+    pub hak_files: Vec<String>,
+    pub custom_tlk: Option<String>,
+}
+
+pub fn edit_module_manifest(
+    bytes: &[u8],
+    source: &str,
+    definition: &ModuleManifestDefinition,
+) -> AppResult<(Vec<u8>, GenericGff)> {
+    let mut document = parse_gff(bytes, source)?;
+    if document.file_type != "IFO " {
+        return Err(edit_error(
+            "EDIT_MODULE_INFO_REQUIRED",
+            format!("{source} is {}, expected IFO", document.file_type.trim()),
+        ));
+    }
+    if definition.name.trim().is_empty()
+        || definition.name.len() > 1_024
+        || definition.tag.trim().is_empty()
+        || definition.tag.len() > 64
+        || definition.description.len() > 64 * 1024
+    {
+        return Err(edit_error(
+            "EDIT_MODULE_MANIFEST_INVALID",
+            "module identity exceeds the supported bounds",
+        ));
+    }
+    validate_resref(&definition.entry_area)?;
+    let mut seen = std::collections::BTreeSet::new();
+    for area in &definition.areas {
+        validate_resref(area)?;
+        if !seen.insert(area.to_ascii_lowercase()) {
+            return Err(edit_error(
+                "EDIT_MODULE_AREA_DUPLICATE",
+                format!("duplicate module area {area}"),
+            ));
+        }
+    }
+    if !seen.contains(&definition.entry_area.to_ascii_lowercase()) {
+        return Err(edit_error(
+            "EDIT_MODULE_ENTRY_AREA_MISSING",
+            format!("entry area {} is not declared", definition.entry_area),
+        ));
+    }
+    set_root_field(&mut document, "Mod_Name", 12, localized(&definition.name));
+    set_root_field(
+        &mut document,
+        "Mod_Tag",
+        10,
+        GenericValue::String(definition.tag.clone()),
+    );
+    set_root_field(
+        &mut document,
+        "Mod_Description",
+        12,
+        localized(&definition.description),
+    );
+    set_root_field(
+        &mut document,
+        "Mod_Entry_Area",
+        11,
+        GenericValue::ResRef(definition.entry_area.clone()),
+    );
+    set_root_field(
+        &mut document,
+        "Mod_Area_list",
+        15,
+        GenericValue::List(
+            definition
+                .areas
+                .iter()
+                .enumerate()
+                .map(|(index, area)| GenericStruct {
+                    index: index as u32 + 1,
+                    struct_type: 6,
+                    fields: vec![gff_field(
+                        "Area_Name",
+                        11,
+                        GenericValue::ResRef(area.clone()),
+                    )],
+                })
+                .collect(),
+        ),
+    );
+    let output = write_gff(&document)?;
+    edit_module_dependencies(
+        &output,
+        source,
+        &definition.hak_files,
+        definition.custom_tlk.as_deref(),
+    )
+}
+
 fn set_root_field(document: &mut GenericGff, label: &str, field_type: u32, value: GenericValue) {
     if let Some(field) = document
         .root
@@ -4308,6 +4409,61 @@ pub fn create_area_resources(
             bytes: write_gff(&gic)?,
         },
     ])
+}
+
+pub fn create_dialogue_resource(
+    resref: &str,
+    owner_tag: &str,
+    purpose: &str,
+    required_nodes: &[String],
+) -> AppResult<ErfResourceInput> {
+    validate_resref(resref)?;
+    if owner_tag.len() > 64 || purpose.len() > 4_096 || required_nodes.len() > 10_000 {
+        return Err(edit_error(
+            "EDIT_DIALOGUE_DEFINITION_INVALID",
+            "dialogue metadata or node count exceeds the supported bounds",
+        ));
+    }
+    let entries = required_nodes
+        .iter()
+        .enumerate()
+        .map(|(index, text)| GenericStruct {
+            index: index as u32 + 1,
+            struct_type: 0,
+            fields: vec![
+                gff_field("Text", 12, localized(text)),
+                gff_field("Speaker", 10, GenericValue::String(owner_tag.to_owned())),
+                gff_field("RepliesList", 15, GenericValue::List(Vec::new())),
+            ],
+        })
+        .collect::<Vec<_>>();
+    let starts = (0..entries.len())
+        .map(|index| GenericStruct {
+            index: index as u32 + 1,
+            struct_type: 0,
+            fields: vec![gff_field("Index", 4, GenericValue::Dword(index as u32))],
+        })
+        .collect::<Vec<_>>();
+    let dialogue = gff_document(
+        "DLG ",
+        resref,
+        vec![
+            gff_field("EntryList", 15, GenericValue::List(entries)),
+            gff_field("ReplyList", 15, GenericValue::List(Vec::new())),
+            gff_field("StartingList", 15, GenericValue::List(starts)),
+            gff_field("DelayEntry", 4, GenericValue::Dword(0)),
+            gff_field("DelayReply", 4, GenericValue::Dword(0)),
+            empty_resref_field("EndConverAbort"),
+            empty_resref_field("EndConversation"),
+            gff_field("NumWords", 4, GenericValue::Dword(0)),
+            gff_field("PreventZoomIn", 0, GenericValue::Byte(0)),
+            gff_field("Comments", 10, GenericValue::String(purpose.to_owned())),
+        ],
+    );
+    Ok(ErfResourceInput {
+        key: ResourceKey::new(resref, 2029),
+        bytes: write_gff(&dialogue)?,
+    })
 }
 
 fn new_module_resources(definition: &NewModuleDefinition) -> AppResult<Vec<ErfResourceInput>> {
@@ -8826,6 +8982,59 @@ mod tests {
         assert!(undone.modified_resources.is_empty());
         let redone = workspace.redo().expect("redo area creation");
         assert_eq!(redone.modified_resources.len(), 3);
+    }
+
+    #[test]
+    fn creates_a_parseable_dialogue_and_preserves_structured_editing() {
+        let resource = create_dialogue_resource(
+            "dlg_intro",
+            "npc_guide",
+            "Introduction",
+            &["Bienvenue".to_owned(), "Le portail est ouvert".to_owned()],
+        )
+        .expect("dialogue resource");
+        assert_eq!(resource.key, ResourceKey::new("dlg_intro", 2029));
+        let document = parse_gff(&resource.bytes, "dlg_intro.dlg").expect("parse dialogue");
+        assert_eq!(document.file_type, "DLG ");
+        let (edited, _) = edit_dialogue_structure(
+            &resource.bytes,
+            "dlg_intro.dlg",
+            &DialogueStructureAction::AddNode {
+                node_kind: DialogueNodeKind::Reply,
+            },
+        )
+        .expect("add reply");
+        assert!(!edited.is_empty());
+    }
+
+    #[test]
+    fn updates_module_manifest_without_replacing_unknown_fields() {
+        let resources = new_module_resources(&NewModuleDefinition {
+            name: "Avant".to_owned(),
+            tag: "BEFORE".to_owned(),
+            entry_area: "entry".to_owned(),
+            tileset: "tno01".to_owned(),
+        })
+        .expect("module resources");
+        let ifo = &resources[0].bytes;
+        let (output, document) = edit_module_manifest(
+            ifo,
+            "module.ifo",
+            &ModuleManifestDefinition {
+                name: "Après".to_owned(),
+                tag: "AFTER".to_owned(),
+                description: "Construit par plan".to_owned(),
+                entry_area: "entry".to_owned(),
+                areas: vec!["entry".to_owned(), "cave".to_owned()],
+                hak_files: vec!["content.hak".to_owned()],
+                custom_tlk: Some("dialogue.tlk".to_owned()),
+            },
+        )
+        .expect("edit manifest");
+        assert!(!output.is_empty());
+        assert!(find_field(&document.root, &["Mod_ID"]).is_some());
+        let areas = find_field(&document.root, &["Mod_Area_list"]).expect("areas");
+        assert!(matches!(&areas.value, GenericValue::List(values) if values.len() == 2));
     }
 
     #[test]

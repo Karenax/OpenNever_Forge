@@ -137,6 +137,7 @@ import {
 } from "./lib/tauri";
 import { AuroraSyncPanel } from "./components/AuroraSyncPanel";
 import { AiAssistantPanel } from "./components/AiAssistantPanel";
+import { AgentStudio } from "./components/AgentStudio";
 import { useUiStore } from "./store/uiStore";
 import "./App.css";
 
@@ -744,6 +745,10 @@ function App() {
                 onWorkspaceChange={setEditWorkspace}
                 onError={pushError}
               />
+            )}
+
+            {editWorkspace && jobId && (
+              <AgentStudio jobId={jobId} workspace={editWorkspace} onError={pushError} />
             )}
 
             {editWorkspace && jobId && (

@@ -2030,3 +2030,49 @@ courants et valide le parse NSS. Une prévisualisation sans mutation porte une e
 l’application exige une confirmation explicite de cette même empreinte, stage les octets dans
 l’overlay et conserve chaque commande dans l’historique undo/redo. Une proposition JSON locale
 emprunte le même pipeline sans réseau. L’IA n’écrit jamais directement dans un GFF ou un MOD.
+
+### 36.11 Orchestrateur agentique et MCP
+
+Les Lots 26 à 35 étendent l’assistant ponctuel sans relâcher sa frontière. `aurora-agent` porte les
+politiques versionnées, six niveaux de sécurité, les budgets, la matrice par capacité, le
+`ModuleBlueprint`, les runs, checkpoints et audits. Agent Studio rend réglables le contexte partagé,
+les hôtes, les prix par token, les limites d’exécution, les chemins du compilateur/jeu/Toolset et
+chaque fonction. Une clé fournisseur reste éphémère.
+
+La boucle locale normalise Responses API, Chat Completions compatible et Ollama. Le modèle ne reçoit
+que des outils enregistrés, implémentés et autorisés. Les écritures passent par `EditWorkspace`, un
+checkpoint est persisté avant chaque mutation réversible et un appel interrompu n’est jamais rejoué
+automatiquement. Le plan de module crée ARE/GIT/GIC, NSS, DLG, dépendances et manifeste IFO, puis
+planifie NSS→NCS et la validation. Build, `development`, Toolset et lancement NWN conservent leurs
+validations et autorisations supplémentaires.
+
+Responses offre un stockage fournisseur explicite, désactivé par défaut. S’il est actif, chaque tour
+poursuit le `previous_response_id` fourni par le serveur ; sinon, le run rejoue localement ses
+entrées et tous les éléments de sortie. Les résultats typés restent des `function_call_output` liés
+au `call_id` d’origine. Cette continuité est persistée, bornée par les budgets et expurgée à l’état
+terminal selon la politique de rétention.
+
+`opennever-mcp` est un adaptateur stdio : il partage politique et registre avec Tauri, expose l’état
+en ressources MCP et ne fournit jamais un accès supérieur à l’interface. MCP n’est ni le cœur métier
+ni un serveur réseau implicite. Les détails opérationnels sont dans `docs/AGENT_STUDIO.md` et la
+décision dans l’ADR 0010. Il négocie les révisions `2025-11-25` et `2025-06-18`, exige la fin de
+l’initialisation JSON-RPC et applique les mêmes limites de contexte, de portée, d’appels et de durée
+que la politique locale.
+
+### 36.12 Qualification de la construction agentique
+
+Les six presets de sécurité sont maintenant fournis par le cœur Rust à Agent Studio ; changer de
+niveau charge réellement ses limites, consentements et règles, tout en conservant la configuration
+locale des chemins, portées et hôtes. Un test d’exhaustivité impose qu’une capacité du registre ait
+un exécuteur Tauri. La politique sans rétention garde uniquement l’état actif nécessaire à la
+reprise, masque les échanges fournisseur dans l’audit et expurge objectif, blueprint, arguments et
+résultats quand le run devient terminal.
+
+La qualification du 4 août 2026 couvre le workspace Rust complet, l’interface, le MCP, le graphe,
+le build release Windows et une compilation réelle `ai_smoke.nss` → `ai_smoke.ncs` avec
+`nwn_script_comp`. La copie de travail et le module installé `The Dark Ranger's Treasure.mod`
+restent identiques (594 030 octets, SHA-256
+`172C06CD5A2178AF46CC5C2828985EAB65FB5DD68898241333B391AB4FC26019`). Ollama local est
+détecté mais son seul modèle dépasse encore le délai synthétique de 45 secondes ; ce contrôle
+externe reste inconclusif et n’est pas transformé en réussite. Voir
+`docs/validation/lot35-exit-review.md`.

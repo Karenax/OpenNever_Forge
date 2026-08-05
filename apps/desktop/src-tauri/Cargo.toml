@@ -31,6 +31,7 @@ aurora-world = { path = "../../../crates/aurora-world" }
 aurora-tlk = { path = "../../../crates/aurora-tlk" }
 aurora-2da = { path = "../../../crates/aurora-2da" }
 aurora-dialogue = { path = "../../../crates/aurora-dialogue" }
+aurora-agent = { path = "../../../crates/aurora-agent" }
 hex.workspace = true
 reqwest.workspace = true
 sha2.workspace = true
