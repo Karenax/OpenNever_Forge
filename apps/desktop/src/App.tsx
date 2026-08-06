@@ -2,23 +2,32 @@ import {
   AlertTriangle,
   Archive,
   Box,
+  Bot,
   BookOpen,
   Braces,
   ChevronRight,
+  CircleHelp,
   CircleGauge,
   Code2,
   Database,
   Download,
-  FileSearch,
+  Flame,
   FolderOpen,
   GitBranch,
   Hash,
+  Hammer,
   History,
+  LayoutDashboard,
+  LoaderCircle,
   Map,
   MessageSquareText,
   PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   Search,
   ShieldCheck,
+  Sparkles,
   SquareStack,
   Orbit,
   PencilLine,
@@ -138,6 +147,11 @@ import {
 import { AuroraSyncPanel } from "./components/AuroraSyncPanel";
 import { AiAssistantPanel } from "./components/AiAssistantPanel";
 import { AgentStudio } from "./components/AgentStudio";
+import { HelpCenter } from "./components/HelpCenter";
+import {
+  loadProjectPreferences,
+  saveProjectPreferences,
+} from "./lib/projectPreferences";
 import { useUiStore } from "./store/uiStore";
 import "./App.css";
 
@@ -151,17 +165,20 @@ type Diagnostic = {
 };
 
 const explorerGroupDefinitions = [
-  { id: "module", label: "Informations", icon: FileSearch },
-  { id: "areas", label: "Zones", icon: Map },
-  { id: "narrative", label: "Journal et factions", icon: BookOpen },
-  { id: "dialogues", label: "Dialogues", icon: MessageSquareText },
-  { id: "scripts", label: "Scripts", icon: Code2 },
-  { id: "blueprints", label: "Blueprints", icon: Box },
-  { id: "assets", label: "Assets", icon: SquareStack },
-  { id: "scene", label: "Vue 3D", icon: Orbit },
-  { id: "resources", label: "Ressources", icon: Archive },
-  { id: "tables", label: "2DA et TLK", icon: Database },
-  { id: "graph", label: "Références", icon: GitBranch },
+  { id: "module", label: "Table de campagne", icon: LayoutDashboard, section: "Campagne" },
+  { id: "resources", label: "Ressources", icon: Archive, section: "Campagne" },
+  { id: "areas", label: "Zones", icon: Map, section: "Monde" },
+  { id: "scene", label: "Vue 3D", icon: Orbit, section: "Monde" },
+  { id: "dialogues", label: "Dialogues", icon: MessageSquareText, section: "Récit" },
+  { id: "narrative", label: "Journal et factions", icon: BookOpen, section: "Récit" },
+  { id: "scripts", label: "Scripts", icon: Code2, section: "Contenu" },
+  { id: "blueprints", label: "Blueprints", icon: Box, section: "Contenu" },
+  { id: "assets", label: "Assets", icon: SquareStack, section: "Contenu" },
+  { id: "tables", label: "2DA et TLK", icon: Database, section: "Contenu" },
+  { id: "graph", label: "Références", icon: GitBranch, section: "Contrôle" },
+  { id: "build", label: "Construire et tester", icon: Hammer, section: "Contrôle" },
+  { id: "agent", label: "Agent Studio", icon: Bot, section: "Forge arcanique" },
+  { id: "help", label: "Guide et manuel", icon: CircleHelp, section: "Forge arcanique" },
 ];
 
 const resourceTypesByGroup: Record<string, Set<number>> = {
@@ -179,11 +196,7 @@ const terminalStates = new Set(["completed", "failed", "cancelled"]);
 function App() {
   const activeExplorerItem = useUiStore((state) => state.activeExplorerItem);
   const setActiveExplorerItem = useUiStore((state) => state.setActiveExplorerItem);
-  const [project, setProject] = useState({
-    modulePath: "",
-    gameInstallPath: "",
-    userDataPath: "",
-  });
+  const [project, setProject] = useState(loadProjectPreferences);
   const [jobId, setJobId] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [resourceFilter, setResourceFilter] = useState("");
@@ -192,6 +205,9 @@ function App() {
   const [inspectionBusy, setInspectionBusy] = useState(false);
   const [editWorkspace, setEditWorkspace] = useState<WorkspaceSnapshot>();
   const [editBusy, setEditBusy] = useState(false);
+  const [explorerOpen, setExplorerOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([
     {
       id: "source-readonly",
@@ -239,7 +255,9 @@ function App() {
       explorerGroupDefinitions.map((item) => ({
         ...item,
         count:
-          item.id === "dialogues"
+          ["build", "agent", "help"].includes(item.id)
+            ? undefined
+            : item.id === "dialogues"
             ? dialogueIndexSummary?.dialogues ?? 0
             : item.id === "narrative"
             ? (worldSummary?.journalCategories ?? 0) + (worldSummary?.factions ?? 0)
@@ -266,6 +284,10 @@ function App() {
     [activeExplorerItem, explorerGroups],
   );
   const CurrentExplorerIcon = currentExplorer?.icon ?? Braces;
+
+  useEffect(() => {
+    saveProjectPreferences(project);
+  }, [project]);
 
   function updateField(field: ProjectField, value: string) {
     setProject((current) => ({ ...current, [field]: value }));
@@ -334,6 +356,7 @@ function App() {
     try {
       const snapshot = await createEditWorkspace({ jobId });
       setEditWorkspace(snapshot);
+      setActiveExplorerItem("build");
       setDiagnostics((current) => [
         ...current.filter((item) => item.id !== "EDIT_WORKSPACE_READY"),
         {
@@ -499,21 +522,30 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell rpg-shell ${diagnosticsOpen ? "diagnostics-open" : ""}`}>
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true">
-            <SquareStack size={18} strokeWidth={1.8} />
+            <Flame size={18} strokeWidth={1.8} />
           </div>
           <div>
             <strong>OpenNever Forge</strong>
-            <span>Explorateur de modules NWN</span>
+            <span>Atelier de campagnes NWN</span>
           </div>
         </div>
         <nav className="main-menu" aria-label="Menu principal">
-          <button type="button">Projet</button>
-          <button type="button">Recherche</button>
-          <button type="button">Diagnostics</button>
+          <button type="button" className={activeExplorerItem === "module" ? "active" : ""} onClick={() => setActiveExplorerItem("module")}>
+            <LayoutDashboard size={14} /> Campagne
+          </button>
+          <button type="button" className={["areas", "scene"].includes(activeExplorerItem) ? "active" : ""} onClick={() => setActiveExplorerItem("areas")}>
+            <Map size={14} /> Monde
+          </button>
+          <button type="button" className={activeExplorerItem === "build" ? "active" : ""} onClick={() => setActiveExplorerItem("build")}>
+            <Hammer size={14} /> Construire
+          </button>
+          <button type="button" className={activeExplorerItem === "agent" ? "active" : ""} onClick={() => setActiveExplorerItem("agent")}>
+            <Sparkles size={14} /> Agent
+          </button>
         </nav>
         <div className="runtime-status">
           <span className={appReady ? "status-dot ready" : "status-dot"} />
@@ -521,15 +553,18 @@ function App() {
           <span className={editWorkspace ? "readonly-badge editing" : "readonly-badge"}>
             <ShieldCheck size={13} /> {editWorkspace ? "Source protégée · édition contrôlée" : "Source protégée"}
           </span>
+          <button type="button" className="topbar-help" aria-label="Ouvrir l’aide" onClick={() => setActiveExplorerItem("help")}>
+            <CircleHelp size={17} />
+          </button>
         </div>
       </header>
 
-      <section className="workspace-grid">
+      <section className={`workspace-grid ${explorerOpen ? "" : "explorer-collapsed"} ${inspectorOpen ? "" : "inspector-collapsed"}`}>
         <aside className="explorer panel" aria-label="Explorateur du module">
           <div className="panel-title">
-            <span>Explorateur</span>
-            <button type="button" className="icon-button" aria-label="Réduire l'explorateur">
-              <PanelLeftClose size={15} />
+            <span>Chronique du module</span>
+            <button type="button" className="icon-button" aria-label={explorerOpen ? "Réduire l'explorateur" : "Afficher l'explorateur"} onClick={() => setExplorerOpen((current) => !current)}>
+              {explorerOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
             </button>
           </div>
           <div className="search-box">
@@ -550,20 +585,23 @@ function App() {
               </span>
             </div>
             <div className="tree-items">
-              {explorerGroups.map((item) => {
+              {explorerGroups.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <button
-                    type="button"
-                    key={item.id}
-                    className={activeExplorerItem === item.id ? "tree-item active" : "tree-item"}
-                    onClick={() => setActiveExplorerItem(item.id)}
-                    aria-label={`${item.label} (${item.count})`}
-                  >
-                    <Icon size={14} />
-                    <span>{item.label}</span>
-                    {item.count !== undefined && <small aria-hidden="true">{item.count}</small>}
-                  </button>
+                  <div className="tree-section" key={item.id}>
+                    {(index === 0 || explorerGroups[index - 1]?.section !== item.section) && <span className="tree-section-label">{item.section}</span>}
+                    <button
+                      type="button"
+                      className={activeExplorerItem === item.id ? "tree-item active" : "tree-item"}
+                      onClick={() => setActiveExplorerItem(item.id)}
+                      aria-label={item.count === undefined ? item.label : `${item.label} (${item.count})`}
+                      title={item.label}
+                    >
+                      <Icon size={15} />
+                      <span>{item.label}</span>
+                      {item.count !== undefined && <small aria-hidden="true">{item.count}</small>}
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -583,14 +621,20 @@ function App() {
         <section className="workbench panel" aria-label="Zone de travail">
           <div className="tab-strip">
             <div className="tab active">
-              <FolderOpen size={14} />
-              <span>Accueil</span>
-              <X size={13} />
+              <CurrentExplorerIcon size={14} />
+              <span>{currentExplorer?.label ?? "Table de campagne"}</span>
+            </div>
+            <div className="workbench-context">
+              <span>{moduleName ?? "Aucun module"}</span>
+              {editWorkspace && <span className="workspace-revision">Révision {editWorkspace.cursor}/{editWorkspace.commandCount}</span>}
             </div>
           </div>
-          <div className="welcome-canvas">
+          <div className="forge-canvas">
+            {activeExplorerItem === "module" && (
+            <section className="project-dashboard workspace-page" aria-label="Table de campagne">
+              <div className="project-portal scroll-panel">
             <div className="welcome-heading">
-              <span className="eyebrow">LOTS 6–10 · COMPRÉHENSION COMPLÈTE DU MODULE</span>
+              <span className="rpg-kicker"><Flame size={13} /> TABLE DE CAMPAGNE</span>
               <h1>{moduleName ?? "Ouvrir une copie de travail"}</h1>
               {moduleInfo ? (
                 <p>
@@ -635,7 +679,7 @@ function App() {
 
               <div className="form-actions">
                 <span>
-                  <ShieldCheck size={14} /> Source protégée, cache séparé
+                  <ShieldCheck size={14} /> Source protégée · chemins sauvegardés automatiquement
                 </span>
                 {job && !terminalStates.has(job.state) ? (
                   <button type="button" className="secondary-button" onClick={stopJob}>
@@ -657,25 +701,70 @@ function App() {
 
             {!jobId && <NewModuleCreator onCreated={(path) => updateField("modulePath", path)} />}
 
-            {dependencyReport && (
-              <DependencyReportView
-                report={dependencyReport}
-                moduleInfo={moduleInfo}
-                jobId={jobId}
-                editWorkspace={editWorkspace}
-                onWorkspace={setEditWorkspace}
-                onError={pushError}
-              />
+              </div>
+
+              <aside className="campaign-overview scroll-panel">
+                <div className="campaign-seal" aria-hidden="true"><ShieldCheck size={30} /></div>
+                <span className="rpg-kicker">État de la campagne</span>
+                <h2>{job?.state === "completed" ? "Module prêt pour la forge" : "Préparer le module"}</h2>
+                <div className="journey-track" aria-label="Progression du projet">
+                  <div className={project.modulePath ? "complete" : "active"}><span>1</span><strong>Choisir</strong></div>
+                  <div className={job?.state === "completed" ? "complete" : jobId ? "active" : ""}><span>2</span><strong>Comprendre</strong></div>
+                  <div className={editWorkspace ? "complete" : job?.state === "completed" ? "active" : ""}><span>3</span><strong>Modifier</strong></div>
+                  <div className={editWorkspace?.modifiedResources.length ? "active" : ""}><span>4</span><strong>Valider</strong></div>
+                  <div><span>5</span><strong>Tester</strong></div>
+                </div>
+                <div className="campaign-metrics">
+                  <Metric label="Ressources" value={(resourceCatalogSummary?.resourceCount ?? 0).toLocaleString("fr-FR")} />
+                  <Metric label="Zones" value={(worldSummary?.areas ?? 0).toLocaleString("fr-FR")} />
+                  <Metric label="Dialogues" value={(dialogueIndexSummary?.dialogues ?? 0).toLocaleString("fr-FR")} />
+                  <Metric label="Scripts" value={(scriptIndexSummary?.scripts ?? 0).toLocaleString("fr-FR")} />
+                </div>
+                {job?.state === "completed" && !editWorkspace && (
+                  <button type="button" className="primary-button forge-entry" disabled={editBusy} onClick={openEditWorkspace}>
+                    <Hammer size={15} /> {editBusy ? "Préparation…" : "Créer l’espace d’édition"}
+                  </button>
+                )}
+                {editWorkspace && (
+                  <button type="button" className="primary-button forge-entry" onClick={() => setActiveExplorerItem("build")}>
+                    <Hammer size={15} /> Ouvrir la salle de construction
+                  </button>
+                )}
+                <button type="button" className="secondary-button help-entry" onClick={() => setActiveExplorerItem("help")}>
+                  <CircleHelp size={15} /> Comment utiliser cette étape ?
+                </button>
+
+                <div className="campaign-summary-stack">
+                  {structuredSummary && <StructuredSummaryView summary={structuredSummary} />}
+                  {scriptIndexSummary && <ScriptSummaryView summary={scriptIndexSummary} />}
+                  {dialogueIndexSummary && <DialogueSummaryView summary={dialogueIndexSummary} />}
+                  {worldSummary && <WorldSummaryView summary={worldSummary} />}
+                </div>
+
+                {dependencyReport && (
+                  <div className="dashboard-dependencies">
+                    <DependencyReportView
+                      report={dependencyReport}
+                      moduleInfo={moduleInfo}
+                      jobId={jobId}
+                      editWorkspace={editWorkspace}
+                      onWorkspace={setEditWorkspace}
+                      onError={pushError}
+                    />
+                  </div>
+                )}
+              </aside>
+            </section>
             )}
 
-            {structuredSummary && <StructuredSummaryView summary={structuredSummary} />}
-
-            {scriptIndexSummary && <ScriptSummaryView summary={scriptIndexSummary} />}
-
-            {dialogueIndexSummary && <DialogueSummaryView summary={dialogueIndexSummary} />}
-
-            {worldSummary && <WorldSummaryView summary={worldSummary} />}
-
+            {activeExplorerItem === "build" && (
+              <section className="build-command-room workspace-page" aria-label="Salle de construction">
+                <header className="workspace-page-header">
+                  <div><span className="rpg-kicker"><Hammer size={13} /> SALLE DE CONSTRUCTION</span><h1>Préparer, valider et tester</h1><p>Chaque sortie est séparée du module source et peut être reproduite.</p></div>
+                </header>
+                {job?.state === "completed" ? (
+                <div className="build-command-grid">
+                  <div className="build-command-column scroll-panel">
             {job?.state === "completed" && (
               <section className="inventory-card edit-workspace-card" aria-label="Édition contrôlée">
                 <div className="edit-workspace-heading">
@@ -738,6 +827,20 @@ function App() {
               />
             )}
 
+                  </div>
+                  <div className="build-command-column scroll-panel">
+
+            {dependencyReport && jobId && (
+              <DependencyReportView
+                report={dependencyReport}
+                moduleInfo={moduleInfo}
+                jobId={jobId}
+                editWorkspace={editWorkspace}
+                onWorkspace={setEditWorkspace}
+                onError={pushError}
+              />
+            )}
+
             {editWorkspace && jobId && (
               <AuroraSyncPanel
                 jobId={jobId}
@@ -747,19 +850,42 @@ function App() {
               />
             )}
 
-            {editWorkspace && jobId && (
-              <AgentStudio jobId={jobId} workspace={editWorkspace} onError={pushError} />
+                    <div className="safety-note forge-safety-note">
+                      <ShieldCheck size={18} />
+                      <div><strong>Serment de la forge</strong><p>Le MOD source, les HAK et l’installation restent immuables. La construction produit toujours un nouvel artefact.</p></div>
+                    </div>
+                  </div>
+                </div>
+                ) : (
+                  <div className="locked-workspace">
+                    <Hammer size={40} />
+                    <h2>La forge attend un module</h2>
+                    <p>Ouvrez ou créez une campagne, puis terminez son analyse avant de préparer un espace d’édition et une construction reproductible.</p>
+                    <button type="button" className="primary-button" onClick={() => setActiveExplorerItem("module")}>
+                      <LayoutDashboard size={15} /> Revenir à la table de campagne
+                    </button>
+                  </div>
+                )}
+              </section>
             )}
 
-            {editWorkspace && jobId && (
-              <AiAssistantPanel
-                jobId={jobId}
-                workspace={editWorkspace}
-                selectedResource={selectedResource?.key}
-                onWorkspaceChange={setEditWorkspace}
-                onError={pushError}
-              />
+            {activeExplorerItem === "agent" && (
+              <section className="agent-sanctum workspace-page" aria-label="Forge arcanique">
+                <header className="workspace-page-header">
+                  <div><span className="rpg-kicker"><Sparkles size={13} /> FORGE ARCANIQUE</span><h1>Agent Studio</h1><p>À gauche : un agent multi-étapes pour construire. À droite : une proposition ponctuelle à relire avant application.</p></div>
+                </header>
+                {editWorkspace && jobId ? (
+                  <div className="agent-command-grid">
+                    <div className="agent-command-column scroll-panel"><AgentStudio jobId={jobId} workspace={editWorkspace} onError={pushError} /></div>
+                    <div className="agent-command-column scroll-panel"><AiAssistantPanel jobId={jobId} workspace={editWorkspace} selectedResource={selectedResource?.key} onWorkspaceChange={setEditWorkspace} onError={pushError} /></div>
+                  </div>
+                ) : (
+                  <div className="locked-workspace"><Bot size={40} /><h2>L’atelier doit être ouvert</h2><p>Analysez un module puis créez son espace d’édition avant d’autoriser un agent à proposer des changements.</p><button type="button" className="primary-button" onClick={() => setActiveExplorerItem("module")}><LayoutDashboard size={15} /> Revenir à la campagne</button></div>
+                )}
+              </section>
             )}
+
+            {activeExplorerItem === "help" && <HelpCenter hasModule={job?.state === "completed"} hasWorkspace={Boolean(editWorkspace)} onNavigate={setActiveExplorerItem} />}
 
             {scriptIndexSummary && jobId && activeExplorerItem === "scripts" && (
               <ScriptWorkspace jobId={jobId} summary={scriptIndexSummary} filter={resourceFilter} editWorkspace={editWorkspace} gameInstallPath={project.gameInstallPath} onWorkspace={setEditWorkspace} />
@@ -773,7 +899,7 @@ function App() {
               <PhaseOneWorkspace jobId={jobId} activeView={activeExplorerItem} editWorkspace={editWorkspace} onWorkspace={setEditWorkspace} />
             )}
 
-            {resourceCatalogSummary && jobId && !["scripts", "dialogues", "narrative", "areas", "assets", "scene", "graph"].includes(activeExplorerItem) && (
+            {resourceCatalogSummary && jobId && ["blueprints", "resources", "tables"].includes(activeExplorerItem) && (
               <CatalogView
                 jobId={jobId}
                 summary={resourceCatalogSummary}
@@ -784,18 +910,16 @@ function App() {
               />
             )}
 
-            <div className="safety-note">
-              <ShieldCheck size={18} />
-              <div>
-                <strong>Garantie d’intégrité</strong>
-                <p>Le module source, les HAK et l’installation du jeu ne sont jamais ouverts en écriture ; seules les ressources modifiées sont copiées dans l’overlay.</p>
-              </div>
-            </div>
           </div>
         </section>
 
         <aside className="inspector panel" aria-label="Inspecteur">
-          <div className="panel-title">Inspecteur</div>
+          <div className="panel-title">
+            <span>Grimoire de l’objet</span>
+            <button type="button" className="icon-button" aria-label={inspectorOpen ? "Réduire l'inspecteur" : "Afficher l'inspecteur"} onClick={() => setInspectorOpen((current) => !current)}>
+              {inspectorOpen ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
+            </button>
+          </div>
           <div className="inspector-empty">
             <div className="inspector-icon">
               <CurrentExplorerIcon size={22} />
@@ -908,9 +1032,11 @@ function App() {
         </aside>
       </section>
 
-      <section className="diagnostics panel" aria-label="Diagnostics">
+      <section className={`diagnostics panel ${diagnosticsOpen ? "expanded" : "collapsed"}`} aria-label="Diagnostics">
         <div className="diagnostic-tabs">
-          <button type="button" className="active">Diagnostics</button>
+          <button type="button" className="active" aria-expanded={diagnosticsOpen} onClick={() => setDiagnosticsOpen((current) => !current)}>
+            <AlertTriangle size={13} /> Diagnostics
+          </button>
           <button type="button">Import</button>
           <button type="button">Journal</button>
           <span>{visibleDiagnostics.length} message{visibleDiagnostics.length > 1 ? "s" : ""}</span>
@@ -1426,17 +1552,94 @@ function PathField({ label, hint, value, placeholder, onChange, onBrowse }: Path
   );
 }
 
-function JobProgress({ job }: { job: JobSnapshot }) {
+function formatElapsedTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return minutes > 0
+    ? `${minutes} min ${remainingSeconds.toString().padStart(2, "0")} s`
+    : `${remainingSeconds} s`;
+}
+
+export function JobProgress({ job }: { job: JobSnapshot }) {
+  const active = !terminalStates.has(job.state);
+  const finalizing = active && job.progress.percent >= 99;
+  const visiblePercent = Math.min(job.progress.percent, active ? 99 : 100);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    setElapsedSeconds(0);
+    if (!active) return;
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1_000));
+    }, 1_000);
+    return () => window.clearInterval(timer);
+  }, [job.id, active]);
+
+  const phase =
+    job.state === "queued"
+      ? "Préparation de l’analyse"
+      : job.state === "cancelling"
+        ? "Annulation en cours"
+        : job.state === "completed"
+          ? "Analyse terminée"
+          : job.state === "failed"
+            ? "Analyse interrompue"
+            : job.state === "cancelled"
+              ? "Analyse annulée"
+              : finalizing
+                ? "Finalisation de l’index"
+                : "Analyse en cours";
+  const detail = finalizing
+    ? "Enregistrement du catalogue et préparation des vues — le travail continue."
+    : job.state === "running"
+      ? `Lecture et indexation des ressources · ${visiblePercent.toFixed(1)} % parcourus`
+      : job.state === "queued"
+        ? "La tâche va démarrer dans un instant."
+        : job.state === "cancelling"
+          ? "La demande d’arrêt a été transmise au moteur."
+          : job.state === "completed"
+            ? "Le module et ses ressources sont prêts."
+            : job.error?.userMessage ?? "La tâche ne travaille plus.";
+
   return (
-    <div className="job-progress" aria-live="polite">
-      <div>
+    <div
+      className={`job-progress ${active ? "is-active" : `is-${job.state}`}`}
+      aria-live="polite"
+      aria-busy={active}
+      role="status"
+    >
+      <div className="job-progress-heading">
         <span>Analyse du module</span>
-        <strong>{job.progress.percent.toFixed(1)} %</strong>
+        <strong>
+          {active ? (
+            <><LoaderCircle className="job-progress-spinner" size={13} /> ACTIF · {formatElapsedTime(elapsedSeconds)}</>
+          ) : (
+            `${visiblePercent.toFixed(1)} %`
+          )}
+        </strong>
       </div>
-      <div className="progress-track">
-        <div style={{ width: `${Math.min(job.progress.percent, 100)}%` }} />
+      <div
+        className={`progress-track ${finalizing ? "is-indeterminate" : ""}`}
+        role="progressbar"
+        aria-label={phase}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        {...(!finalizing ? { "aria-valuenow": visiblePercent } : {})}
+      >
+        <div
+          className={finalizing ? "progress-sweep" : `progress-fill ${active ? "is-animated" : "is-static"}`}
+          style={finalizing ? undefined : { width: `${visiblePercent}%` }}
+        />
       </div>
-      <small>État : {job.state.replace("_", " ")}</small>
+      <div className="job-progress-activity">
+        <span className="activity-pulse" aria-hidden="true" />
+        <span>
+          <strong>{phase}</strong>
+          <small>{detail}</small>
+        </span>
+      </div>
     </div>
   );
 }
@@ -1924,7 +2127,7 @@ function PhaseOneWorkspace({ jobId, activeView, editWorkspace, onWorkspace }: { 
   const world = worldQuery.data;
   if (worldQuery.isLoading) return <section className="inventory-card world-workspace">Construction de la vue métier…</section>;
   if (!world) return <section className="inventory-card world-workspace">L’index global n’est pas disponible.</section>;
-  return <section className="inventory-card world-workspace" aria-label="Explorateur de la Phase 1">
+  return <section className={"inventory-card world-workspace" + (activeView === "scene" ? " scene-workspace-shell" : "")} aria-label="Explorateur de la Phase 1">
     <div className="inventory-heading"><div><span className="eyebrow">SOURCE RUST · PROVENANCE CONSERVÉE</span><h2>{worldViewTitle(activeView)}</h2></div><label className="world-filter"><Search size={13} /><input value={filter} onChange={(event) => setFilter(event.currentTarget.value)} placeholder="Filtrer cette vue…" /></label></div>
     {activeView === "narrative" && <NarrativeView jobId={jobId} world={world} filter={filter} editWorkspace={editWorkspace} onWorkspace={onWorkspace} />}
     {activeView === "areas" && <AreaMapView jobId={jobId} world={world} filter={filter} editWorkspace={editWorkspace} onWorkspace={onWorkspace} />}
@@ -2437,39 +2640,76 @@ function ModelPreview({ jobId, asset, texture }: { jobId: string; asset: AssetRe
 
 function textureMime(format: string) { return ({ dds: "image/vnd-ms.dds", tga: "image/x-tga", ktx: "image/ktx", plt: "image/png", png: "image/png", jpg: "image/jpeg", gif: "image/gif" } as Record<string, string>)[format] ?? "application/octet-stream"; }
 function textureMimeForResourceType(resourceType: number) { return ({ 2033: "image/vnd-ms.dds", 3: "image/x-tga", 2073: "image/ktx", 6: "image/png", 2080: "image/png", 2081: "image/jpeg", 2079: "image/gif" } as Record<number, string>)[resourceType] ?? "application/octet-stream"; }
+function textureExtensionForResourceType(resourceType: number) { return ({ 2033: "dds", 3: "tga", 2073: "ktx", 6: "png", 2080: "png", 2081: "jpg", 2079: "gif" } as Record<number, string>)[resourceType] ?? "bin"; }
+function previewTextureFormat(buffer: ArrayBuffer, resourceType: number) { const bytes = new Uint8Array(buffer, 0, Math.min(8, buffer.byteLength)); const png = bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a; return png ? { extension: "png", mimeType: "image/png" } : { extension: textureExtensionForResourceType(resourceType), mimeType: textureMimeForResourceType(resourceType) }; }
+
+type NwnMaterialExtras = { nwnTextures?: Array<string | null>; nwnTileFade?: number; walkmesh?: boolean };
+
+export function isTileOccluder(kind: string, extras?: NwnMaterialExtras) {
+  if (kind !== "tile") return false;
+  const blackTechnicalTexture = extras?.nwnTextures?.some((resref) => resref && /(^|_)black(?:\d|_|$)/i.test(resref));
+  return Boolean(extras?.nwnTileFade) || Boolean(blackTechnicalTexture);
+}
 
 function SceneView({ jobId, world, filter }: { jobId: string; world: WorldIndex; filter: string }) {
   const scenes = world.scenes.filter((value) => value.area.toLocaleLowerCase().includes(filter.toLocaleLowerCase())); const [selected, setSelected] = useState<string>();
-  const [showOverlays, setShowOverlays] = useState(true); const [showWalkmeshes, setShowWalkmeshes] = useState(false); const [wireframe, setWireframe] = useState(false); const [cameraMode, setCameraMode] = useState<"orbit" | "aurora">("orbit");
+  const [showOverlays, setShowOverlays] = useState(true); const [showWalkmeshes, setShowWalkmeshes] = useState(false); const [showTileFade, setShowTileFade] = useState(false); const [wireframe, setWireframe] = useState(false); const [cameraMode, setCameraMode] = useState<"orbit" | "aurora">("orbit");
   useEffect(() => { if (!scenes.some((value) => value.area === selected)) setSelected(scenes[0]?.area); }, [scenes, selected]);
   const scene = scenes.find((value) => value.area === selected);
-  return <div className="scene-workspace"><div className="scene-toolbar"><select value={selected ?? ""} onChange={(event) => setSelected(event.currentTarget.value)}>{scenes.map((value) => <option key={value.area}>{value.area}</option>)}</select>{scene && <span>{scene.resolvedAssets}/{scene.objects.length + scene.overlays.length} modèles résolus · {scene.uniqueModels} GLB uniques · {scene.missingAssets} dégradé(s)</span>}<label><input type="checkbox" checked={showOverlays} onChange={(event) => setShowOverlays(event.currentTarget.checked)} /> Overlays</label><label><input type="checkbox" checked={showWalkmeshes} onChange={(event) => setShowWalkmeshes(event.currentTarget.checked)} /> Walkmeshes</label><label><input type="checkbox" checked={wireframe} onChange={(event) => setWireframe(event.currentTarget.checked)} /> Filaire</label><button type="button" onClick={() => setCameraMode((value) => value === "orbit" ? "aurora" : "orbit")}>{cameraMode === "orbit" ? "Vue Aurora" : "Vue orbitale"}</button></div>{scene ? <BabylonScene jobId={jobId} manifest={scene} showOverlays={showOverlays} showWalkmeshes={showWalkmeshes} wireframe={wireframe} cameraMode={cameraMode} /> : <p>Aucune scène.</p>}</div>;
+  return <div className="scene-workspace"><div className="scene-toolbar"><select value={selected ?? ""} onChange={(event) => setSelected(event.currentTarget.value)}>{scenes.map((value) => <option key={value.area}>{value.area}</option>)}</select>{scene && <span>{scene.resolvedAssets}/{scene.objects.length + scene.overlays.length} modèles résolus · {scene.uniqueModels} GLB uniques · {scene.missingAssets} dégradé(s)</span>}<label><input type="checkbox" checked={showOverlays} onChange={(event) => setShowOverlays(event.currentTarget.checked)} /> Overlays</label><label><input type="checkbox" checked={showWalkmeshes} onChange={(event) => setShowWalkmeshes(event.currentTarget.checked)} /> Walkmeshes</label><label title="Réafficher les plafonds et toitures que le moteur Aurora estompe pour dégager la vue"><input type="checkbox" checked={showTileFade} onChange={(event) => setShowTileFade(event.currentTarget.checked)} /> Toitures</label><label><input type="checkbox" checked={wireframe} onChange={(event) => setWireframe(event.currentTarget.checked)} /> Filaire</label><button type="button" onClick={() => setCameraMode((value) => value === "orbit" ? "aurora" : "orbit")}>{cameraMode === "orbit" ? "Vue Aurora" : "Vue orbitale"}</button></div>{scene ? <BabylonScene jobId={jobId} manifest={scene} showOverlays={showOverlays} showWalkmeshes={showWalkmeshes} showTileFade={showTileFade} wireframe={wireframe} cameraMode={cameraMode} /> : <p>Aucune scène.</p>}</div>;
 }
 
-function BabylonScene({ jobId, manifest, showOverlays, showWalkmeshes, wireframe, cameraMode }: { jobId: string; manifest: SceneManifest; showOverlays: boolean; showWalkmeshes: boolean; wireframe: boolean; cameraMode: "orbit" | "aurora" }) {
+function BabylonScene({ jobId, manifest, showOverlays, showWalkmeshes, showTileFade, wireframe, cameraMode }: { jobId: string; manifest: SceneManifest; showOverlays: boolean; showWalkmeshes: boolean; showTileFade: boolean; wireframe: boolean; cameraMode: "orbit" | "aurora" }) {
   const [picked, setPicked] = useState<string>(); const [status, setStatus] = useState("Préparation de la scène…");
   useEffect(() => {
     const canvas = document.querySelector<HTMLCanvasElement>('canvas[data-area="' + CSS.escape(manifest.area) + '"]');
     if (!canvas || !canvas.getContext("webgl")) return;
     let disposed = false; let cleanup = () => {};
-    setStatus("Résolution des GLB…");
-    void Promise.all([import("@babylonjs/core"), import("@babylonjs/loaders/glTF"), import("@babylonjs/core/Materials/Textures/Loaders/ddsTextureLoader"), import("@babylonjs/core/Materials/Textures/Loaders/tgaTextureLoader"), import("@babylonjs/core/Materials/Textures/Loaders/ktxTextureLoader")]).then(async ([B]) => {
+    setStatus("Chargement du moteur 3D…");
+    void import("@babylonjs/core").then(async (B) => {
       if (disposed) return;
+      setStatus("Chargement des formats GLB et textures…");
+      await Promise.all([import("@babylonjs/loaders/glTF"), import("@babylonjs/core/Materials/Textures/Loaders/ddsTextureLoader"), import("@babylonjs/core/Materials/Textures/Loaders/tgaTextureLoader"), import("@babylonjs/core/Materials/Textures/Loaders/ktxTextureLoader")]);
+      if (disposed) return;
+      setStatus("Résolution des GLB…");
       const engine = new B.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true }); const scene = new B.Scene(engine); scene.clearColor = new B.Color4(0.045, 0.065, 0.085, 1);
-      const resize = () => engine.resize(); window.addEventListener("resize", resize); cleanup = () => { window.removeEventListener("resize", resize); scene.dispose(); engine.dispose(); };
+      const resize = () => engine.resize(); const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(canvas); window.addEventListener("resize", resize); cleanup = () => { resizeObserver.disconnect(); window.removeEventListener("resize", resize); scene.dispose(); engine.dispose(); };
       const radius = Math.max(manifest.width, manifest.height) * 14 + 20; const target = new B.Vector3(manifest.width * 5, 0, manifest.height * 5);
       const camera = new B.ArcRotateCamera("camera", -Math.PI / 2, cameraMode === "aurora" ? 0.32 : Math.PI / 3, cameraMode === "aurora" ? radius * 0.82 : radius, target, scene); camera.attachControl(canvas, true); camera.wheelPrecision = 10; camera.panningSensibility = 70; camera.lowerRadiusLimit = 2;
       new B.HemisphericLight("light", new B.Vector3(0, 1, 0), scene).intensity = 0.85;
       const ground = B.MeshBuilder.CreateGround("ground", { width: Math.max(10, manifest.width * 10), height: Math.max(10, manifest.height * 10) }, scene); const groundMaterial = new B.StandardMaterial("ground-material", scene); groundMaterial.diffuseColor = new B.Color3(0.12, 0.18, 0.22); ground.material = groundMaterial;
+      engine.runRenderLoop(() => scene.render());
       const marker = (value: SceneManifest["objects"][number], failed = false) => { const mesh = B.MeshBuilder.CreateBox("marker:" + value.id, { size: value.kind === "tile" ? 9.7 : 1.4, height: value.kind === "tile" ? 0.18 : 2.2 }, scene); mesh.position = new B.Vector3(value.x, value.kind === "tile" ? -0.08 : value.y + 1, value.z); mesh.rotation.y = value.rotation; mesh.metadata = value; const material = new B.StandardMaterial("marker-material:" + value.id, scene); material.diffuseColor = failed || value.marker ? new B.Color3(0.83, 0.45, 0.19) : new B.Color3(0.25, 0.55, 0.68); material.alpha = value.kind === "tile" ? 0.45 : 0.72; material.wireframe = wireframe || value.kind !== "tile"; mesh.material = material; return mesh; };
       const visibleObjects = manifest.objects.slice(0, 1200); const technical = showOverlays ? manifest.overlays.slice(0, Math.max(0, 1200 - visibleObjects.length)) : [];
       for (const value of [...visibleObjects.filter((item) => item.marker), ...technical]) marker(value);
       const groups = new globalThis.Map<string, Array<SceneManifest["objects"][number]>>();
       for (const value of visibleObjects) { if (value.marker) continue; for (const resref of value.modelResrefs) { const values = groups.get(resref) ?? []; values.push(value); groups.set(resref, values); } }
       const componentCount = [...groups.values()].reduce((total, values) => total + values.length, 0);
-      let loaded = 0; let failed = 0; let texturesLoaded = 0; let bytesLoaded = 0;
+      let loaded = 0; let failed = 0; let texturesLoaded = 0; let textureFailures = 0; let firstTextureFailure: string | undefined; let tileFadeMeshes = 0; let bytesLoaded = 0;
       const textureCache = new globalThis.Map<string, Promise<InstanceType<typeof B.Texture> | null>>();
-      const loadTexture = (resref: string) => { const existing = textureCache.get(resref); if (existing) return existing; const pending = (async () => { const key = await resolveTexture({ jobId, resref }); if (!key || disposed) return null; const bytes = await assetPreviewBytes({ jobId, resref: key.resref, resourceType: key.resourceType }); if (disposed || bytesLoaded + bytes.byteLength > manifest.memoryBudgetBytes) return null; bytesLoaded += bytes.byteLength; texturesLoaded += 1; return new B.Texture("data:" + key.resref, scene, false, true, B.Texture.TRILINEAR_SAMPLINGMODE, undefined, undefined, bytes, true, undefined, textureMimeForResourceType(key.resourceType)); })().catch(() => null); textureCache.set(resref, pending); return pending; };
+      const loadTexture = (resref: string) => {
+        const existing = textureCache.get(resref); if (existing) return existing;
+        const pending = (async () => {
+          const key = await resolveTexture({ jobId, resref });
+          if (!key || disposed) throw new Error("Texture introuvable : " + resref);
+          const bytes = await assetPreviewBytes({ jobId, resref: key.resref, resourceType: key.resourceType });
+          if (disposed || bytesLoaded + bytes.byteLength > manifest.memoryBudgetBytes) throw new Error("Budget texture dépassé : " + resref);
+          bytesLoaded += bytes.byteLength;
+          const format = previewTextureFormat(bytes, key.resourceType);
+          const texture = await new Promise<InstanceType<typeof B.Texture>>((resolve, reject) => {
+            let candidate: InstanceType<typeof B.Texture> | undefined;
+            const timeout = window.setTimeout(() => { candidate?.dispose(); reject(new Error("Délai de décodage texture dépassé")); }, 15_000);
+            const loaded = () => { window.clearTimeout(timeout); if (candidate) resolve(candidate); else reject(new Error("Texture chargée sans ressource Babylon")); };
+            const failed = (message?: string, exception?: unknown) => { window.clearTimeout(timeout); candidate?.dispose(); reject(exception ?? new Error(message ?? "Décodage de texture impossible")); };
+            candidate = new B.Texture("data:" + key.resref + "." + format.extension, scene, false, true, B.Texture.TRILINEAR_SAMPLINGMODE, loaded, failed, bytes, true, undefined, format.mimeType);
+          });
+          if (disposed) { texture.dispose(); return null; }
+          texturesLoaded += 1;
+          return texture;
+        })().catch((error: unknown) => { textureFailures += 1; firstTextureFailure ??= error instanceof Error ? error.message : String(error); return null; });
+        textureCache.set(resref, pending);
+        return pending;
+      };
       for (const [resref, values] of groups) {
         if (disposed) break;
         try {
@@ -2481,20 +2721,19 @@ function BabylonScene({ jobId, manifest, showOverlays, showWalkmeshes, wireframe
           for (const material of container.materials) { const extras = (material.metadata as { gltf?: { extras?: { nwnTextures?: Array<string | null> } } } | undefined)?.gltf?.extras; const textureResref = extras?.nwnTextures?.find((value): value is string => Boolean(value && value !== "null")); if (!textureResref) continue; const texture = await loadTexture(textureResref.toLocaleLowerCase()); if (texture) { if (material instanceof B.PBRMaterial) material.albedoTexture = texture; else if (material instanceof B.StandardMaterial) material.diffuseTexture = texture; } }
           for (const value of values) {
             const instance = container.instantiateModelsToScene((name) => value.id + ":" + name, true); const anchor = new B.TransformNode("anchor:" + value.id, scene); anchor.position = new B.Vector3(value.x, value.y, value.z); anchor.rotation.y = value.rotation; anchor.metadata = value;
-            for (const root of instance.rootNodes) { root.parent = anchor; const meshes = root instanceof B.AbstractMesh ? [root, ...root.getChildMeshes(false)] : root.getChildMeshes(false); for (const mesh of meshes) { mesh.metadata = value; const extras = (mesh.material?.metadata as { gltf?: { extras?: { walkmesh?: boolean } } } | undefined)?.gltf?.extras; const isWalkmesh = extras?.walkmesh === true; mesh.isVisible = !isWalkmesh || showWalkmeshes; if (mesh.material) mesh.material.wireframe = wireframe || isWalkmesh; } }
+            for (const root of instance.rootNodes) { root.parent = anchor; const meshes = root instanceof B.AbstractMesh ? [root, ...root.getChildMeshes(false)] : root.getChildMeshes(false); for (const mesh of meshes) { mesh.metadata = value; const extras = (mesh.material?.metadata as { gltf?: { extras?: NwnMaterialExtras } } | undefined)?.gltf?.extras; const isWalkmesh = extras?.walkmesh === true; const tileOccluder = isTileOccluder(value.kind, extras); if (tileOccluder) tileFadeMeshes += 1; mesh.isVisible = (!isWalkmesh || showWalkmeshes) && (!tileOccluder || showTileFade); if (mesh.material) mesh.material.wireframe = wireframe || isWalkmesh; } }
             instance.animationGroups[0]?.start(true); loaded += 1;
           }
-          setStatus(loaded + "/" + componentCount + " composants · " + texturesLoaded + " textures · " + (bytesLoaded / 1048576).toFixed(1) + " Mio");
+          setStatus(loaded + "/" + componentCount + " composants · " + texturesLoaded + " textures appliquées" + (textureFailures ? " · " + textureFailures + " absente(s)" : "") + (firstTextureFailure ? " · " + firstTextureFailure : "") + (!showTileFade && tileFadeMeshes ? " · " + tileFadeMeshes + " toiture(s) masquée(s)" : "") + " · " + (bytesLoaded / 1048576).toFixed(1) + " Mio");
         } catch { failed += values.length; values.forEach((value) => marker(value, true)); setStatus(loaded + " chargés · " + failed + " en mode dégradé"); }
       }
       if (disposed) return;
-      if (!disposed) setStatus(loaded + " composants · " + texturesLoaded + " textures · " + failed + " dégradé(s) · " + (bytesLoaded / 1048576).toFixed(1) + " Mio");
+      if (!disposed) setStatus(loaded + " composants · " + texturesLoaded + " textures appliquées" + (textureFailures ? " · " + textureFailures + " absente(s)" : "") + (firstTextureFailure ? " · " + firstTextureFailure : "") + (!showTileFade && tileFadeMeshes ? " · " + tileFadeMeshes + " toiture(s) masquée(s)" : "") + " · " + failed + " dégradé(s) · " + (bytesLoaded / 1048576).toFixed(1) + " Mio");
       let highlighted: (typeof scene.meshes)[number] | undefined;
       scene.onPointerObservable.add((event) => { const mesh = event.pickInfo?.pickedMesh; const metadata = mesh?.metadata as SceneManifest["objects"][number] | undefined; if (mesh && metadata) { if (highlighted) highlighted.showBoundingBox = false; highlighted = mesh; mesh.showBoundingBox = true; setPicked(metadata.label + " · " + metadata.kind + (metadata.modelResref ? " · " + metadata.modelResref + ".mdl" : "") + " · " + metadata.sourcePath); } });
-      engine.runRenderLoop(() => scene.render());
     }).catch((error: unknown) => { if (!disposed) { cleanup(); setStatus("Échec de la scène · " + normalizeAppError(error).technicalMessage); } });
     return () => { disposed = true; cleanup(); };
-  }, [cameraMode, jobId, manifest, showOverlays, showWalkmeshes, wireframe]);
+  }, [cameraMode, jobId, manifest, showOverlays, showTileFade, showWalkmeshes, wireframe]);
   return <div className="babylon-frame"><canvas data-area={manifest.area} aria-label={"Vue 3D " + manifest.area} /><div className="scene-status"><span>Babylon.js · {cameraMode === "aurora" ? "caméra Aurora" : "caméra orbitale"} · {status}</span>{picked && <code>{picked}</code>}</div></div>;
 }
 

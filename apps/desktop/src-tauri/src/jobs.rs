@@ -101,7 +101,18 @@ impl JobRegistry {
     }
 
     pub fn set_progress(&self, id: &str, progress: HashProgress) -> Option<JobSnapshot> {
-        self.update(id, |snapshot| snapshot.progress = progress)
+        self.update(id, |snapshot| {
+            let mut progress = progress;
+            if !matches!(
+                snapshot.state,
+                JobState::Completed | JobState::Failed | JobState::Cancelled
+            ) {
+                // 100 % is a terminal promise. The ERF reader can finish before the
+                // resource catalog and dependency baseline have been persisted.
+                progress.percent = progress.percent.clamp(0.0, 99.0);
+            }
+            snapshot.progress = progress;
+        })
     }
 
     pub fn complete(&self, id: &str, mut result: ModuleAnalysis) -> Option<JobSnapshot> {
@@ -213,6 +224,33 @@ mod tests {
 
         assert_eq!(cancelled.state, JobState::Cancelling);
         assert!(flag.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn reserves_one_hundred_percent_for_a_completed_job() {
+        let registry = JobRegistry::default();
+        let (job, _) = registry.create_analysis_job("fixture.mod".to_owned());
+        registry.set_running(&job.id);
+
+        let running = registry
+            .set_progress(
+                &job.id,
+                HashProgress {
+                    bytes_read: 512,
+                    total_bytes: 512,
+                    percent: 100.0,
+                },
+            )
+            .expect("job exists");
+
+        assert_eq!(running.state, JobState::Running);
+        assert_eq!(running.progress.percent, 99.0);
+
+        let completed = registry
+            .complete(&job.id, analysis_with_dependency_hash("AAAA"))
+            .expect("job exists");
+        assert_eq!(completed.state, JobState::Completed);
+        assert_eq!(completed.progress.percent, 100.0);
     }
 
     #[test]

@@ -45,6 +45,10 @@ pub struct MdlMaterial {
     pub transparency_hint: u32,
     pub textures: Vec<String>,
     pub render: bool,
+    /// Aurora tile visibility mode: 0 = always visible, 1 = fade,
+    /// 2 = tile base, 3 = fade with neighboring tiles.
+    #[serde(default)]
+    pub tile_fade: u32,
 }
 
 impl Default for MdlMaterial {
@@ -57,6 +61,7 @@ impl Default for MdlMaterial {
             transparency_hint: 0,
             textures: Vec::new(),
             render: true,
+            tile_fade: 0,
         }
     }
 }
@@ -518,6 +523,7 @@ impl<'a> BinaryParser<'a> {
         let shininess = finite_or(read_f32(self.bytes, offset + 96)?, 0.0).max(0.0);
         let render = read_u32(self.bytes, offset + 108)? != 0;
         let transparency_hint = read_u32(self.bytes, offset + 112)?;
+        let tile_fade = read_u32(self.bytes, offset + 376)?;
         let mut textures = Vec::new();
         for texture_offset in [120, 184, 248, 312] {
             if let Some(texture) =
@@ -598,6 +604,7 @@ impl<'a> BinaryParser<'a> {
                 transparency_hint,
                 textures,
                 render,
+                tile_fade,
             },
             skin,
             walkmesh,
@@ -1381,6 +1388,9 @@ fn parse_ascii_node(
                 mesh.material.shininess = parse_float(values[1]).unwrap_or(0.0).max(0.0);
             }
             "render" if values.len() >= 2 => mesh.material.render = values[1] != "0",
+            "tilefade" if values.len() >= 2 => {
+                mesh.material.tile_fade = values[1].parse::<u32>().unwrap_or_default();
+            }
             "verts" if values.len() >= 2 => {
                 let count = parse_count(values[1], MAX_VERTICES, start)?;
                 let end = (index + 1).saturating_add(count).min(lines.len());
@@ -1788,6 +1798,23 @@ mod tests {
         let model = parse_mdl(&binary_triangle_fixture()).expect("binary model");
         let mesh = model.nodes[0].mesh.as_ref().expect("mesh");
         assert_eq!(mesh.surface_ids, [7]);
+    }
+
+    #[test]
+    fn retains_binary_tile_fade_mode() {
+        let mut bytes = binary_triangle_fixture();
+        let mesh = FILE_HEADER_SIZE + MODEL_HEADER_SIZE + NODE_HEADER_SIZE;
+        bytes[mesh + 376..mesh + 380].copy_from_slice(&3_u32.to_le_bytes());
+        let model = parse_mdl(&bytes).expect("binary model");
+        assert_eq!(
+            model.nodes[0]
+                .mesh
+                .as_ref()
+                .expect("mesh")
+                .material
+                .tile_fade,
+            3
+        );
     }
 
     #[test]

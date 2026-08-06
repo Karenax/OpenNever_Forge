@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bot, Check as CheckIcon, CircleDollarSign, Gauge, KeyRound, Play, Save, Shield, SlidersHorizontal, Square, Workflow, X } from "lucide-react";
+import { Bot, Check as CheckIcon, CircleDollarSign, Gauge, KeyRound, LoaderCircle, Play, PlugZap, Save, Shield, SlidersHorizontal, Square, Workflow, X } from "lucide-react";
 import {
   advanceAgentRun,
   cancelAgentRun,
   createAgentRun,
   getAgentStudioState,
+  normalizeAppError,
   saveAgentPolicy,
   resolveAgentApproval,
+  testAgentProvider,
   type AgentPolicy,
   type AgentStudioState,
   type ApprovalMode,
@@ -55,7 +57,10 @@ export function AgentStudio({ jobId, workspace, onError }: {
   const [apiKey, setApiKey] = useState("");
   const [category, setCategory] = useState("Toutes");
   const [busy, setBusy] = useState(false);
+  const [activeRunId, setActiveRunId] = useState<string>();
+  const [activity, setActivity] = useState("");
   const [message, setMessage] = useState("");
+  const [providerTest, setProviderTest] = useState<{ ok: boolean; message: string }>();
 
   useEffect(() => {
     let alive = true;
@@ -74,6 +79,17 @@ export function AgentStudio({ jobId, workspace, onError }: {
 
   function patchPolicy(patch: Partial<AgentPolicy>) {
     setPolicy((current) => current ? { ...current, ...patch } : current);
+  }
+
+  function changeProviderKind(kind: ProviderKind) {
+    const defaults: Partial<Record<ProviderKind, Partial<ProviderProfile>>> = {
+      open_ai_responses: { id: "openai-responses", name: "OpenAI Responses API", endpoint: "https://api.openai.com/v1/responses" },
+      open_ai_chat_completions: { id: "openai-chat", name: "OpenAI compatible Chat Completions", endpoint: "https://api.openai.com/v1/chat/completions" },
+      ollama: { id: "local-ollama", name: "Ollama local", endpoint: "http://127.0.0.1:11434/v1/chat/completions" },
+      manual: { id: "manual", name: "Mode manuel" },
+    };
+    setProvider((current) => ({ ...current, kind, ...defaults[kind] }));
+    setProviderTest(undefined);
   }
 
   function loadSecurityPreset(level: SecurityLevel) {
@@ -126,6 +142,7 @@ export function AgentStudio({ jobId, workspace, onError }: {
   async function savePolicy() {
     if (!policy) return;
     setBusy(true);
+    setActivity("Enregistrement du profil…");
     setMessage("");
     try {
       const next = await saveAgentPolicy(workspace.workspaceId, policy);
@@ -133,8 +150,10 @@ export function AgentStudio({ jobId, workspace, onError }: {
       setPolicy(next.policy);
       setMessage("Profil enregistré dans le workspace.");
     } catch (error) {
+      setMessage(`Impossible d’enregistrer le profil : ${normalizeAppError(error).userMessage}`);
       onError(error);
     } finally {
+      setActivity("");
       setBusy(false);
     }
   }
@@ -142,6 +161,7 @@ export function AgentStudio({ jobId, workspace, onError }: {
   async function prepareRun() {
     if (!policy || !objective.trim()) return;
     setBusy(true);
+    setActivity("Préparation de l’exécution…");
     setMessage("");
     try {
       const blueprint = blueprintText.trim() ? JSON.parse(blueprintText) : undefined;
@@ -149,8 +169,32 @@ export function AgentStudio({ jobId, workspace, onError }: {
       setStudio((current) => current ? { ...current, runs: [run, ...current.runs] } : current);
       setMessage(`Exécution ${run.id.slice(0, 8)} préparée avec toutes ses limites et son journal de reprise.`);
     } catch (error) {
+      setMessage(`Impossible de préparer l’exécution : ${normalizeAppError(error).userMessage}`);
       onError(error);
     } finally {
+      setActivity("");
+      setBusy(false);
+    }
+  }
+
+  async function testProvider() {
+    if (!policy) return;
+    setBusy(true);
+    setActivity("Test de communication avec le modèle…");
+    setProviderTest(undefined);
+    try {
+      const report = await testAgentProvider({ provider, policy, apiKey: apiKey || undefined });
+      setProviderTest({
+        ok: true,
+        message: `Connexion réussie · ${report.model} · ${report.latencyMs} ms · réponse : ${report.reply}`,
+      });
+    } catch (error) {
+      const normalized = normalizeAppError(error);
+      setProviderTest({ ok: false, message: `Échec du test : ${normalized.userMessage}` });
+      onError(error);
+    } finally {
+      setApiKey("");
+      setActivity("");
       setBusy(false);
     }
   }
@@ -161,28 +205,36 @@ export function AgentStudio({ jobId, workspace, onError }: {
 
   async function advance(runId: string) {
     setBusy(true);
+    setActiveRunId(runId);
+    setActivity("Le modèle analyse la demande et choisit sa prochaine action…");
     setMessage("");
     try {
       const run = await advanceAgentRun({ workspaceId: workspace.workspaceId, runId, apiKey: apiKey || undefined });
       replaceRun(run);
       setMessage(run.status === "completed" ? "Exécution terminée." : run.status === "waiting_approval" ? "L’agent attend votre décision." : `État de l’exécution : ${run.status}.`);
     } catch (error) {
+      setMessage(`L’agent n’a pas pu démarrer : ${normalizeAppError(error).userMessage}`);
       onError(error);
     } finally {
       setApiKey("");
+      setActiveRunId(undefined);
+      setActivity("");
       setBusy(false);
     }
   }
 
   async function resolve(runId: string, approvalId: string, approved: boolean) {
     setBusy(true);
+    setActivity(approved ? "Application de l’action autorisée…" : "Enregistrement du refus…");
     try {
       const run = await resolveAgentApproval({ workspaceId: workspace.workspaceId, runId, approvalId, approved });
       replaceRun(run);
       setMessage(approved ? "Appel approuvé et exécuté. Vous pouvez poursuivre la boucle." : "Appel refusé et enregistré.");
     } catch (error) {
+      setMessage(`La décision n’a pas pu être appliquée : ${normalizeAppError(error).userMessage}`);
       onError(error);
     } finally {
+      setActivity("");
       setBusy(false);
     }
   }
@@ -204,9 +256,39 @@ export function AgentStudio({ jobId, workspace, onError }: {
   return (
     <section className="agent-studio-card" aria-label="Agent Studio">
       <header className="agent-studio-header">
-        <div><span className="eyebrow">AGENT STUDIO · POLITIQUES FINES</span><h2><Bot size={19} /> Construction agentique</h2></div>
+        <div><span className="eyebrow">MODE 1 · AGENT MULTI-ÉTAPES</span><h2><Bot size={19} /> Construire ou transformer un module</h2><p>L’agent travaille en plusieurs tours, appelle les fonctions autorisées et s’arrête dès qu’une validation humaine est nécessaire.</p></div>
         <span className={`agent-level level-${policy.level}`}><Shield size={14} /> {levels.find((item) => item.value === policy.level)?.label}</span>
       </header>
+
+      <div className="agent-section agent-objective agent-quick-start">
+        <div className="agent-workflow-help">
+          <strong>Comment lancer une commande ?</strong>
+          <ol><li>Choisissez le fournisseur et le modèle dans les réglages avancés.</li><li>Choisissez uniquement les données de contexte utiles, puis décrivez précisément le résultat attendu.</li><li>Cliquez sur « Préparer », puis sur « Lancer l’agent » dans l’exécution créée.</li></ol>
+          <p>« Préparer » enregistre un plan sécurisé ; cela ne contacte pas encore le modèle. « Lancer » démarre réellement le travail.</p>
+        </div>
+        <h3>1 · Décrire le travail</h3>
+        <textarea aria-label="Objectif de l’agent" value={objective} onChange={(event) => setObjective(event.currentTarget.value)} placeholder="Exemple : créer une zone de départ forestière, un PNJ et un dialogue, puis valider les scripts…" />
+        <label>ModuleBlueprint JSON (facultatif)<textarea value={blueprintText} onChange={(event) => setBlueprintText(event.currentTarget.value)} placeholder='{"schemaVersion":1,"name":"…","areas":[…]}' spellCheck={false} /></label>
+        {provider.kind !== "manual" && <label><span><KeyRound size={12} /> Clé temporaire</span><input type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} placeholder="Jamais persistée" /></label>}
+        <div className="profile-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => void savePolicy()}><Save size={13} /> Enregistrer les réglages</button><button type="button" className="primary-button" disabled={busy || !objective.trim() || (provider.kind !== "manual" && !provider.model.trim())} onClick={() => void prepareRun()}><Workflow size={13} /> Préparer l’exécution</button></div>
+        {activity && !activeRunId && <div className="agent-working" role="status"><LoaderCircle className="agent-spinner" size={16} /><div><strong>{activity}</strong><span>Veuillez patienter.</span></div></div>}
+        {message && <p className="profile-result" role="status">{message}</p>}
+        {studio.runs.length > 0 && <div className="agent-runs"><strong>2 · Exécutions préparées</strong>{studio.runs.slice(0, 5).map((run) => {
+          const pendingApproval = run.approvals.some((approval) => approval.status === "pending");
+          const isWorking = activeRunId === run.id;
+          return <article key={run.id} className={`agent-run run-${run.status}`}>
+            <div><code>{run.id.slice(0, 8)}</code><strong>{agentStatusLabel(run.status)}</strong><span>{run.objective}</span></div>
+            <small>{run.provider.name} · {run.provider.model || "sans modèle"} · {run.currentTurn}/{run.policy.limits.maxTurns} tours · {run.toolCalls.length}/{run.policy.limits.maxToolCalls} appels</small>
+            {isWorking && <div className="agent-working" role="status"><LoaderCircle className="agent-spinner" size={17} /><div><strong>Le modèle travaille</strong><span>{activity} Un modèle local volumineux peut prendre plusieurs minutes.</span></div></div>}
+            {run.approvals.filter((approval) => approval.status === "pending").map((approval) => <div className="agent-approval" key={approval.id}><span><Shield size={12} /> <strong>{approval.capabilityId}</strong> · {approval.summary}</span><button type="button" disabled={busy} onClick={() => void resolve(run.id, approval.id, false)}><X size={12} /> Refuser</button><button type="button" disabled={busy} onClick={() => void resolve(run.id, approval.id, true)}><CheckIcon size={12} /> Autoriser</button></div>)}
+            {!pendingApproval && !["completed", "failed", "cancelled"].includes(run.status) && run.provider.kind !== "manual" && <div className="agent-run-actions"><button type="button" className="primary-button" disabled={busy} onClick={() => void advance(run.id)}>{isWorking ? <LoaderCircle className="agent-spinner" size={12} /> : <Play size={12} />} {run.status === "planned" ? "Lancer l’agent" : "Poursuivre l’agent"}</button><button type="button" className="secondary-button" onClick={() => void cancel(run.id)}><Square size={11} /> Arrêter</button></div>}
+            <details open={run.status === "failed"}><summary>Journal détaillé ({run.events.length})</summary>{run.events.slice(-12).map((event) => <p key={event.sequence}><code>#{event.sequence}</code> {event.message}</p>)}</details>
+          </article>;
+        })}</div>}
+      </div>
+
+      <details className="agent-advanced">
+        <summary><SlidersHorizontal size={15} /> Réglages avancés : fournisseur, sécurité, budgets et fonctions accessibles</summary>
 
       <div className="agent-studio-grid">
         <div className="agent-settings-column">
@@ -219,11 +301,15 @@ export function AgentStudio({ jobId, workspace, onError }: {
 
           <div className="agent-section">
             <h3><Workflow size={15} /> Fournisseur</h3>
-            <label>Protocole<select value={provider.kind} onChange={(event) => setProvider({ ...provider, kind: event.currentTarget.value as ProviderKind })}>
-              <option value="open_ai_responses">Responses API</option><option value="open_ai_chat_completions">Chat Completions</option><option value="ollama">Ollama</option><option value="compatible">Compatible</option><option value="manual">Manuel / sans réseau</option>
+            <label>Protocole<select value={provider.kind} onChange={(event) => changeProviderKind(event.currentTarget.value as ProviderKind)}>
+              <option value="open_ai_responses">OpenAI · Responses API</option><option value="open_ai_chat_completions">OpenAI compatible · Chat Completions</option><option value="ollama">Ollama local · API compatible OpenAI</option><option value="compatible">Serveur compatible OpenAI · personnalisé</option><option value="manual">Manuel · sans réseau</option>
             </select></label>
-            <label>Endpoint<input value={provider.endpoint} disabled={provider.kind === "manual"} onChange={(event) => setProvider({ ...provider, endpoint: event.currentTarget.value })} spellCheck={false} /></label>
-            <label>Modèle<input value={provider.model} disabled={provider.kind === "manual"} onChange={(event) => setProvider({ ...provider, model: event.currentTarget.value })} spellCheck={false} /></label>
+            <p className="agent-hint">« OpenAI compatible » désigne tout serveur qui expose le contrat <code>/v1/chat/completions</code>, notamment Ollama, LM Studio ou un proxy compatible.</p>
+            <label>Endpoint<input value={provider.endpoint} disabled={provider.kind === "manual"} onChange={(event) => { setProvider({ ...provider, endpoint: event.currentTarget.value }); setProviderTest(undefined); }} spellCheck={false} /></label>
+            <label>Modèle<input value={provider.model} disabled={provider.kind === "manual"} onChange={(event) => { setProvider({ ...provider, model: event.currentTarget.value }); setProviderTest(undefined); }} placeholder="Ex. qwen2.5-coder:7b" spellCheck={false} /></label>
+            <button type="button" className="provider-test-button" disabled={busy || provider.kind === "manual" || !provider.endpoint.trim() || !provider.model.trim()} onClick={() => void testProvider()}>{busy && activity.startsWith("Test") ? <LoaderCircle className="agent-spinner" size={13} /> : <PlugZap size={13} />} Tester la communication avec le modèle</button>
+            <p className="agent-hint">{!provider.model.trim() && provider.kind !== "manual" ? "Indiquez le nom exact d’un modèle installé pour activer le test. " : ""}Cliquer sur ce bouton envoie seulement « Répondez uniquement par OK » au modèle, sans ressource NWN.</p>
+            {providerTest && <p className={`provider-test-result ${providerTest.ok ? "success" : "failure"}`} role="status">{providerTest.message}</p>}
             <label>Effort de raisonnement<select value={provider.reasoningEffort ?? ""} onChange={(event) => setProvider({ ...provider, reasoningEffort: event.currentTarget.value || undefined })}><option value="">Défaut du fournisseur</option><option value="low">Faible</option><option value="medium">Moyen</option><option value="high">Élevé</option><option value="xhigh">Très élevé</option></select></label>
             <label>Température ×1000<input type="number" min={0} max={2000} value={provider.temperatureMilli ?? ""} placeholder="Défaut" onChange={(event) => setProvider({ ...provider, temperatureMilli: event.currentTarget.value === "" ? undefined : Number(event.currentTarget.value) })} /></label>
             <div className="agent-inline-checks"><Check checked={provider.supportsTools} label="Outils" onChange={(value) => setProvider({ ...provider, supportsTools: value })} /><Check checked={provider.supportsParallelTools} label="Parallèle" onChange={(value) => setProvider({ ...provider, supportsParallelTools: value })} /><Check checked={provider.supportsStructuredOutput} label="JSON strict" onChange={(value) => setProvider({ ...provider, supportsStructuredOutput: value })} /></div>
@@ -235,9 +321,8 @@ export function AgentStudio({ jobId, workspace, onError }: {
           </div>
 
           <div className="agent-section">
-            <h3><SlidersHorizontal size={15} /> Contexte et confidentialité</h3>
-            <Check checked={policy.context.allowNetwork} label="Autoriser le réseau" onChange={(value) => patchContext("allowNetwork", value)} />
-            <Check checked={policy.context.allowInsecureLocalHttp} label="Autoriser HTTP local" onChange={(value) => patchContext("allowInsecureLocalHttp", value)} />
+            <h3><SlidersHorizontal size={15} /> Données transmises et confidentialité</h3>
+            <p className="agent-hint">Le modèle est contacté uniquement lorsque vous cliquez sur Tester, Lancer ou Poursuivre. HTTP reste limité aux modèles locaux ; un fournisseur distant doit utiliser HTTPS.</p>
             <Check checked={policy.context.includeModuleMetadata} label="Métadonnées du module" onChange={(value) => patchContext("includeModuleMetadata", value)} />
             <Check checked={policy.context.includeResourceContents} label="Contenu des ressources" onChange={(value) => patchContext("includeResourceContents", value)} />
             <Check checked={policy.context.includeDiagnostics} label="Diagnostics" onChange={(value) => patchContext("includeDiagnostics", value)} />
@@ -265,21 +350,48 @@ export function AgentStudio({ jobId, workspace, onError }: {
             <label className="agent-cost"><CircleDollarSign size={13} /> Budget maximal (USD)<input type="number" min={0} step="0.01" value={policy.limits.maxCostMicroUsd / 1_000_000} onChange={(event) => patchLimit("maxCostMicroUsd", Math.round(Number(event.currentTarget.value) * 1_000_000))} /></label>
           </div>
 
-          <div className="agent-section">
-            <h3>Environnement des outils</h3>
-            <label>Compilateur NWScript<input value={policy.toolRuntime.compilerPath} onChange={(event) => patchRuntime("compilerPath", event.currentTarget.value)} spellCheck={false} /></label>
-            <label>Installation du jeu<input value={policy.toolRuntime.gameInstallPath} onChange={(event) => patchRuntime("gameInstallPath", event.currentTarget.value)} spellCheck={false} /></label>
-            <label>Dossiers d’includes<input value={policy.toolRuntime.includePaths.join("; ")} onChange={(event) => patchRuntime("includePaths", event.currentTarget.value.split(";").map((value) => value.trim()).filter(Boolean))} spellCheck={false} /></label>
-            <label>Dossier development<input value={policy.toolRuntime.developmentPath} onChange={(event) => patchRuntime("developmentPath", event.currentTarget.value)} spellCheck={false} /></label>
-            <label>Dossier temporaire Toolset<input value={policy.toolRuntime.toolsetTempPath} onChange={(event) => patchRuntime("toolsetTempPath", event.currentTarget.value)} spellCheck={false} /></label>
-            <label>Racines de sortie autorisées<input value={policy.toolRuntime.allowedOutputRoots.join("; ")} onChange={(event) => patchRuntime("allowedOutputRoots", event.currentTarget.value.split(";").map((value) => value.trim()).filter(Boolean))} spellCheck={false} /></label>
-            <label>Exécutable NWN / nwserver<input value={policy.toolRuntime.nwnExecutablePath} onChange={(event) => patchRuntime("nwnExecutablePath", event.currentTarget.value)} spellCheck={false} /></label>
-            <label>Dossier de travail NWN<input value={policy.toolRuntime.nwnWorkingDirectory} onChange={(event) => patchRuntime("nwnWorkingDirectory", event.currentTarget.value)} spellCheck={false} /></label>
-            <label>Arguments NWN (un par ligne)<textarea value={policy.toolRuntime.nwnArguments.join("\n")} onChange={(event) => patchRuntime("nwnArguments", event.currentTarget.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean))} spellCheck={false} /></label>
+          <div className="agent-section agent-tool-runtime">
+            <h3>Outils externes <span className="agent-optional-badge">Facultatif</span></h3>
+            <p className="agent-hint agent-tool-intro">Aucun de ces chemins n’est nécessaire pour consulter ou analyser un module. Renseignez seulement le groupe correspondant à l’action que vous souhaitez confier à l’agent.</p>
+
+            <section className="agent-tool-group" aria-labelledby="agent-tool-compile-title">
+              <div className="agent-tool-group-heading">
+                <div><h4 id="agent-tool-compile-title">Compiler les scripts</h4><p>Transforme un fichier source <code>.nss</code> en script exécutable <code>.ncs</code>.</p></div>
+                <span>NSS → NCS</span>
+              </div>
+              <RuntimePathField id="agent-compiler-path" label="Compilateur de scripts NWScript" kind="Fichier .exe · requis pour compiler" help="Chemin complet vers nwn_script_comp.exe (ou un compilateur compatible)." placeholder="C:\…\nwn_script_comp.exe" value={policy.toolRuntime.compilerPath} onChange={(value) => patchRuntime("compilerPath", value)} />
+              <RuntimePathField id="agent-game-install-path" label="Dossier d’installation de NWN:EE" kind="Dossier · requis pour compiler" help="Racine du jeu contenant notamment les dossiers bin, data et lang." placeholder="C:\…\Neverwinter Nights" value={policy.toolRuntime.gameInstallPath} onChange={(value) => patchRuntime("gameInstallPath", value)} />
+              <RuntimePathField id="agent-include-paths" label="Dossiers d’includes supplémentaires" kind="Dossiers · facultatif" help="Emplacements de scripts .nss partagés. Séparez plusieurs dossiers par un point-virgule (;)." placeholder="C:\Mes scripts\includes; D:\NWN\includes" value={policy.toolRuntime.includePaths.join("; ")} onChange={(value) => patchRuntime("includePaths", value.split(";").map((item) => item.trim()).filter(Boolean))} />
+            </section>
+
+            <section className="agent-tool-group" aria-labelledby="agent-tool-output-title">
+              <div className="agent-tool-group-heading">
+                <div><h4 id="agent-tool-output-title">Produire, tester et synchroniser</h4><p>Ces trois chemins sont indépendants : renseignez uniquement ceux correspondant aux sorties que vous autorisez.</p></div>
+                <span>Sorties contrôlées</span>
+              </div>
+              <RuntimePathField id="agent-output-roots" label="Dossiers de sortie autorisés" kind="Dossiers · requis pour créer ou construire un .mod" help="Barrière de sécurité : l’agent ne peut produire un module que dans ces dossiers. Séparez plusieurs dossiers par un point-virgule (;)." placeholder="D:\Mes modules\builds" value={policy.toolRuntime.allowedOutputRoots.join("; ")} onChange={(value) => patchRuntime("allowedOutputRoots", value.split(";").map((item) => item.trim()).filter(Boolean))} />
+              <RuntimePathField id="agent-development-path" label="Dossier development de NWN" kind="Dossier · requis pour le test en direct" help="Dossier de surcharge temporaire de NWN, généralement dans vos données utilisateur. Le module source reste intact." placeholder="C:\Users\…\Documents\Neverwinter Nights\development" value={policy.toolRuntime.developmentPath} onChange={(value) => patchRuntime("developmentPath", value)} />
+              <RuntimePathField id="agent-toolset-temp-path" label="Dossier temporaire d’Aurora Toolset" kind="Dossier · requis pour la synchronisation Toolset" help="Dossier extrait du module actuellement ouvert par Aurora. OpenNever compare les fichiers avant toute synchronisation." placeholder="C:\Users\…\AppData\Local\Temp\…" value={policy.toolRuntime.toolsetTempPath} onChange={(value) => patchRuntime("toolsetTempPath", value)} />
+            </section>
+
+            <section className="agent-tool-group" aria-labelledby="agent-tool-launch-title">
+              <div className="agent-tool-group-heading">
+                <div><h4 id="agent-tool-launch-title">Lancer le jeu ou le serveur</h4><p>Ces réglages servent uniquement à démarrer un test ; ils ne sont pas utilisés pendant l’édition.</p></div>
+                <span>Test NWN</span>
+              </div>
+              <RuntimePathField id="agent-nwn-executable-path" label="Programme à lancer" kind="Fichier .exe · requis pour lancer" help="Choisissez nwmain.exe pour le jeu ou nwserver.exe pour un serveur." placeholder="C:\…\Neverwinter Nights\bin\win32\nwmain.exe" value={policy.toolRuntime.nwnExecutablePath} onChange={(value) => patchRuntime("nwnExecutablePath", value)} />
+              <RuntimePathField id="agent-nwn-working-directory" label="Dossier de démarrage du programme" kind="Dossier · requis pour lancer" help="Dossier depuis lequel NWN ou nwserver sera démarré, généralement celui contenant l’exécutable." placeholder="C:\…\Neverwinter Nights\bin\win32" value={policy.toolRuntime.nwnWorkingDirectory} onChange={(value) => patchRuntime("nwnWorkingDirectory", value)} />
+              <div className="agent-runtime-field">
+                <label htmlFor="agent-nwn-arguments">Arguments de lancement</label>
+                <span id="agent-nwn-arguments-help"><strong>Facultatif</strong> · Un argument par ligne, transmis directement au programme sans passer par un terminal.</span>
+                <textarea id="agent-nwn-arguments" aria-describedby="agent-nwn-arguments-help" value={policy.toolRuntime.nwnArguments.join("\n")} onChange={(event) => patchRuntime("nwnArguments", event.currentTarget.value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean))} placeholder={'-module\nma_copie_test'} spellCheck={false} />
+              </div>
+            </section>
           </div>
 
           <div className="agent-section">
             <h3>Actions externes</h3>
+            <p className="agent-hint">Cocher une action l’autorise, mais ne la déclenche pas. Son chemin correspondant doit aussi être configuré ci-dessus.</p>
             <Check checked={policy.allowDevelopmentDeploy} label="Déploiement development" onChange={(value) => patchPolicy({ allowDevelopmentDeploy: value })} />
             <Check checked={policy.allowToolsetSync} label="Synchronisation Toolset" onChange={(value) => patchPolicy({ allowToolsetSync: value })} />
             <Check checked={policy.allowProcessLaunch} label="Lancement NWN / nwserver" onChange={(value) => patchPolicy({ allowProcessLaunch: value })} />
@@ -310,19 +422,39 @@ export function AgentStudio({ jobId, workspace, onError }: {
             })}</div>
           </div>
 
-          <div className="agent-section agent-objective">
-            <h3>Nouvelle exécution</h3>
-            <textarea value={objective} onChange={(event) => setObjective(event.currentTarget.value)} placeholder="Décrivez le module ou la transformation à réaliser, les contraintes et les critères de réussite…" />
-            <label>ModuleBlueprint JSON (facultatif)<textarea value={blueprintText} onChange={(event) => setBlueprintText(event.currentTarget.value)} placeholder='{"schemaVersion":1,"name":"…","areas":[…]}' spellCheck={false} /></label>
-            {provider.kind !== "manual" && <label><span><KeyRound size={12} /> Clé temporaire</span><input type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} placeholder="Jamais persistée" /></label>}
-            <div className="profile-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => void savePolicy()}><Save size={13} /> Enregistrer le profil</button><button type="button" className="primary-button" disabled={busy || !objective.trim() || (provider.kind !== "manual" && !provider.model.trim())} onClick={() => void prepareRun()}><Workflow size={13} /> Préparer l’exécution</button></div>
-            {message && <p className="profile-result">{message}</p>}
-            {studio.runs.length > 0 && <div className="agent-runs"><strong>Exécutions persistées</strong>{studio.runs.slice(0, 5).map((run) => <article key={run.id} className={`agent-run run-${run.status}`}><div><code>{run.id.slice(0, 8)}</code><strong>{run.status}</strong><span>{run.objective}</span></div><small>{run.currentTurn}/{run.policy.limits.maxTurns} tours · {run.toolCalls.length}/{run.policy.limits.maxToolCalls} appels</small>{run.approvals.filter((approval) => approval.status === "pending").map((approval) => <div className="agent-approval" key={approval.id}><span><Shield size={12} /> <strong>{approval.capabilityId}</strong> · {approval.summary}</span><button type="button" disabled={busy} onClick={() => void resolve(run.id, approval.id, false)}><X size={12} /> Refuser</button><button type="button" disabled={busy} onClick={() => void resolve(run.id, approval.id, true)}><CheckIcon size={12} /> Autoriser</button></div>)}{!run.approvals.some((approval) => approval.status === "pending") && !["completed", "failed", "cancelled"].includes(run.status) && run.provider.kind !== "manual" && <div className="agent-run-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => void advance(run.id)}><Play size={12} /> Démarrer / poursuivre</button><button type="button" className="secondary-button" onClick={() => void cancel(run.id)}><Square size={11} /> Arrêter</button></div>}<details><summary>Journal ({run.events.length})</summary>{run.events.slice(-12).map((event) => <p key={event.sequence}><code>#{event.sequence}</code> {event.message}</p>)}</details></article>)}</div>}
-          </div>
         </div>
       </div>
+      </details>
     </section>
   );
+}
+
+function agentStatusLabel(status: AgentStudioState["runs"][number]["status"]): string {
+  return {
+    planned: "Prête à lancer",
+    running: "En cours",
+    waiting_approval: "Votre validation est requise",
+    completed: "Terminée",
+    failed: "Échec",
+    cancelled: "Arrêtée",
+  }[status];
+}
+
+function RuntimePathField({ id, label, kind, help, placeholder, value, onChange }: {
+  id: string;
+  label: string;
+  kind: string;
+  help: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const helpId = `${id}-help`;
+  return <div className="agent-runtime-field">
+    <label htmlFor={id}>{label}</label>
+    <span id={helpId}><strong>{kind}</strong> · {help}</span>
+    <input id={id} aria-describedby={helpId} value={value} onChange={(event) => onChange(event.currentTarget.value)} placeholder={placeholder} spellCheck={false} />
+  </div>;
 }
 
 function Check({ checked, label, onChange }: { checked: boolean; label: string; onChange: (value: boolean) => void }) {

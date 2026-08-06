@@ -19,16 +19,23 @@ globale. Une politique ne peut donc pas les ouvrir par accident avec une seule r
 
 ## Confidentialité et fournisseurs
 
-Le réseau est désactivé par défaut. La liste d’hôtes autorisés, HTTP local, les métadonnées, le
-contenu des ressources, les diagnostics, les chemins locaux et le sous-graphe d’architecture sont
-indépendants. Les chemins sont expurgés récursivement des résultats renvoyés au modèle tant que leur
-consentement reste désactivé. Une
+Le réseau n’est utilisé qu’après une action explicite : « Tester », « Lancer », « Poursuivre » ou
+« Générer et prévisualiser ». Il n’existe pas de seconde case d’autorisation redondante. HTTP reste
+limité aux hôtes locaux et un fournisseur distant doit utiliser HTTPS. Les métadonnées, le contenu
+des ressources, les diagnostics, les chemins locaux et le sous-graphe d’architecture restent des
+choix indépendants. Les chemins sont expurgés récursivement des résultats renvoyés au modèle tant
+que leur partage reste désactivé. Une
 clé de fournisseur est éphémère et n’entre jamais dans le fichier de politique, le run ou l’audit.
 Si la conservation est désactivée, l’état indispensable à une approbation ou une reprise reste
 disponible pendant le run, mais les requêtes/réponses fournisseur ne sont pas journalisées. À l’état
 terminal, l’objectif, le blueprint et les arguments/résultats sont remplacés par des empreintes.
 
-Les adaptateurs normalisent actuellement Responses API, Chat Completions compatible et Ollama. Le
+Les adaptateurs normalisent actuellement OpenAI Responses API, OpenAI compatible Chat Completions
+et Ollama. Le bouton « Tester la communication avec le modèle » envoie uniquement une requête
+technique minimale, sans ressource NWN, puis affiche le modèle, la latence et un court extrait de
+réponse. Les hôtes locaux (`localhost`, `127.0.0.1`, `::1` et leurs sous-domaines `.localhost`) sont
+acceptés automatiquement ; l’allowlist reste obligatoire pour les fournisseurs distants. La même
+clé éphémère est utilisée pour le test et l’exécution réelle. Le
 prix d’entrée et de sortie par million de tokens est configurable ; l’exécution s’arrête lorsque le
 budget calculé, le nombre de tours, les appels d’outils, la durée, la taille de réponse ou le nombre
 de ressources de contexte atteint sa limite.

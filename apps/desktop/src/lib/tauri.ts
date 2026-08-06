@@ -147,7 +147,7 @@ export type WalkmeshEditResult = { workspace: WorkspaceSnapshot; document: Walkm
 export type AiChangeSet = { summary: string; commands: EditCommand[] };
 export type AiCommandPreview = { command: EditCommand; target: string; current: unknown; resulting: unknown; valid: boolean; diagnostic: string | null };
 export type AiChangeSetPreview = { summary: string; proposalSha256: string; allValid: boolean; previews: AiCommandPreview[] };
-export type AiConsent = { allowNetwork: boolean; includeModuleMetadata: boolean; includeResourceContents: boolean };
+export type AiConsent = { includeModuleMetadata: boolean; includeResourceContents: boolean };
 export type AiProviderProposal = {
   endpointOrigin: string; model: string; proposalSha256: string; changeSet: AiChangeSet;
   preview: AiChangeSetPreview; sharedResources: number; warnings: string[];
@@ -215,6 +215,9 @@ export type AgentRun = {
 };
 export type AgentStudioState = {
   policy: AgentPolicy; presets: AgentPolicy[]; registry: CapabilityRegistry; effectiveCapabilities: EffectiveCapability[]; runs: AgentRun[];
+};
+export type AgentProviderTestReport = {
+  endpointOrigin: string; model: string; latencyMs: number; reply: string;
 };
 
 export type HashProgress = {
@@ -808,6 +811,13 @@ export async function createAgentRun(request: {
 export async function advanceAgentRun(request: { workspaceId: string; runId: string; apiKey?: string }): Promise<AgentRun> {
   requireTauri();
   return invoke<AgentRun>("advance_agent_run", { request });
+}
+
+export async function testAgentProvider(request: {
+  provider: ProviderProfile; policy: AgentPolicy; apiKey?: string;
+}): Promise<AgentProviderTestReport> {
+  requireTauri();
+  return invoke<AgentProviderTestReport>("test_agent_provider", { request });
 }
 
 export async function resolveAgentApproval(request: { workspaceId: string; runId: string; approvalId: string; approved: boolean }): Promise<AgentRun> {

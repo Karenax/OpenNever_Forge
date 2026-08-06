@@ -94,6 +94,7 @@ pub fn run() {
             commands::create_agent_run,
             commands::validate_agent_blueprint,
             commands::advance_agent_run,
+            commands::test_agent_provider,
             commands::cancel_agent_run,
             commands::resolve_agent_approval,
             commands::create_new_module,

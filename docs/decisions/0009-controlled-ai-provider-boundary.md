@@ -2,24 +2,29 @@
 
 - Statut : accepté
 - Date : 4 août 2026
+- Révision d’interface : 5 août 2026
 
 ## Contexte
 
 Le Lot 25 doit permettre à l’utilisateur de choisir un modèle sans donner à ce modèle un accès
-direct aux fichiers NWN, au système de fichiers ou au moteur de commandes. Le réseau est désactivé
-par défaut et les modules, scripts et dialogues peuvent contenir des données privées ou
+direct aux fichiers NWN, au système de fichiers ou au moteur de commandes. Aucun appel réseau ne
+part sans une action explicite et les modules, scripts et dialogues peuvent contenir des données privées ou
 propriétaires. Une réponse de modèle ne constitue jamais une preuve qu’une opération est valide.
 
 ## Décision
 
 L’application fournit une passerelle HTTPS compatible avec le format de réponse OpenAI
 `choices[0].message.content`. HTTP n’est accepté que pour `localhost`, `127.0.0.1` et `::1`, afin de
-prendre en charge les modèles locaux. L’utilisateur saisit l’endpoint et le nom exact du modèle.
+prendre en charge les modèles locaux. Ces hôtes locaux sont acceptés automatiquement, y compris
+avec un ancien profil dont l’allowlist est incomplète ; un hôte distant reste soumis à HTTPS et à
+l’allowlist du profil. L’utilisateur saisit l’endpoint et le nom exact du modèle.
 La clé éventuelle reste dans l’état mémoire du composant pendant l’appel, n’est pas persistée et est
 effacée de l’interface à la fin de la requête.
 
-Trois consentements restent distincts : autoriser l’appel réseau, inclure les métadonnées minimales
-du module et inclure le contenu des ressources sélectionnées. Aucune ressource n’est envoyée par
+Le clic sur **Tester**, **Lancer**, **Poursuivre** ou **Générer et prévisualiser** constitue l’action
+explicite qui déclenche l’appel ; aucune case réseau supplémentaire n’est demandée. Les deux choix
+de données restent distincts : inclure les métadonnées minimales du module et inclure le contenu
+des ressources sélectionnées. Aucune ressource n’est envoyée par
 défaut. Au plus huit GFF/NSS peuvent être sélectionnés ; chaque contexte est limité à 64 Kio, la
 demande à 16 Kio et la réponse à 1 Mio. Les contenus et les clés ne sont jamais journalisés.
 
@@ -50,8 +55,8 @@ disponible.
 
 - tests Rust des commandes admises/refusées, de l’empreinte, des préconditions d’octets, de
   l’application et de l’annulation ;
-- test UI du réseau désactivé par défaut et du parcours proposition locale → prévisualisation →
-  confirmation → application ;
+- test UI de l’absence d’appel avant action explicite et du parcours proposition locale →
+  prévisualisation → confirmation → application ;
 - validation des endpoints, bornes, consentements et réponses avant tout accès au workspace ;
 - cycle synthétique sans Aurora : création, édition contrôlée, build, réouverture et vérification de
   l’intégrité de la source.

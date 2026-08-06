@@ -2017,10 +2017,12 @@ compatibilité et de sauvegarde.
 
 ### 36.10 Assistance IA contrôlée
 
-Le Lot 25 conserve le réseau désactivé par défaut. L’utilisateur choisit explicitement un endpoint
-compatible et un modèle ; HTTP est limité aux hôtes locaux, tandis que le réseau distant exige
-HTTPS. La clé éventuelle vit uniquement en mémoire pendant l’appel. Les consentements réseau,
-métadonnées de module et contenu de ressource sont indépendants. Au plus huit GFF/NSS sont
+Le Lot 25 contacte le réseau uniquement après une action explicite de l’utilisateur : tester,
+lancer, poursuivre ou générer une proposition. Aucune case d’autorisation réseau supplémentaire
+n’est nécessaire. L’utilisateur choisit explicitement un endpoint compatible et un modèle ; HTTP
+est limité aux hôtes locaux, tandis que le réseau distant exige HTTPS. La clé éventuelle vit
+uniquement en mémoire pendant l’appel. Les choix de métadonnées de module et de contenu de ressource
+restent indépendants. Au plus huit GFF/NSS sont
 sélectionnables, avec des limites strictes sur le prompt, chaque contexte, la réponse et le nombre
 d’opérations. Aucun contenu transmis ou secret n’est journalisé.
 

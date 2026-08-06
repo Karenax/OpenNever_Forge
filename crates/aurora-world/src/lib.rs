@@ -962,11 +962,32 @@ fn inspect_dds(record: &mut AssetRecord, bytes: &[u8]) {
         record.height = Some(u32::from_le_bytes(bytes[12..16].try_into().expect("slice")));
         record.width = Some(u32::from_le_bytes(bytes[16..20].try_into().expect("slice")));
         record.support = AssetSupport::Preview;
+    } else if bytes.len() >= 20 {
+        let width = u32::from_le_bytes(bytes[0..4].try_into().expect("slice"));
+        let height = u32::from_le_bytes(bytes[4..8].try_into().expect("slice"));
+        let encoding = u32::from_le_bytes(bytes[8..12].try_into().expect("slice"));
+        if width > 0
+            && height > 0
+            && width.is_power_of_two()
+            && height.is_power_of_two()
+            && matches!(encoding, 3 | 4)
+        {
+            record.width = Some(width);
+            record.height = Some(height);
+            record.support = AssetSupport::Preview;
+            return;
+        }
+        record.diagnostics.push(diagnostic(
+            "DDS_HEADER_INVALID",
+            DiagnosticSeverity::Error,
+            "En-tête DDS standard ou BioWare invalide",
+            &record.key.to_string(),
+        ));
     } else {
         record.diagnostics.push(diagnostic(
             "DDS_HEADER_INVALID",
             DiagnosticSeverity::Error,
-            "Signature DDS absente ou tronquée",
+            "En-tête DDS standard ou BioWare absent ou tronqué",
             &record.key.to_string(),
         ));
     }
@@ -1418,7 +1439,7 @@ mod tests {
     }
 
     #[test]
-    fn plt_and_mtr_keep_dimensions_layers_and_texture_references_explicit() {
+    fn plt_dds_and_mtr_keep_dimensions_layers_and_texture_references_explicit() {
         let mut plt = b"PLT V1  \0\0\0\0\0\0\0\0".to_vec();
         plt.extend(2_u32.to_le_bytes());
         plt.extend(1_u32.to_le_bytes());
@@ -1431,6 +1452,21 @@ mod tests {
                 .iter()
                 .any(|value| value.code == "PLT_LAYER_PREVIEW")
         );
+
+        let mut dds = Vec::new();
+        dds.extend(512_u32.to_le_bytes());
+        dds.extend(256_u32.to_le_bytes());
+        dds.extend(3_u32.to_le_bytes());
+        dds.extend(65_536_u32.to_le_bytes());
+        dds.extend(1_f32.to_le_bytes());
+        let dds = inspect_asset(
+            ResourceKey::new("floor", 2033),
+            "floor.dds".to_owned(),
+            &dds,
+        );
+        assert_eq!(dds.support, AssetSupport::Preview);
+        assert_eq!((dds.width, dds.height), (Some(512), Some(256)));
+        assert!(dds.diagnostics.is_empty());
 
         let mtr = inspect_asset(
             ResourceKey::new("metal", 2072),

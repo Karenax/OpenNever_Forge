@@ -2,7 +2,7 @@
 
 Les Lots 21 à 25 ajoutent les éditeurs transactionnels TLK/2DA, les profils reproductibles, la
 synchronisation contrôlée avec les dossiers temporaires d’Aurora Toolset et les migrations
-sauvegardées des workspaces, puis l’assistant IA à consentements explicites. Toutes les sorties
+sauvegardées des workspaces, puis l’assistant IA à contexte explicitement sélectionné. Toutes les sorties
 restent séparées du module source, qui n'est jamais ouvert en écriture.
 
 OpenNever Forge est un éditeur tiers moderne pour Neverwinter Nights: Enhanced Edition. Les sources
@@ -68,8 +68,10 @@ Les revues de sortie et leurs limites sont consignées dans
 [`docs/validation/lot25-exit-review.md`](docs/validation/lot25-exit-review.md).
 L'état précis des Lots 11 à 25, les contrôles d'oracle et l'ordre restant sont dans
 [`docs/validation/phase2-phase3-foundation-review.md`](docs/validation/phase2-phase3-foundation-review.md).
-Le parcours opérationnel est décrit dans [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) et la politique
-de compatibilité dans [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
+La [documentation complète utilisateur et technique en HTML](docs/OpenNever_Forge_Manuel_Complet.html)
+réunit les parcours, l'architecture, les formats NWN, la sécurité IA et MCP. Le parcours opérationnel
+condensé est décrit dans [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) et la politique de compatibilité
+dans [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
 ## Prérequis Windows
 

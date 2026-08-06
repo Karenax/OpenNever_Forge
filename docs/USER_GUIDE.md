@@ -78,17 +78,19 @@ inconnue est refusée au lieu d’être réécrite. Voir [MIGRATIONS.md](MIGRATI
 
 ## Assistant IA contrôlé
 
-La carte **Proposition d’opérations** fonctionne hors ligne par défaut. OpenNever ne choisit pas le
-fournisseur à votre place et ne conserve aucun secret.
+La carte **Proposition d’opérations** n’effectue aucun appel tant que vous ne cliquez pas sur
+**Générer et prévisualiser**. OpenNever ne choisit pas le fournisseur à votre place et ne conserve
+aucun secret.
 
 1. Saisir l’URL complète de l’endpoint compatible et le nom exact du modèle. HTTP est réservé aux
    modèles locaux ; un fournisseur distant doit utiliser HTTPS.
 2. Saisir la clé éventuelle. Elle est effacée de l’interface dès la fin de l’appel et n’est pas
    écrite dans le workspace.
 3. Décrire la modification.
-4. Cocher **Autoriser cet appel réseau**. L’envoi des métadonnées et du contenu de la ressource
-   sélectionnée sont deux consentements facultatifs distincts.
-5. Cliquer **Générer et prévisualiser** puis examiner chaque précondition. Une proposition refusée
+4. Choisir facultativement d’envoyer les métadonnées ou le contenu de la ressource sélectionnée.
+   Ces deux choix restent indépendants et désactivés par défaut.
+5. Cliquer **Générer et prévisualiser** : ce clic déclenche l’appel au modèle. Examiner ensuite
+   chaque précondition. Une proposition refusée
    ne peut pas être appliquée.
 6. Confirmer l’empreinte et les opérations. Elles sont alors ajoutées à l’historique et peuvent être
    annulées avec **Annuler**.

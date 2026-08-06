@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-pub const GLB_CACHE_SCHEMA_VERSION: u32 = 5;
+pub const GLB_CACHE_SCHEMA_VERSION: u32 = 6;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -102,6 +102,7 @@ pub fn export_glb(model: &MdlModel) -> Result<GlbArtifact, MdlError> {
                 "ambient": mesh.material.ambient,
                 "specular": mesh.material.specular,
                 "render": mesh.material.render,
+                "nwnTileFade": mesh.material.tile_fade,
                 "walkmesh": mesh.walkmesh
             }
         }));
@@ -693,7 +694,7 @@ mod tests {
     #[test]
     fn exports_deterministic_glb_with_triangle_mesh() {
         let model = parse_mdl(
-            b"newmodel triangle\nnode trimesh body\nverts 3\n0 0 0\n1 0 0\n0 1 0\nfaces 1\n0 1 2 0 0 1 2 0\nendnode\n",
+            b"newmodel triangle\nnode trimesh body\ntilefade 1\nverts 3\n0 0 0\n1 0 0\n0 1 0\nfaces 1\n0 1 2 0 0 1 2 0\nendnode\n",
         )
         .expect("model");
         let first = export_glb(&model).expect("first GLB");
@@ -709,6 +710,7 @@ mod tests {
         .expect("GLB JSON");
         assert!(document.get("skins").is_none());
         assert!(document.get("animations").is_none());
+        assert_eq!(document["materials"][0]["extras"]["nwnTileFade"], 1);
     }
 
     #[test]

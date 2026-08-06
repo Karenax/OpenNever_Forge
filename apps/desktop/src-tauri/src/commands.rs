@@ -53,7 +53,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, State, ipc::Response};
 
 const JOB_PROGRESS_EVENT: &str = "job-progress";
@@ -535,8 +535,6 @@ pub struct AiChangeSetRequest {
 #[serde(rename_all = "camelCase")]
 pub struct AiConsent {
     #[serde(default)]
-    pub allow_network: bool,
-    #[serde(default)]
     pub include_module_metadata: bool,
     #[serde(default)]
     pub include_resource_contents: bool,
@@ -625,6 +623,23 @@ pub struct AdvanceAgentRunRequest {
     pub workspace_id: String,
     pub run_id: String,
     pub api_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TestAgentProviderRequest {
+    pub provider: ProviderProfile,
+    pub policy: AgentPolicy,
+    pub api_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentProviderTestReport {
+    pub endpoint_origin: String,
+    pub model: String,
+    pub latency_ms: u64,
+    pub reply: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -2355,13 +2370,6 @@ pub async fn request_ai_change_set(
     state: State<'_, AppState>,
     request: AiProviderRequest,
 ) -> AppResult<AiProviderProposal> {
-    if !request.consent.allow_network {
-        return Err(ai_error(
-            "EDIT_AI_NETWORK_CONSENT_REQUIRED",
-            "Activez explicitement l’accès réseau avant de contacter le fournisseur IA.",
-            "AI network access is disabled by default",
-        ));
-    }
     if request.prompt.trim().is_empty() || request.prompt.len() > 16 * 1024 {
         return Err(ai_error(
             "EDIT_AI_PROMPT_INVALID",
@@ -2854,13 +2862,6 @@ pub async fn advance_agent_run(
             "AGENT_PROVIDER_MANUAL",
             "Le fournisseur manuel ne peut pas exécuter une boucle automatique.",
             "manual provider requires imported tool calls or blueprint",
-        ));
-    }
-    if !run.policy.context.allow_network {
-        return Err(agent_error(
-            "AGENT_NETWORK_DISABLED",
-            "Le réseau est désactivé dans le profil de sécurité.",
-            "agent run cannot contact its provider while network is disabled",
         ));
     }
     validated_agent_endpoint(&run.provider.endpoint, &run.policy.context)?;
@@ -3429,6 +3430,123 @@ pub async fn advance_agent_run(
         store.save_run(&run)?;
     }
     Ok(run)
+}
+
+#[tauri::command]
+pub async fn test_agent_provider(
+    request: TestAgentProviderRequest,
+) -> AppResult<AgentProviderTestReport> {
+    validate_agent_policy(&request.policy).map_err(|error| {
+        agent_error(
+            "AGENT_POLICY_INVALID",
+            "Le profil de sécurité IA n’est pas valide.",
+            error,
+        )
+    })?;
+    if request.provider.kind == ProviderKind::Manual {
+        return Err(agent_error(
+            "AGENT_PROVIDER_MANUAL",
+            "Le mode manuel ne possède aucun modèle à contacter.",
+            "manual provider cannot be connection-tested",
+        ));
+    }
+    if request.provider.model.trim().is_empty() {
+        return Err(agent_error(
+            "AGENT_PROVIDER_MODEL_REQUIRED",
+            "Indiquez le nom exact du modèle à tester.",
+            "provider connection test requires a model",
+        ));
+    }
+    if request
+        .api_key
+        .as_ref()
+        .is_some_and(|key| key.len() > 16 * 1024)
+    {
+        return Err(agent_error(
+            "AGENT_API_KEY_TOO_LARGE",
+            "La clé temporaire dépasse la limite autorisée.",
+            "ephemeral API key exceeds 16 KiB",
+        ));
+    }
+
+    let endpoint = validated_agent_endpoint(&request.provider.endpoint, &request.policy.context)?;
+    let body = if request.provider.kind == ProviderKind::OpenAiResponses {
+        serde_json::json!({
+            "model": request.provider.model,
+            "instructions": "Vous effectuez un test de communication technique.",
+            "input": "Répondez uniquement par OK.",
+            "max_output_tokens": 128,
+            "store": false,
+        })
+    } else {
+        serde_json::json!({
+            "model": request.provider.model,
+            "messages": [{"role": "user", "content": "Répondez uniquement par OK."}],
+            "max_tokens": 128,
+            "stream": false,
+        })
+    };
+    let timeout_seconds = request.policy.limits.max_duration_seconds.clamp(1, 120);
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(timeout_seconds))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|error| {
+            agent_error(
+                "AGENT_PROVIDER_CLIENT_FAILED",
+                "Le client du fournisseur IA n’a pas pu être initialisé.",
+                error.to_string(),
+            )
+        })?;
+    let started = Instant::now();
+    let mut builder = client.post(endpoint.clone()).json(&body);
+    if let Some(api_key) = request.api_key.as_deref().filter(|value| !value.is_empty()) {
+        builder = builder.bearer_auth(api_key);
+    }
+    let mut response = builder.send().await.map_err(|error| {
+        agent_error(
+            "AGENT_PROVIDER_UNREACHABLE",
+            "Impossible de joindre le modèle. Vérifiez l’endpoint et que le serveur est démarré.",
+            error.without_url().to_string(),
+        )
+    })?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(agent_error(
+            "AGENT_PROVIDER_HTTP_ERROR",
+            format!("Le fournisseur a refusé le test avec HTTP {status}."),
+            status.to_string(),
+        ));
+    }
+    const MAX_TEST_RESPONSE_BYTES: usize = 64 * 1024;
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|error| {
+        agent_error(
+            "AGENT_PROVIDER_RESPONSE_READ_FAILED",
+            "La réponse de test n’a pas pu être lue.",
+            error.without_url().to_string(),
+        )
+    })? {
+        if bytes.len().saturating_add(chunk.len()) > MAX_TEST_RESPONSE_BYTES {
+            return Err(agent_error(
+                "AGENT_PROVIDER_RESPONSE_TOO_LARGE",
+                "La réponse de test dépasse la limite de 64 Kio.",
+                "provider test response exceeds 64 KiB",
+            ));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    let step = decode_provider_response(request.provider.kind, &bytes)?;
+    let reply = step
+        .assistant_text
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "Réponse structurée reçue".to_owned());
+    Ok(AgentProviderTestReport {
+        endpoint_origin: endpoint.origin().ascii_serialization(),
+        model: request.provider.model,
+        latency_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
+        reply: reply.chars().take(160).collect(),
+    })
 }
 
 #[tauri::command]
@@ -5071,10 +5189,7 @@ fn validated_ai_endpoint(value: &str) -> AppResult<reqwest::Url> {
         ));
     }
     let host = endpoint.host_str().unwrap_or_default();
-    let local = host.eq_ignore_ascii_case("localhost")
-        || host == "127.0.0.1"
-        || host == "::1"
-        || host.ends_with(".localhost");
+    let local = is_local_ai_host(host);
     if endpoint.scheme() != "https" && !(endpoint.scheme() == "http" && local) {
         return Err(ai_error(
             "EDIT_AI_ENDPOINT_INSECURE",
@@ -5085,27 +5200,28 @@ fn validated_ai_endpoint(value: &str) -> AppResult<reqwest::Url> {
     Ok(endpoint)
 }
 
+fn is_local_ai_host(host: &str) -> bool {
+    host.eq_ignore_ascii_case("localhost")
+        || host == "127.0.0.1"
+        || host == "::1"
+        || host.ends_with(".localhost")
+}
+
 fn validated_agent_endpoint(
     value: &str,
     context: &aurora_agent::ContextPolicy,
 ) -> AppResult<reqwest::Url> {
     let endpoint = validated_ai_endpoint(value)?;
     let host = endpoint.host_str().unwrap_or_default();
-    if !context
-        .allowed_provider_hosts
-        .iter()
-        .any(|allowed| allowed.eq_ignore_ascii_case(host))
+    if !is_local_ai_host(host)
+        && !context
+            .allowed_provider_hosts
+            .iter()
+            .any(|allowed| allowed.eq_ignore_ascii_case(host))
     {
         return Err(agent_error(
             "AGENT_PROVIDER_HOST_DENIED",
             "L’hôte du fournisseur n’est pas autorisé par le profil.",
-            host.to_owned(),
-        ));
-    }
-    if endpoint.scheme() == "http" && !context.allow_insecure_local_http {
-        return Err(agent_error(
-            "AGENT_PROVIDER_HTTP_DISABLED",
-            "Le profil interdit HTTP, y compris pour les modèles locaux.",
             host.to_owned(),
         ));
     }
@@ -6185,6 +6301,23 @@ mod tests {
     fn ai_endpoints_require_https_except_for_local_models() {
         assert!(validated_ai_endpoint("http://127.0.0.1:11434/v1/chat/completions").is_ok());
         assert!(validated_ai_endpoint("http://localhost:1234/v1/chat/completions").is_ok());
+        let mut legacy_context = aurora_agent::ContextPolicy::default();
+        legacy_context.allow_insecure_local_http = false;
+        legacy_context.allowed_provider_hosts.clear();
+        assert!(
+            validated_agent_endpoint(
+                "http://127.0.0.1:11434/v1/chat/completions",
+                &legacy_context,
+            )
+            .is_ok(),
+            "the explicit test or launch action is sufficient for local HTTP"
+        );
+        assert_eq!(
+            validated_agent_endpoint("https://example.com/v1/chat/completions", &legacy_context)
+                .expect_err("remote host outside the profile allowlist")
+                .code,
+            "AGENT_PROVIDER_HOST_DENIED"
+        );
         assert_eq!(
             validated_ai_endpoint("http://example.com/v1/chat/completions")
                 .expect_err("remote HTTP")

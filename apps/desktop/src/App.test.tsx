@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App, { WalkmeshWorkbench } from "./App";
-import { applyAiChangeSet, applyAuroraWorkspaceSync, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, editWorkspaceModuleDependencies, planAuroraWorkspaceSync, previewAiChangeSet, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
+import App, { isTileOccluder, JobProgress, WalkmeshWorkbench } from "./App";
+import { applyAiChangeSet, applyAuroraWorkspaceSync, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, editWorkspaceModuleDependencies, planAuroraWorkspaceSync, previewAiChangeSet, requestAiChangeSet, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
+import { PROJECT_PREFERENCES_STORAGE_KEY } from "./lib/projectPreferences";
+import { useUiStore } from "./store/uiStore";
 
 vi.mock("@monaco-editor/react", () => ({ default: ({ value }: { value: string }) => <pre data-testid="monaco-readonly">{value}</pre> }));
 vi.mock("@xyflow/react", () => ({ ReactFlow: ({ nodes, edges, children }: { nodes: Array<{id:string}>; edges:Array<{id:string}>; children: React.ReactNode }) => <div data-testid="dialogue-flow">{nodes.length} nodes · {edges.length} edges{children}</div>, Background:()=>null, Controls:()=>null, MiniMap:()=>null }));
@@ -48,6 +50,7 @@ vi.mock("./lib/tauri", () => ({
   saveAgentPolicy: vi.fn(),
   createAgentRun: vi.fn(),
   advanceAgentRun: vi.fn(),
+  testAgentProvider: vi.fn(),
   resolveAgentApproval: vi.fn(),
   cancelAgentRun: vi.fn(),
   getAppStatus: vi.fn().mockResolvedValue({
@@ -379,8 +382,59 @@ function renderApp() {
 }
 
 describe("OpenNever Forge shell", () => {
+  it("hides Aurora tile-fade and black technical occluders without hiding textured floors", () => {
+    expect(isTileOccluder("tile", { nwnTileFade: 1, nwnTextures: ["tin01_roof"] })).toBe(true);
+    expect(isTileOccluder("tile", { nwnTileFade: 4, nwnTextures: ["tin01_wall"] })).toBe(true);
+    expect(isTileOccluder("tile", { nwnTileFade: 0, nwnTextures: ["tin01_black"] })).toBe(true);
+    expect(isTileOccluder("tile", { nwnTileFade: 0, nwnTextures: ["tin01_floor"] })).toBe(false);
+    expect(isTileOccluder("placeable", { nwnTextures: ["plc_black"] })).toBe(false);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    useUiStore.setState({ activeExplorerItem: "module" });
+  });
+
+  it("keeps a running analysis visibly active instead of showing 100 percent", () => {
+    render(
+      <JobProgress
+        job={{
+          id: "running-job",
+          kind: "module_analysis",
+          state: "running",
+          sourcePath: "C:/module.mod",
+          progress: { bytesRead: 512, totalBytes: 512, percent: 100 },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Finalisation de l’index")).toBeInTheDocument();
+    expect(screen.getByText(/le travail continue/)).toBeInTheDocument();
+    expect(screen.getByText(/ACTIF · 0 s/)).toBeInTheDocument();
+    expect(screen.queryByText("100.0 %")).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow");
+  });
+
+  it("stops animating the progress bar once analysis is complete", () => {
+    const { container } = render(
+      <JobProgress
+        job={{
+          id: "completed-job",
+          kind: "module_analysis",
+          state: "completed",
+          sourcePath: "C:/module.mod",
+          progress: { bytesRead: 512, totalBytes: 512, percent: 100 },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByText("Analyse terminée")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+    expect(container.querySelector(".progress-fill")).toHaveClass("is-static");
+    expect(container.querySelector(".progress-fill")).not.toHaveClass("is-animated");
   });
 
   it("renders the explorer, workbench, inspector and diagnostics", async () => {
@@ -391,6 +445,42 @@ describe("OpenNever Forge shell", () => {
     expect(screen.getByLabelText("Inspecteur")).toBeInTheDocument();
     expect(screen.getByLabelText("Diagnostics")).toBeInTheDocument();
     expect(await screen.findByText("Cœur Rust · v0.1.0-test")).toBeInTheDocument();
+  });
+
+  it("opens contextual help and embeds the complete manual", async () => {
+    renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Guide et manuel" }));
+    expect(await screen.findByRole("region", { name: "Aide utilisateur OpenNever Forge" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Aide et manuel" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Analyser un module existant" })).toBeInTheDocument();
+    expect(screen.getByText("Interface : Analyser la copie")).toBeInTheDocument();
+    expect(screen.getAllByText(/Résultat attendu/).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: /Modifier et compiler un script NWScript/ }));
+    expect(screen.getByRole("heading", { name: "Modifier et compiler un script NWScript" })).toBeInTheDocument();
+    expect(screen.getByText("Interface : Enregistrer NSS")).toBeInTheDocument();
+    expect(screen.getByText("Interface : Compiler NSS → NCS")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Rechercher dans les tutoriels" }), { target: { value: "401" } });
+    expect(screen.getByRole("button", { name: /Configurer et suivre l’IA/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Créer une zone et placer une instance/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Manuel complet" }));
+    const manual = screen.getByTitle("Manuel complet OpenNever Forge");
+    expect(manual).toHaveAttribute("srcdoc", expect.stringContaining("Documentation utilisateur + référence technique"));
+    expect(manual).toHaveAttribute("srcdoc", expect.stringContaining("0. Tutoriel de bout en bout"));
+    expect(manual).toHaveAttribute("srcdoc", expect.stringContaining("Tester la communication avec le modèle"));
+  });
+
+  it("lets the creator fold peripheral panels and diagnostics", () => {
+    renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Réduire l'explorateur" }));
+    expect(screen.getByRole("button", { name: "Afficher l'explorateur" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Réduire l'inspecteur" }));
+    expect(screen.getByRole("button", { name: "Afficher l'inspecteur" })).toBeInTheDocument();
+    const diagnostics = screen.getByRole("button", { name: "Diagnostics" });
+    expect(diagnostics).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(diagnostics);
+    expect(diagnostics).toHaveAttribute("aria-expanded", "true");
   });
 
   it("starts the hash job only after a module path is provided", async () => {
@@ -412,6 +502,47 @@ describe("OpenNever Forge shell", () => {
     );
   });
 
+  it("restores and automatically saves the three project paths", async () => {
+    localStorage.setItem(
+      PROJECT_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        project: {
+          modulePath: "C:/campaign/remembered.mod",
+          gameInstallPath: "C:/Games/Neverwinter Nights",
+          userDataPath: "C:/Users/Creator/Documents/Neverwinter Nights",
+        },
+      }),
+    );
+
+    renderApp();
+
+    expect(screen.getByPlaceholderText("Sélectionner un fichier .mod")).toHaveValue(
+      "C:/campaign/remembered.mod",
+    );
+    expect(screen.getByPlaceholderText("Sélectionner le dossier d'installation")).toHaveValue(
+      "C:/Games/Neverwinter Nights",
+    );
+    expect(screen.getByPlaceholderText("Sélectionner le dossier utilisateur")).toHaveValue(
+      "C:/Users/Creator/Documents/Neverwinter Nights",
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner le dossier utilisateur"), {
+      target: { value: "D:/NWN/User" },
+    });
+
+    await waitFor(() =>
+      expect(JSON.parse(localStorage.getItem(PROJECT_PREFERENCES_STORAGE_KEY) ?? "{}")).toEqual({
+        version: 1,
+        project: {
+          modulePath: "C:/campaign/remembered.mod",
+          gameInstallPath: "C:/Games/Neverwinter Nights",
+          userDataPath: "D:/NWN/User",
+        },
+      }),
+    );
+  });
+
   it("renders and filters the resolved resource catalog returned by Rust", async () => {
     renderApp();
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), {
@@ -419,19 +550,19 @@ describe("OpenNever Forge shell", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
 
-    expect(await screen.findByRole("table", { name: "Ressources résolues" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Forge Test" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Forge Test" })).toBeInTheDocument();
     expect(screen.getByText("1 ressource(s) dans cette catégorie.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Dépendances du module" })).toBeInTheDocument();
+    expect(screen.getByText("Introuvable")).toBeInTheDocument();
+    expect(screen.getByText(/SHA-256 1234567890ABCDEF/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Ressources (3)" }));
+    expect(await screen.findByRole("table", { name: "Ressources résolues" })).toBeInTheDocument();
     expect(screen.getByText("3 ressource(s) dans cette catégorie.")).toBeInTheDocument();
     expect((await screen.findAllByText("module")).length).toBeGreaterThan(0);
     expect(await screen.findByText("start")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Dépendances du module" })).toBeInTheDocument();
-    expect(screen.getByText("Introuvable")).toBeInTheDocument();
     expect(screen.getByText("RESOURCE_SHADOWED")).toBeInTheDocument();
     expect(screen.getByText("HAK_NOT_FOUND")).toBeInTheDocument();
     expect(screen.getByText("DEPENDENCY_CONTENT_CHANGED")).toBeInTheDocument();
-    expect(screen.getByText(/SHA-256 1234567890ABCDEF/)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Filtrer les ressources"), {
       target: { value: "module" },
@@ -557,6 +688,8 @@ describe("OpenNever Forge shell", () => {
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    await screen.findByRole("heading", { name: "Profils de build et Git" });
+    fireEvent.click(screen.getByRole("button", { name: "Agent Studio" }));
     const panel = await screen.findByRole("region", { name: "Assistant IA contrôlé" });
     expect(within(panel).getByRole("button", { name: "Générer et prévisualiser" })).toBeDisabled();
     fireEvent.click(within(panel).getByText("Prévisualiser une proposition JSON locale, sans réseau"));
@@ -668,19 +801,66 @@ describe("OpenNever Forge shell", () => {
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    await screen.findByRole("heading", { name: "Profils de build et Git" });
+    fireEvent.click(screen.getByRole("button", { name: "Agent Studio" }));
     const studio = await screen.findByRole("region", { name: "Agent Studio" });
     const controls = within(studio);
     expect(controls.getByLabelText("Niveau")).toHaveValue("advisor");
-    expect(controls.getByLabelText("Autoriser le réseau")).not.toBeChecked();
+    expect(controls.queryByLabelText("Autoriser le réseau")).not.toBeInTheDocument();
+    expect(controls.queryByLabelText("Autoriser HTTP local")).not.toBeInTheDocument();
     expect(controls.getByLabelText("Chemins locaux dans le contexte")).not.toBeChecked();
-    expect(controls.getByLabelText("Compilateur NWScript")).toBeInTheDocument();
+    expect(controls.getByText("Aucun de ces chemins n’est nécessaire pour consulter ou analyser un module.", { exact: false })).toBeInTheDocument();
+    expect(controls.getByRole("heading", { name: "Compiler les scripts" })).toBeInTheDocument();
+    expect(controls.getByRole("heading", { name: "Produire, tester et synchroniser" })).toBeInTheDocument();
+    expect(controls.getByRole("heading", { name: "Lancer le jeu ou le serveur" })).toBeInTheDocument();
+    expect(controls.getByLabelText("Compilateur de scripts NWScript")).toHaveAttribute("placeholder", "C:\\…\\nwn_script_comp.exe");
+    expect(controls.getByLabelText("Dossiers de sortie autorisés")).toHaveAccessibleDescription("Dossiers · requis pour créer ou construire un .mod · Barrière de sécurité : l’agent ne peut produire un module que dans ces dossiers. Séparez plusieurs dossiers par un point-virgule (;).");
+    expect(controls.getByLabelText("Programme à lancer")).toHaveAccessibleDescription("Fichier .exe · requis pour lancer · Choisissez nwmain.exe pour le jeu ou nwserver.exe pour un serveur.");
     expect(controls.getByLabelText("Ressources sélectionnées (`resref:type`)")).toBeInTheDocument();
-    expect(controls.getByRole("button", { name: "Enregistrer le profil" })).toBeInTheDocument();
+    expect(controls.getByText("Comment lancer une commande ?")).toBeInTheDocument();
+    expect(controls.getByRole("button", { name: "Enregistrer les réglages" })).toBeInTheDocument();
+    expect(controls.getByRole("option", { name: "OpenAI compatible · Chat Completions" })).toBeInTheDocument();
+    expect(controls.getByRole("option", { name: "Serveur compatible OpenAI · personnalisé" })).toBeInTheDocument();
     fireEvent.change(controls.getByLabelText("Protocole"), { target: { value: "open_ai_responses" } });
+    expect(controls.getByLabelText("Endpoint")).toHaveValue("https://api.openai.com/v1/responses");
     expect(controls.getByLabelText("Stockage de la conversation chez le fournisseur")).not.toBeChecked();
     fireEvent.change(controls.getByLabelText("Niveau"), { target: { value: "supervised" } });
-    fireEvent.click(controls.getByLabelText("Autoriser le réseau"));
     expect(controls.getByLabelText("Niveau")).toHaveValue("supervised");
-    expect(controls.getByLabelText("Autoriser le réseau")).toBeChecked();
+
+    vi.mocked(testAgentProvider).mockResolvedValue({ endpointOrigin: "http://127.0.0.1:11434", model: "gemma:12b", latencyMs: 842, reply: "OK" });
+    fireEvent.change(controls.getByLabelText("Modèle"), { target: { value: "gemma:12b" } });
+    const testButton = controls.getByRole("button", { name: "Tester la communication avec le modèle" });
+    expect(testButton).toBeEnabled();
+    fireEvent.click(testButton);
+    expect(await controls.findByText("Connexion réussie · gemma:12b · 842 ms · réponse : OK")).toHaveAttribute("role", "status");
+    expect(testAgentProvider).toHaveBeenCalledWith(expect.objectContaining({
+      policy: expect.objectContaining({ context: expect.objectContaining({ allowNetwork: false }) }),
+    }));
+  });
+
+  it("explains the controlled assistant and shows when its model is working", async () => {
+    vi.mocked(requestAiChangeSet).mockImplementation(() => new Promise(() => undefined));
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    await screen.findByRole("heading", { name: "Profils de build et Git" });
+    fireEvent.click(screen.getByRole("button", { name: "Agent Studio" }));
+
+    const assistant = await screen.findByRole("region", { name: "Assistant IA contrôlé" });
+    const controls = within(assistant);
+    expect(controls.getByText("À quoi sert ce panneau ?")).toBeInTheDocument();
+    expect(controls.queryByLabelText("Autoriser cet appel réseau")).not.toBeInTheDocument();
+    fireEvent.change(controls.getByLabelText("Modèle choisi"), { target: { value: "gemma:12b" } });
+    fireEvent.change(controls.getByLabelText("Demande"), { target: { value: "Corriger ce script" } });
+    const generateButton = controls.getByRole("button", { name: "Générer et prévisualiser" });
+    expect(generateButton).toBeEnabled();
+    fireEvent.click(generateButton);
+    expect(requestAiChangeSet).toHaveBeenCalledWith(expect.objectContaining({
+      consent: { includeModuleMetadata: false, includeResourceContents: false },
+    }));
+
+    expect(await controls.findByRole("status")).toHaveTextContent("Travail en cours");
+    expect(controls.getByRole("button", { name: "Modèle en cours…" })).toBeDisabled();
   });
 });
