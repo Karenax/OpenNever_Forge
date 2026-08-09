@@ -9,7 +9,10 @@ mod structured;
 mod texture;
 mod world;
 
-pub use analysis::{ModuleAnalysis, analyze_module_file, analyze_module_file_with_roots};
+pub use analysis::{
+    ModuleAnalysis, analyze_module_file, analyze_module_file_with_cache,
+    analyze_module_file_with_roots,
+};
 pub use aurora_dialogue::{
     DialogueDiagnostic, DialogueGraph, DialogueIndex, DialogueIndexDiagnostic,
     DialogueIndexSummary, DialogueLink, DialogueNode, DialogueNodeKind, DialoguePage,
@@ -22,9 +25,10 @@ pub use aurora_nwscript::{
     ScriptTextMatch,
 };
 pub use aurora_resource::{
-    ResolvedResource, ResourceCatalog, ResourceCatalogSummary, ResourceDiagnostic,
-    ResourceLocation, ResourceManager, ResourceManagerConfig, ResourcePage, ResourceSourceCount,
-    ResourceSourceKind, ResourceTypeCount, ResourceVersion,
+    ResolvedResource, ResourceCatalog, ResourceCatalogBuild, ResourceCatalogCacheState,
+    ResourceCatalogCacheSummary, ResourceCatalogSummary, ResourceDiagnostic, ResourceLocation,
+    ResourceManager, ResourceManagerConfig, ResourcePage, ResourceSourceCount, ResourceSourceKind,
+    ResourceTypeCount, ResourceVersion,
 };
 pub use aurora_world::*;
 pub use dependencies::{
@@ -33,7 +37,7 @@ pub use dependencies::{
     fingerprint_module_dependencies, inspect_module_dependencies,
 };
 pub use dialogues::analyze_dialogues;
-pub use hashing::{HashProgress, ModuleFingerprint, hash_module_file};
+pub use hashing::{AnalysisPhase, HashProgress, ModuleFingerprint, hash_module_file};
 pub use model::{ModelCacheEntry, build_model_preview, cached_model_preview};
 pub use project::{PROJECT_FILE_VERSION, ReadonlyProjectDraft, ValidatedProjectPaths};
 pub use scripts::analyze_scripts;

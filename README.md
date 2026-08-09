@@ -10,8 +10,9 @@ NWN restent strictement en lecture seule : l'application ouvre une copie de trav
 ressources et applique les modifications dans un overlay transactionnel séparé avant de construire
 un nouveau `.mod` ou de déployer explicitement des fichiers dans `development`.
 
-Le contexte complet est dans [`CONTEXT.md`](CONTEXT.md) et le séquencement dans
-[`CONSTRUCTION_PLAN.md`](CONSTRUCTION_PLAN.md).
+Le contexte complet est dans [`CONTEXT.md`](CONTEXT.md), le séquencement dans
+[`CONSTRUCTION_PLAN.md`](CONSTRUCTION_PLAN.md) et la prochaine qualification dans
+[`docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md`](docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md).
 
 ## État actuel
 
@@ -21,9 +22,14 @@ NSS, la compilation NCS liée aux includes exacts, l'édition 2D des zones et la
 nouveau MOD. La Phase 3 est exécutable jusqu’au Lot 25 : création de module et de zones, palettes,
 walkmeshes, contenus personnalisés, builds reproductibles, synchronisation Toolset et migrations de
 projets. L’assistance IA propose uniquement des opérations GFF/NSS bornées, prévisualisées contre
-les octets courants et confirmées par empreinte avant application annulable. Tous les lots planifiés
-sont implémentés ; les dernières preuves externes Toolset/NWN restent à observer manuellement sur
-un environnement moteur fonctionnel.
+les octets courants et confirmées par empreinte avant application annulable. Les Lots 36 à 39
+ajoutent les audits de dépendances, le cache persistant de l'installation, la progression par
+phases, la qualification de release, les manifestes SHA-256, le chargement paresseux de
+Monaco/React Flow et des budgets bloquants. Ces lots sont implémentés. Le périmètre logiciel local
+du Lot 40 est également livré : SBOM CycloneDX, manifeste de distribution, checksums, signature
+conditionnelle et workflow manuel protégé. La qualification client NWN WOK/PWK/DWK passe. Son
+verdict reste `BLOQUÉ_EXTERNE` jusqu’au certificat, au profil Windows propre et à l’autorisation de
+publication.
 Le shell Tauri/React calcule l'empreinte d'une copie `.mod`, résout
 son catalogue MOD/HAK/override/development/patch/KEY-BIF et explique la provenance de chaque
 version. L'explorateur paginé ouvre à la demande les GFF, TLK et 2DA, ou un aperçu binaire pour les
@@ -65,7 +71,9 @@ Les revues de sortie et leurs limites sont consignées dans
 [`docs/validation/lot20-exit-review.md`](docs/validation/lot20-exit-review.md), puis
 [`docs/validation/lot21-lot22-exit-review.md`](docs/validation/lot21-lot22-exit-review.md) et
 [`docs/validation/lot23-lot24-exit-review.md`](docs/validation/lot23-lot24-exit-review.md), puis
-[`docs/validation/lot25-exit-review.md`](docs/validation/lot25-exit-review.md).
+[`docs/validation/lot25-exit-review.md`](docs/validation/lot25-exit-review.md) et
+[`docs/validation/lot36-lot39-exit-review.md`](docs/validation/lot36-lot39-exit-review.md), puis
+[`docs/validation/lot40-exit-review.md`](docs/validation/lot40-exit-review.md).
 L'état précis des Lots 11 à 25, les contrôles d'oracle et l'ordre restant sont dans
 [`docs/validation/phase2-phase3-foundation-review.md`](docs/validation/phase2-phase3-foundation-review.md).
 La [documentation complète utilisateur et technique en HTML](docs/OpenNever_Forge_Manuel_Complet.html)
@@ -91,6 +99,22 @@ pnpm build
 cargo test --workspace
 pnpm tauri dev
 ```
+
+La porte locale complète de candidate Windows s'exécute avec :
+
+```powershell
+./scripts/verify_release.ps1 -ExpectedVersion 0.1.0
+./scripts/verify_distribution.ps1 -ExpectedVersion 0.1.0
+```
+
+Elle produit `target/release/release-manifest.json`, `target/release/SHA256SUMS` et les SBOM dans
+`target/release/sbom` après les audits, tests, budgets, builds Tauri et MCP. Le manifeste indique
+explicitement si l’arbre est sale et si les binaires sont signés. Les modes `-RequireClean` et
+`-RequireSigned` bloquent une promotion incomplète.
+
+La publication est préparée par le workflow manuel `.github/workflows/release.yml`. Elle exige un
+tag préexistant cohérent, un certificat injecté par l’environnement protégé `release-signing` et une
+demande explicite de brouillon. Un test local ne crée jamais de tag, de push ou de GitHub Release.
 
 Le module de test local doit rester sous `.tmp/` ou `local-data/`, tous deux ignorés par Git.
 

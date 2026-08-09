@@ -1,0 +1,172 @@
+name: Signed Release Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version exacte du produit, sans préfixe v
+        required: true
+        default: 0.1.0
+        type: string
+      tag:
+        description: Tag existant, déjà autorisé et pointant sur le commit à construire
+        required: true
+        default: v0.1.0
+        type: string
+      timestamp_url:
+        description: Service RFC 3161 approuvé
+        required: true
+        default: http://timestamp.digicert.com
+        type: string
+      release_notes_path:
+        description: Notes de version suivies dans le dépôt
+        required: true
+        default: docs/releases/v0.1.0.md
+        type: string
+      create_draft_release:
+        description: Créer et revérifier une GitHub Release brouillon
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: signed-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: windows-latest
+    environment: release-signing
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+      - name: Validate explicit tag and version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:RELEASE_TAG -ne "v$($env:RELEASE_VERSION)") {
+            throw "Le tag doit être exactement v$($env:RELEASE_VERSION)."
+          }
+          $tags = @(git tag --points-at HEAD)
+          if ($tags -notcontains $env:RELEASE_TAG) {
+            throw "Le tag $($env:RELEASE_TAG) ne pointe pas sur le commit extrait."
+          }
+          if (-not (Test-Path -LiteralPath '${{ inputs.release_notes_path }}' -PathType Leaf)) {
+            throw 'Le fichier de notes de version est absent.'
+          }
+      - name: Install deterministic dependencies and SBOM tool
+        run: |
+          pnpm install --frozen-lockfile
+          cargo install --locked cargo-cyclonedx --version 0.5.9
+          cargo install --locked cargo-deny --version 0.20.2
+      - name: Import code-signing certificate
+        shell: pwsh
+        env:
+          PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          EXPECTED_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PFX_BASE64) -or
+              [string]::IsNullOrWhiteSpace($env:PFX_PASSWORD) -or
+              [string]::IsNullOrWhiteSpace($env:EXPECTED_THUMBPRINT)) {
+            throw 'Les trois secrets de signature Windows sont requis.'
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'opennever-signing.pfx'
+          try {
+            [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:PFX_BASE64))
+            $password = ConvertTo-SecureString $env:PFX_PASSWORD -AsPlainText -Force
+            $certificate = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My `
+              -Password $password -Exportable:$false
+            if ($certificate.Thumbprint -ne $env:EXPECTED_THUMBPRINT.ToUpperInvariant()) {
+              throw 'L’empreinte du certificat importé ne correspond pas au secret attendu.'
+            }
+          }
+          finally {
+            if (Test-Path -LiteralPath $pfxPath) { Remove-Item -LiteralPath $pfxPath -Force }
+          }
+      - name: Build, sign and verify release
+        shell: pwsh
+        env:
+          SIGNING_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+        run: |
+          ./scripts/verify_release.ps1 -ExpectedVersion '${{ inputs.version }}' -RequireClean -RequireSigned `
+            -SigningCertificateThumbprint $env:SIGNING_THUMBPRINT `
+            -TimestampUrl '${{ inputs.timestamp_url }}'
+      - name: Upload signed candidate
+        uses: actions/upload-artifact@v6
+        with:
+          name: opennever-forge-${{ inputs.version }}-signed
+          if-no-files-found: error
+          path: |
+            target/release/opennever-forge-desktop.exe
+            target/release/opennever-mcp.exe
+            target/release/bundle/nsis/*.exe
+            target/release/release-manifest.json
+            target/release/SHA256SUMS
+            target/release/sbom/*.cdx.json
+      - name: Create authorized draft release
+        if: ${{ inputs.create_draft_release }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          $assets = @(
+            'target/release/opennever-forge-desktop.exe',
+            'target/release/opennever-mcp.exe',
+            'target/release/release-manifest.json',
+            'target/release/SHA256SUMS'
+          )
+          $assets += @(Get-ChildItem target/release/bundle/nsis/*.exe | ForEach-Object FullName)
+          $assets += @(Get-ChildItem target/release/sbom/*.cdx.json | ForEach-Object FullName)
+          $arguments = @(
+            'release', 'create', $env:RELEASE_TAG,
+            '--verify-tag', '--draft',
+            '--title', "OpenNever Forge $($env:RELEASE_VERSION)",
+            '--notes-file', '${{ inputs.release_notes_path }}'
+          ) + $assets
+          gh @arguments
+          if ($LASTEXITCODE -ne 0) { throw 'La création du brouillon GitHub a échoué.' }
+      - name: Redownload and verify draft assets
+        if: ${{ inputs.create_draft_release }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $download = Join-Path $env:RUNNER_TEMP 'opennever-redownload'
+          New-Item -ItemType Directory -Force -Path $download | Out-Null
+          gh release download $env:RELEASE_TAG --dir $download
+          if ($LASTEXITCODE -ne 0) { throw 'Le retéléchargement du brouillon a échoué.' }
+          ./scripts/verify_distribution.ps1 -ArtifactRoot $download -ExpectedVersion '${{ inputs.version }}' `
+            -RequireClean -RequireSigned | Format-List
+      - name: Remove imported certificate
+        if: ${{ always() }}
+        shell: pwsh
+        env:
+          SIGNING_THUMBPRINT: ${{ secrets.WINDOWS_CERTIFICATE_THUMBPRINT }}
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:SIGNING_THUMBPRINT)) {
+            $path = "Cert:\CurrentUser\My\$($env:SIGNING_THUMBPRINT)"
+            if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+          }

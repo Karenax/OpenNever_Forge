@@ -8,12 +8,45 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 const HASH_BUFFER_SIZE: usize = 1024 * 1024;
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AnalysisPhase {
+    #[default]
+    Hashing,
+    Inventory,
+    Dependencies,
+    ResourceCatalog,
+    StructuredResources,
+    Scripts,
+    Dialogues,
+    World,
+    Persisting,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct HashProgress {
     pub bytes_read: u64,
     pub total_bytes: u64,
     pub percent: f64,
+    #[serde(default)]
+    pub phase: AnalysisPhase,
+}
+
+impl HashProgress {
+    pub fn stage(phase: AnalysisPhase, percent: f64) -> Self {
+        Self {
+            bytes_read: 0,
+            total_bytes: 0,
+            percent,
+            phase,
+        }
+    }
+
+    pub(crate) fn scaled(mut self, start: f64, end: f64) -> Self {
+        self.percent = start + (end - start) * (self.percent / 100.0);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -93,6 +126,7 @@ fn progress(bytes_read: u64, total_bytes: u64) -> HashProgress {
         bytes_read,
         total_bytes,
         percent,
+        phase: AnalysisPhase::Hashing,
     }
 }
 

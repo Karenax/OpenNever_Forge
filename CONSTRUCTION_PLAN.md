@@ -409,6 +409,58 @@ NSS→NCS et l’intégrité du module utilisateur sont contrôlés dans
 moteur restent des contrôles externes : Ollama local dépasse actuellement le délai borné et le
 témoin `nwserver` local reste affecté par l’arrêt environnemental déjà documenté.
 
+## 7 ter. Phase 5 — stabilisation et candidate mesurée
+
+Ordre de livraison Lots 36 à 39 :
+
+1. **Lot 36** — CI bloquante, correction Clippy, audits npm/Rust, politique de licences et build
+   Windows dans la chaîne d'intégration ;
+2. **Lot 37** — cache persistant du catalogue d'installation, invalidation, progression par phases
+   et benchmark reproductible sur module utilisateur ;
+3. **Lot 38** — scénario de release complet, manifeste SHA-256, corpus synthétique et diagnostic
+   moteur enrichi sans modifier les sources NWN ;
+4. **Lot 39** — extraction de modules backend/frontend, chargement paresseux des vues lourdes et
+   budgets automatiques de bundle et de taille de sources.
+
+**Statut au 9 août 2026 : Lots 36 à 39 implémentés et qualifiés localement.** Le cache chaud
+conserve exactement les 113 655 ressources du corpus utilisateur et ramène l'analyse release à
+2,6–3,0 secondes après un premier passage de 5,1 secondes. Monaco et React Flow sont des chunks
+différés. La CI construit l'exécutable, l'installateur NSIS et le compagnon MCP, puis publie un
+artefact interne accompagné de son manifeste. La signature Authenticode, la création d'un tag et
+la publication GitHub restent des opérations de distribution explicitement hors de cette
+implémentation locale. Le harnais `nwserver` utilise maintenant le dossier de travail `bin/win32` :
+le témoin écoute sur 5139 et l'overlay WOK/PWK/DWK sur 5140, avec source intacte. La connexion d'un
+client et l'observation en jeu restent réservées au Lot 40.
+
+## 7 quater. Phase 6 — qualification moteur et publication contrôlée
+
+### Lot 40 — candidate signée, acceptation externe et distribution
+
+**Statut au 9 août 2026 : périmètre logiciel exécuté, verdict `BLOQUÉ_EXTERNE`.** Le plan exécutable
+est dans `docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md` et les preuves réellement observées dans
+`docs/validation/lot40-exit-review.md`.
+
+Objectif : produire depuis un commit propre une candidate Windows traçable, accompagnée de son
+manifeste final, de sa SBOM et de ses checksums, la signer, la qualifier sur un environnement NWN
+fonctionnel et la publier uniquement après autorisation explicite.
+
+Ordre d'exécution :
+
+1. **40.0 — gel et provenance** : version, commit propre, double build et toolchains consignées ;
+2. **40.1 — métadonnées de distribution** : manifeste final, SBOM et fichier de checksums ;
+3. **40.3 — moteur** : témoin à l'écoute, overlay WOK/PWK/DWK, connexion client et source intacte ;
+4. **40.2 — Authenticode** : signature des exécutables puis de l'installeur, horodatage et
+   vérification de chaîne ;
+5. **40.4 — non-régression** : installation propre, portable, analyse, édition, build et cycle
+   Toolset rejoué sur une copie ;
+6. **40.5 — publication** : brouillon GitHub autorisé, retéléchargement, comparaison et publication.
+
+Porte de sortie : G0 à G6 sont prouvées. G1 et G2 passent localement ; G4 passe après connexion du
+client Steam, observation du WOK, du PWK et de la porte DWK fermée puis ouverte jusqu’au chargement
+d’une autre zone. L’arbre encore sale, le certificat absent, le profil Windows non isolé et la
+publication non autorisée laissent le lot `BLOQUÉ_EXTERNE`; aucune de ces conditions n'est convertie
+en réussite. Le Lot 40 n'ajoute aucun nouveau format, éditeur ou pouvoir IA.
+
 ## 8. Chantiers transversaux obligatoires
 
 ### Tests et corpus
@@ -505,15 +557,19 @@ Ces choix ne bloquent pas la rédaction du plan mais bloquent certains commits :
 
 ## 12. Prochaine action recommandée
 
-Le **plan de développement des Lots 0 à 25 est terminé**. Préparer la candidate release Windows,
-conserver les résultats de la validation synthétique sans Aurora et ne fermer les deux acceptations
-externes suivantes qu’après observation réelle :
+Les Lots 0 à 39 sont implémentés. Le **Lot 40 a exécuté tout son périmètre logiciel local** : porte
+release, SBOM CycloneDX, manifeste schéma 2, checksums, signature conditionnelle, vérification hors
+workspace, workflow manuel protégé et qualification moteur réelle, client compris. Le verdict reste
+`BLOQUÉ_EXTERNE`.
 
-1. rejouer `scripts/validate_nwn_runtime.ps1` sur un profil où le témoin `nwserver` atteint l’écoute,
-   puis confirmer le chargement client du module construit ;
-2. contrôler un cycle Toolset réel comparer → synchroniser → compiler NSS en NCS → sauvegarder →
-   fermer → rouvrir.
+Prochaines actions, dans cet ordre :
 
-Ces contrôles ne cachent plus de développement planifié. Leur statut reste explicitement
-**inconclusif/non observé** dans l’environnement actuel ; aucun succès moteur ou Toolset ne doit être
-inventé. Le détail est maintenu dans `docs/validation/phase2-phase3-foundation-review.md`.
+1. autoriser séparément l’intégration Git des Lots 36 à 40 afin d’obtenir un commit propre et un tag
+   explicite ;
+2. fournir un certificat Authenticode valide avec horodatage RFC 3161 ;
+3. qualifier l’installeur signé et sa désinstallation sur un profil Windows propre, puis rejouer le
+   cycle Toolset sur cette candidate exacte ;
+4. autoriser séparément le brouillon GitHub, son retéléchargement contrôlé et sa publication.
+
+Voir `docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md` pour les règles d’arrêt et
+`docs/validation/lot40-exit-review.md` pour la matrice G0–G6 actuelle.

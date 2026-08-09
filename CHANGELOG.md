@@ -6,6 +6,22 @@ Tous les changements notables du projet sont consignés ici.
 
 ### Added
 
+- Lot 36 : CI Windows étendue au build Tauri/MCP et aux artefacts, audit frontend bloquant,
+  contrôles RustSec/cargo-deny et politique explicite de licences et de sources Cargo.
+- Lot 37 : cache JSON versionné du catalogue KEY/BIF/override avec signature des sources,
+  invalidation automatique, état visible et progression d'analyse par phases ; exemple de
+  benchmark reproductible froid/chaud.
+- Lot 38 : porte `verify_release.ps1`, manifeste de candidate avec tailles et SHA-256, et diagnostic
+  `nwserver` enrichi du code hexadécimal et de l'événement Application Error sans écriture source ;
+  le serveur est lancé depuis son dossier `bin/win32`, condition nécessaire à son écoute correcte.
+- Lot 39 : Monaco NWScript et graphe React Flow chargés à la demande, module backend de cache
+  extrait et budgets bloquants pour bundle, CSS et grands fichiers sources.
+- Lot 40 : chaîne locale de distribution avec 17 SBOM CycloneDX, manifeste schéma 2, checksums,
+  validation hors workspace, signature Authenticode conditionnelle et workflow GitHub manuel
+  protégé. Le serveur NWN réel, l’overlay et la qualification client WOK/PWK/DWK passent, y compris
+  la porte fermée puis ouverte ; la signature, le profil Windows propre et la publication restent
+  des prérequis externes bloquants.
+
 - Phase 2 : espace d'édition transactionnel lié à l'empreinte source, commandes typées,
   prévisualisation, journal append-only et undo/redo restaurant aussi les octets stagés.
 - Writers GFF V3.2 et ERF/MOD/HAK déterministes avec round-trip, suppression réversible et

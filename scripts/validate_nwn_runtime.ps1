@@ -34,6 +34,10 @@ $serverPath = Join-Path $NwnRoot 'bin\win32\nwserver.exe'
 if (-not (Test-Path -LiteralPath $serverPath -PathType Leaf)) {
     throw "nwserver.exe introuvable : $serverPath"
 }
+$serverWorkingDirectory = Split-Path -Parent $serverPath
+$serverFile = Get-Item -LiteralPath $serverPath
+$serverVersion = $serverFile.VersionInfo.FileVersion
+$serverSha256 = (Get-FileHash -LiteralPath $serverPath -Algorithm SHA256).Hash
 
 $modulesDirectory = Join-Path $validationRoot 'modules'
 $developmentDirectory = Join-Path $validationRoot 'development'
@@ -84,17 +88,39 @@ function Invoke-NwnServerProbe {
         '-port', $ProbePort.ToString([System.Globalization.CultureInfo]::InvariantCulture),
         '-servername', "OpenNeverValidation-$Label"
     )
-    $server = Start-Process -FilePath $serverPath -ArgumentList $arguments -WindowStyle Hidden -PassThru
+    $startedAt = Get-Date
+    $server = Start-Process -FilePath $serverPath -WorkingDirectory $serverWorkingDirectory `
+        -ArgumentList $arguments -WindowStyle Hidden -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     try {
         while ([DateTime]::UtcNow -lt $deadline) {
             Start-Sleep -Milliseconds 250
             $server.Refresh()
             if ($server.HasExited) {
+                $unsignedExitCode = [BitConverter]::ToUInt32([BitConverter]::GetBytes([int32]$server.ExitCode), 0)
+                $crashEvent = try {
+                    Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $startedAt.AddSeconds(-2) } -MaxEvents 50 -ErrorAction Stop |
+                        Where-Object { $_.Message -match 'nwserver\.exe' } |
+                        Select-Object -First 1 |
+                        ForEach-Object {
+                            [pscustomobject]@{
+                                Provider = $_.ProviderName
+                                EventId = $_.Id
+                                TimeCreated = $_.TimeCreated
+                                Message = $_.Message
+                            }
+                        }
+                }
+                catch {
+                    $null
+                }
                 return [pscustomobject]@{
                     Label = $Label
                     Passed = $false
                     Detail = "NWServer arrêté avant écoute (code $($server.ExitCode))."
+                    ExitCode = $server.ExitCode
+                    ExitCodeHex = ('0x{0:X8}' -f $unsignedExitCode)
+                    CrashEvent = $crashEvent
                 }
             }
             $endpoint = Get-NetUDPEndpoint -LocalPort $ProbePort -ErrorAction SilentlyContinue |
@@ -125,29 +151,37 @@ function Invoke-NwnServerProbe {
 
 $baseline = Invoke-NwnServerProbe -Label 'baseline' -ProbePort $Port
 $overlayManifest = @()
-if ($null -ne $resolvedModule) {
-    $dependencyRoot = if ([string]::IsNullOrWhiteSpace($DependencyUserDirectory)) {
-        $validationRoot
-    }
-    else {
-        (Resolve-Path -LiteralPath $DependencyUserDirectory).Path
-    }
-    Push-Location $repositoryRoot
-    try {
-        $manifestJson = & cargo run --quiet -p aurora-project --example build_walkmesh_runtime_overlay -- `
-            $resolvedModule $NwnRoot $dependencyRoot $developmentDirectory $WokResRef $PwkResRef $DwkResRef
-        if ($LASTEXITCODE -ne 0) {
-            throw "La construction de l'overlay WOK/PWK/DWK a échoué ($LASTEXITCODE)."
-        }
-        $overlayManifest = $manifestJson | ConvertFrom-Json
-    }
-    finally {
-        Pop-Location
-    }
+$overlay = [pscustomobject]@{
+    Label = 'walkmesh-overlay'
+    Passed = $false
+    Detail = 'Contrôle non exécuté : le témoin doit atteindre l’écoute en premier.'
 }
-$overlay = Invoke-NwnServerProbe -Label 'walkmesh-overlay' -ProbePort ($Port + 1)
+if ($baseline.Passed) {
+    if ($null -ne $resolvedModule) {
+        $dependencyRoot = if ([string]::IsNullOrWhiteSpace($DependencyUserDirectory)) {
+            $validationRoot
+        }
+        else {
+            (Resolve-Path -LiteralPath $DependencyUserDirectory).Path
+        }
+        Push-Location $repositoryRoot
+        try {
+            $manifestJson = & cargo run --quiet -p aurora-project --example build_walkmesh_runtime_overlay -- `
+                $resolvedModule $NwnRoot $dependencyRoot $developmentDirectory $WokResRef $PwkResRef $DwkResRef
+            if ($LASTEXITCODE -ne 0) {
+                throw "La construction de l'overlay WOK/PWK/DWK a échoué ($LASTEXITCODE)."
+            }
+            $overlayManifest = $manifestJson | ConvertFrom-Json
+        }
+        finally {
+            Pop-Location
+        }
+    }
+    $overlay = Invoke-NwnServerProbe -Label 'walkmesh-overlay' -ProbePort ($Port + 1)
+}
 
 $sourceIntact = $true
+$sourceHashAfter = $sourceHashBefore
 if ($null -ne $resolvedModule) {
     $sourceHashAfter = (Get-FileHash -LiteralPath $resolvedModule -Algorithm SHA256).Hash
     $sourceIntact = $sourceHashBefore -eq $sourceHashAfter
@@ -169,7 +203,18 @@ else {
 [pscustomobject]@{
     Status = $status
     Module = $generatedModulePath
+    SourceModule = $resolvedModule
+    SourceSha256Before = $sourceHashBefore
+    SourceSha256After = $sourceHashAfter
     NwnServer = $serverPath
+    NwnServerVersion = $serverVersion
+    NwnServerSha256 = $serverSha256
+    NwnServerWorkingDirectory = $serverWorkingDirectory
+    ValidationUserDirectory = $validationRoot
+    Ports = [pscustomobject]@{
+        Baseline = $Port
+        Overlay = $Port + 1
+    }
     Baseline = $baseline
     Overlay = $overlay
     Walkmeshes = $overlayManifest

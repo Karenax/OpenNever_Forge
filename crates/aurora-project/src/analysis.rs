@@ -1,10 +1,10 @@
 use crate::{
-    DependencyRoots, DialogueIndex, DialogueIndexSummary, HashProgress, ModuleDependencyReport,
-    ModuleFingerprint, ResourceCatalog, ResourceCatalogSummary, ResourceManager,
-    ResourceManagerConfig, ScriptIndex, ScriptIndexSummary, StructuredResourceSummary, WorldIndex,
-    WorldSummary, analyze_dialogues, analyze_scripts, analyze_structured_resources, analyze_world,
-    compare_dependency_reports, fingerprint_module_dependencies, hash_module_file,
-    inspect_module_dependencies,
+    AnalysisPhase, DependencyRoots, DialogueIndex, DialogueIndexSummary, HashProgress,
+    ModuleDependencyReport, ModuleFingerprint, ResourceCatalog, ResourceCatalogCacheSummary,
+    ResourceCatalogSummary, ResourceManager, ResourceManagerConfig, ScriptIndex,
+    ScriptIndexSummary, StructuredResourceSummary, WorldIndex, WorldSummary, analyze_dialogues,
+    analyze_scripts, analyze_structured_resources, analyze_world, compare_dependency_reports,
+    fingerprint_module_dependencies, hash_module_file, inspect_module_dependencies,
 };
 use aurora_core::{AppError, AppResult, ErrorSeverity};
 use aurora_erf::{ContainerInventory, ContainerReader, ErfReader};
@@ -24,6 +24,8 @@ pub struct ModuleAnalysis {
     pub resource_catalog: ResourceCatalog,
     #[serde(default)]
     pub resource_catalog_summary: ResourceCatalogSummary,
+    #[serde(default)]
+    pub resource_catalog_cache: ResourceCatalogCacheSummary,
     #[serde(default)]
     pub structured_summary: StructuredResourceSummary,
     #[serde(skip, default)]
@@ -48,7 +50,13 @@ pub fn analyze_module_file<F>(
 where
     F: FnMut(HashProgress),
 {
-    analyze_module_file_with_roots(path, &DependencyRoots::default(), cancelled, on_progress)
+    analyze_module_file_with_cache(
+        path,
+        &DependencyRoots::default(),
+        None,
+        cancelled,
+        on_progress,
+    )
 }
 
 pub fn analyze_module_file_with_roots<F>(
@@ -60,7 +68,23 @@ pub fn analyze_module_file_with_roots<F>(
 where
     F: FnMut(HashProgress),
 {
-    let fingerprint = hash_module_file(path, cancelled, on_progress)?;
+    analyze_module_file_with_cache(path, roots, None, cancelled, on_progress)
+}
+
+pub fn analyze_module_file_with_cache<F>(
+    path: &Path,
+    roots: &DependencyRoots,
+    catalog_cache_path: Option<&Path>,
+    cancelled: &AtomicBool,
+    mut on_progress: F,
+) -> AppResult<ModuleAnalysis>
+where
+    F: FnMut(HashProgress),
+{
+    let fingerprint = hash_module_file(path, cancelled, |progress| {
+        on_progress(progress.scaled(0.0, 8.0))
+    })?;
+    on_progress(HashProgress::stage(AnalysisPhase::Inventory, 10.0));
     let reader = ErfReader::default();
     let inventory = reader.read_inventory(path, cancelled)?;
     let module_resources = inventory
@@ -92,6 +116,7 @@ where
     };
     let module_bytes = reader.read_resource(path, module_resource, cancelled)?;
     let module_info = read_module_info(&module_bytes, &format!("{}::module.ifo", path.display()))?;
+    on_progress(HashProgress::stage(AnalysisPhase::Dependencies, 18.0));
     let mut dependency_report = inspect_module_dependencies(&module_info, roots);
     fingerprint_module_dependencies(&mut dependency_report, cancelled)?;
     compare_dependency_reports(&mut dependency_report, None);
@@ -106,16 +131,24 @@ where
                 .map(std::path::PathBuf::from)
         })
         .collect();
-    let resource_catalog = ResourceManager::build(
+    on_progress(HashProgress::stage(AnalysisPhase::ResourceCatalog, 25.0));
+    let resource_build = ResourceManager::build_with_cache(
         &ResourceManagerConfig {
             module_path: path.to_path_buf(),
             hak_paths,
             game_install_path: roots.game_install_path.clone(),
             user_data_path: roots.user_data_path.clone(),
         },
+        catalog_cache_path,
         cancelled,
     )?;
+    let resource_catalog = resource_build.catalog;
+    let resource_catalog_cache = resource_build.cache;
     let resource_catalog_summary = resource_catalog.summary();
+    on_progress(HashProgress::stage(
+        AnalysisPhase::StructuredResources,
+        57.0,
+    ));
     let structured_summary = analyze_structured_resources(
         &resource_catalog,
         &module_info,
@@ -123,10 +156,13 @@ where
         roots,
         cancelled,
     );
+    on_progress(HashProgress::stage(AnalysisPhase::Scripts, 69.0));
     let script_index = analyze_scripts(&resource_catalog, cancelled);
     let script_index_summary = script_index.summary.clone();
+    on_progress(HashProgress::stage(AnalysisPhase::Dialogues, 77.0));
     let dialogue_index = analyze_dialogues(&resource_catalog, &dependency_report, roots, cancelled);
     let dialogue_index_summary = dialogue_index.summary.clone();
+    on_progress(HashProgress::stage(AnalysisPhase::World, 86.0));
     let world_index = analyze_world(
         &resource_catalog,
         &script_index,
@@ -144,6 +180,7 @@ where
         dependency_report,
         resource_catalog,
         resource_catalog_summary,
+        resource_catalog_cache,
         structured_summary,
         script_index,
         script_index_summary,

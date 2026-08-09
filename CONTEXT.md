@@ -2078,3 +2078,66 @@ restent identiques (594 030 octets, SHA-256
 détecté mais son seul modèle dépasse encore le délai synthétique de 45 secondes ; ce contrôle
 externe reste inconclusif et n’est pas transformé en réussite. Voir
 `docs/validation/lot35-exit-review.md`.
+
+### 36.13 Stabilisation, performance et candidate — Lots 36 à 39
+
+Le Lot 36 transforme les contrôles de livraison en portes bloquantes. La CI refuse désormais les
+avis de sécurité frontend de niveau faible ou supérieur, les vulnérabilités Rust connues, les
+licences non autorisées, les sources Cargo inconnues, les écarts Clippy, le dépassement des budgets
+et l'absence d'un artefact Windows. DOMPurify est résolu en version 3.4.13 au minimum par la
+configuration racine pnpm. Les avis Rust `unmaintained` transitifs imposés par la portabilité Linux
+de Tauri restent informatifs ; ils redeviennent bloquants dès qu'une crate du workspace en dépend
+directement.
+
+Le Lot 37 ajoute un catalogue d'installation persistant, versionné et séparé des données NWN. Sa
+signature couvre chemins, tailles et dates de modification des KEY, BIF et overrides réellement
+lus. Une signature ou un schéma différent provoque une reconstruction ; un JSON incomplet est
+ignoré sans affecter les sources. Les ressources MOD, HAK et `development` restent relues à chaque
+analyse afin de conserver leur priorité courante. La progression expose maintenant les phases
+empreinte, inventaire, dépendances, catalogue, GFF, scripts, dialogues, monde et persistance. Sur
+la copie locale de `The Dark Ranger's Treasure.mod`, trois passages release donnent 5 081 ms à
+froid, puis 2 992 ms et 2 636 ms à chaud, pour le même résultat de 113 655 ressources, 4 233
+scripts, 42 dialogues et 3 zones.
+
+Le Lot 38 fournit `scripts/verify_release.ps1` et un manifeste JSON d'artefacts avec taille et
+SHA-256. La candidate reste explicitement non signée tant qu'aucun certificat n'est configuré.
+Le harnais NWN capture le code hexadécimal et l'événement Windows d'un crash. Son premier contrôle
+du 9 août 2026 quittait avec `0xC0000005`, car `nwserver.exe` héritait à tort du dossier de travail
+du dépôt. Une fois `Start-Process` fixé sur le dossier `bin/win32` du serveur, le même binaire Steam
+version `89.8193.37-17` atteint l'écoute pour le témoin sur 5139 et l'overlay sur 5140. Le verdict
+automatisé devient `PASS`, les trois walkmeshes sont produits et le module source reste intact.
+
+Le Lot 39 isole le cache backend, l'éditeur NWScript Monaco et le graphe React Flow. Ces deux
+surfaces frontend sont chargées uniquement à l'ouverture de leur vue. Un contrôle reproductible
+borne le chunk d'entrée, le plus gros chunk, le CSS et la croissance des trois monolithes encore
+identifiés (`App.tsx`, `commands.rs`, `aurora-edit/lib.rs`). Les budgets ne déclarent pas cette
+dette résolue : ils empêchent sa régression pendant les extractions suivantes.
+
+### 36.14 Exécution du Lot 40 — qualification moteur et publication contrôlée
+
+Le périmètre logiciel local du Lot 40 est implémenté. La porte release produit le desktop, le MCP et
+l’installeur NSIS, puis 17 SBOM CycloneDX, un manifeste de distribution schéma 2 et 20 checksums.
+Elle contrôle versions, commit, état Git, signatures, audits et budgets, et relit la candidate hors
+du workspace. Un workflow GitHub exclusivement manuel exige un tag cohérent et l’environnement
+protégé `release-signing`; il ne peut créer qu’un brouillon explicitement demandé avant de
+retélécharger et revérifier les artefacts.
+
+`RELEASE_VERIFICATION_PASS` et `DISTRIBUTION_VERIFICATION_PASS` sont observés sur la candidate
+locale `0.1.0`. Cette candidate reste honnêtement `dirty: true` et `signed: false`. Aucun certificat
+de signature de code avec clé privée n’est disponible ; les contrôles `-RequireClean` et
+`-RequireSigned` refusent donc sa promotion. Le portable exact démarre et répond, mais l’installeur
+n’est pas posé sur un profil propre afin de ne pas écraser l’installation utilisateur 0.1.0 déjà
+présente.
+
+Le serveur NWN demandé, version `89.8193.37-17`, écoute pour le témoin sur 5139 puis pour l’overlay
+WOK/PWK/DWK sur 5140, avec le module source byte-for-byte intact. Après libération de la clé CD, le
+client Steam se connecte au rejeu isolé sur 5142 et charge la zone : déplacement et limite WOK,
+placeable PWK non bloquant, porte DWK bloquante fermée puis franchissable ouverte jusqu’au chargement
+d’une autre zone sont observés sans crash. G4 passe intégralement.
+
+Le verdict du lot est `BLOQUÉ_EXTERNE`, pas `PASS`. Restent requis : un commit/tag propre autorisé,
+un certificat Authenticode horodaté, un profil Windows propre pour l’installation et le rejeu
+Toolset, puis une autorisation distincte de publication. Aucun certificat, mot de passe, token ou
+contenu NWN n’entre dans le dépôt ou les logs.
+Le plan est dans `docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md` et les preuves dans
+`docs/validation/lot40-exit-review.md`.

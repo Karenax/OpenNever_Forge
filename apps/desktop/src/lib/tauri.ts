@@ -224,6 +224,7 @@ export type HashProgress = {
   bytesRead: number;
   totalBytes: number;
   percent: number;
+  phase: "hashing" | "inventory" | "dependencies" | "resource_catalog" | "structured_resources" | "scripts" | "dialogues" | "world" | "persisting";
 };
 
 export type ModuleFingerprint = {
@@ -267,6 +268,12 @@ export type ModuleAnalysis = {
   moduleInfo: ModuleInfo;
   dependencyReport: ModuleDependencyReport;
   resourceCatalogSummary: ResourceCatalogSummary;
+  resourceCatalogCache: {
+    state: "disabled" | "hit" | "miss";
+    signature?: string | null;
+    path?: string | null;
+    gameResourceCount: number;
+  };
   structuredSummary: StructuredResourceSummary;
   scriptIndexSummary: ScriptIndexSummary;
   dialogueIndexSummary: DialogueIndexSummary;

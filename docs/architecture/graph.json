@@ -11,7 +11,7 @@
     },
     {
       "evidence": {
-        "line": 318,
+        "line": 320,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -29,7 +29,7 @@
     },
     {
       "evidence": {
-        "line": 1833,
+        "line": 1841,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -38,7 +38,7 @@
     },
     {
       "evidence": {
-        "line": 1101,
+        "line": 1104,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -47,7 +47,7 @@
     },
     {
       "evidence": {
-        "line": 308,
+        "line": 310,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -56,7 +56,7 @@
     },
     {
       "evidence": {
-        "line": 408,
+        "line": 410,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -65,7 +65,7 @@
     },
     {
       "evidence": {
-        "line": 388,
+        "line": 390,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -74,7 +74,7 @@
     },
     {
       "evidence": {
-        "line": 2012,
+        "line": 2020,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -83,7 +83,7 @@
     },
     {
       "evidence": {
-        "line": 448,
+        "line": 450,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -92,7 +92,7 @@
     },
     {
       "evidence": {
-        "line": 1169,
+        "line": 1172,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -101,7 +101,7 @@
     },
     {
       "evidence": {
-        "line": 1254,
+        "line": 1257,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -110,7 +110,7 @@
     },
     {
       "evidence": {
-        "line": 2016,
+        "line": 2024,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -119,16 +119,7 @@
     },
     {
       "evidence": {
-        "line": 2087,
-        "path": "apps/desktop/src/App.tsx"
-      },
-      "kind": "defined_in",
-      "source": "client_operation:apps/desktop/src/App.tsx:configureNwscriptMonaco",
-      "target": "file:apps/desktop/src/App.tsx"
-    },
-    {
-      "evidence": {
-        "line": 430,
+        "line": 432,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -137,7 +128,7 @@
     },
     {
       "evidence": {
-        "line": 1452,
+        "line": 1455,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -146,7 +137,7 @@
     },
     {
       "evidence": {
-        "line": 1880,
+        "line": 1888,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -155,7 +146,7 @@
     },
     {
       "evidence": {
-        "line": 1804,
+        "line": 1812,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -164,7 +155,7 @@
     },
     {
       "evidence": {
-        "line": 1876,
+        "line": 1884,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -173,7 +164,7 @@
     },
     {
       "evidence": {
-        "line": 506,
+        "line": 508,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -182,7 +173,7 @@
     },
     {
       "evidence": {
-        "line": 487,
+        "line": 489,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -191,7 +182,7 @@
     },
     {
       "evidence": {
-        "line": 1343,
+        "line": 1346,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -200,7 +191,7 @@
     },
     {
       "evidence": {
-        "line": 1370,
+        "line": 1373,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -209,7 +200,7 @@
     },
     {
       "evidence": {
-        "line": 419,
+        "line": 421,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -218,7 +209,7 @@
     },
     {
       "evidence": {
-        "line": 1554,
+        "line": 1557,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -263,7 +254,7 @@
     },
     {
       "evidence": {
-        "line": 375,
+        "line": 377,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -272,7 +263,7 @@
     },
     {
       "evidence": {
-        "line": 352,
+        "line": 354,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -290,7 +281,7 @@
     },
     {
       "evidence": {
-        "line": 295,
+        "line": 297,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -308,7 +299,7 @@
     },
     {
       "evidence": {
-        "line": 1999,
+        "line": 2007,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -317,7 +308,7 @@
     },
     {
       "evidence": {
-        "line": 466,
+        "line": 468,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -326,7 +317,7 @@
     },
     {
       "evidence": {
-        "line": 343,
+        "line": 345,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -362,7 +353,7 @@
     },
     {
       "evidence": {
-        "line": 291,
+        "line": 293,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -587,6 +578,15 @@
     },
     {
       "evidence": {
+        "line": 31,
+        "path": "apps/desktop/src/components/NwscriptEditor.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/NwscriptEditor.tsx:configureNwscriptMonaco",
+      "target": "file:apps/desktop/src/components/NwscriptEditor.tsx"
+    },
+    {
+      "evidence": {
         "line": 19,
         "path": "apps/desktop/src/lib/projectPreferences.ts"
       },
@@ -623,7 +623,7 @@
     },
     {
       "evidence": {
-        "line": 864,
+        "line": 871,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -632,7 +632,7 @@
     },
     {
       "evidence": {
-        "line": 810,
+        "line": 817,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -641,7 +641,7 @@
     },
     {
       "evidence": {
-        "line": 786,
+        "line": 793,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -650,7 +650,7 @@
     },
     {
       "evidence": {
-        "line": 741,
+        "line": 748,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -659,7 +659,7 @@
     },
     {
       "evidence": {
-        "line": 572,
+        "line": 579,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -668,7 +668,7 @@
     },
     {
       "evidence": {
-        "line": 986,
+        "line": 993,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -677,7 +677,7 @@
     },
     {
       "evidence": {
-        "line": 658,
+        "line": 665,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -686,7 +686,7 @@
     },
     {
       "evidence": {
-        "line": 637,
+        "line": 644,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -695,7 +695,7 @@
     },
     {
       "evidence": {
-        "line": 827,
+        "line": 834,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -704,7 +704,7 @@
     },
     {
       "evidence": {
-        "line": 888,
+        "line": 895,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -713,7 +713,7 @@
     },
     {
       "evidence": {
-        "line": 651,
+        "line": 658,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -722,7 +722,7 @@
     },
     {
       "evidence": {
-        "line": 587,
+        "line": 594,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -731,7 +731,7 @@
     },
     {
       "evidence": {
-        "line": 803,
+        "line": 810,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -740,7 +740,7 @@
     },
     {
       "evidence": {
-        "line": 552,
+        "line": 559,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -749,7 +749,7 @@
     },
     {
       "evidence": {
-        "line": 832,
+        "line": 839,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -758,7 +758,7 @@
     },
     {
       "evidence": {
-        "line": 844,
+        "line": 851,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -767,7 +767,7 @@
     },
     {
       "evidence": {
-        "line": 857,
+        "line": 864,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -776,7 +776,7 @@
     },
     {
       "evidence": {
-        "line": 644,
+        "line": 651,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -785,7 +785,7 @@
     },
     {
       "evidence": {
-        "line": 993,
+        "line": 1000,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -794,7 +794,7 @@
     },
     {
       "evidence": {
-        "line": 613,
+        "line": 620,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -803,7 +803,7 @@
     },
     {
       "evidence": {
-        "line": 961,
+        "line": 968,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -812,7 +812,7 @@
     },
     {
       "evidence": {
-        "line": 926,
+        "line": 933,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -821,7 +821,7 @@
     },
     {
       "evidence": {
-        "line": 934,
+        "line": 941,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -830,7 +830,7 @@
     },
     {
       "evidence": {
-        "line": 956,
+        "line": 963,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -839,7 +839,7 @@
     },
     {
       "evidence": {
-        "line": 951,
+        "line": 958,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -848,7 +848,7 @@
     },
     {
       "evidence": {
-        "line": 580,
+        "line": 587,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -857,7 +857,7 @@
     },
     {
       "evidence": {
-        "line": 682,
+        "line": 689,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -866,7 +866,7 @@
     },
     {
       "evidence": {
-        "line": 675,
+        "line": 682,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -875,7 +875,7 @@
     },
     {
       "evidence": {
-        "line": 668,
+        "line": 675,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -884,7 +884,7 @@
     },
     {
       "evidence": {
-        "line": 663,
+        "line": 670,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -893,7 +893,7 @@
     },
     {
       "evidence": {
-        "line": 793,
+        "line": 800,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -902,7 +902,7 @@
     },
     {
       "evidence": {
-        "line": 545,
+        "line": 552,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -911,7 +911,7 @@
     },
     {
       "evidence": {
-        "line": 557,
+        "line": 564,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -920,7 +920,7 @@
     },
     {
       "evidence": {
-        "line": 883,
+        "line": 890,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -929,7 +929,7 @@
     },
     {
       "evidence": {
-        "line": 839,
+        "line": 846,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -938,7 +938,7 @@
     },
     {
       "evidence": {
-        "line": 731,
+        "line": 738,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -947,7 +947,7 @@
     },
     {
       "evidence": {
-        "line": 921,
+        "line": 928,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -956,7 +956,7 @@
     },
     {
       "evidence": {
-        "line": 711,
+        "line": 718,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -965,7 +965,7 @@
     },
     {
       "evidence": {
-        "line": 966,
+        "line": 973,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -974,7 +974,7 @@
     },
     {
       "evidence": {
-        "line": 946,
+        "line": 953,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -983,7 +983,7 @@
     },
     {
       "evidence": {
-        "line": 901,
+        "line": 908,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -992,7 +992,7 @@
     },
     {
       "evidence": {
-        "line": 971,
+        "line": 978,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1001,7 +1001,7 @@
     },
     {
       "evidence": {
-        "line": 911,
+        "line": 918,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1010,7 +1010,7 @@
     },
     {
       "evidence": {
-        "line": 620,
+        "line": 627,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1019,7 +1019,7 @@
     },
     {
       "evidence": {
-        "line": 758,
+        "line": 765,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1028,7 +1028,7 @@
     },
     {
       "evidence": {
-        "line": 941,
+        "line": 948,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1037,7 +1037,7 @@
     },
     {
       "evidence": {
-        "line": 1053,
+        "line": 1060,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1046,7 +1046,7 @@
     },
     {
       "evidence": {
-        "line": 726,
+        "line": 733,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1055,7 +1055,7 @@
     },
     {
       "evidence": {
-        "line": 689,
+        "line": 696,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1064,7 +1064,7 @@
     },
     {
       "evidence": {
-        "line": 852,
+        "line": 859,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1073,7 +1073,7 @@
     },
     {
       "evidence": {
-        "line": 716,
+        "line": 723,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1082,7 +1082,7 @@
     },
     {
       "evidence": {
-        "line": 976,
+        "line": 983,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1091,7 +1091,7 @@
     },
     {
       "evidence": {
-        "line": 597,
+        "line": 604,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1100,7 +1100,7 @@
     },
     {
       "evidence": {
-        "line": 1030,
+        "line": 1037,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1109,7 +1109,7 @@
     },
     {
       "evidence": {
-        "line": 736,
+        "line": 743,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1118,7 +1118,7 @@
     },
     {
       "evidence": {
-        "line": 773,
+        "line": 780,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1127,7 +1127,7 @@
     },
     {
       "evidence": {
-        "line": 916,
+        "line": 923,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1136,7 +1136,7 @@
     },
     {
       "evidence": {
-        "line": 893,
+        "line": 900,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1145,7 +1145,7 @@
     },
     {
       "evidence": {
-        "line": 906,
+        "line": 913,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1154,7 +1154,7 @@
     },
     {
       "evidence": {
-        "line": 567,
+        "line": 574,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1163,7 +1163,7 @@
     },
     {
       "evidence": {
-        "line": 871,
+        "line": 878,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1172,7 +1172,7 @@
     },
     {
       "evidence": {
-        "line": 778,
+        "line": 785,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1181,7 +1181,7 @@
     },
     {
       "evidence": {
-        "line": 1042,
+        "line": 1049,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1190,7 +1190,7 @@
     },
     {
       "evidence": {
-        "line": 822,
+        "line": 829,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1199,7 +1199,7 @@
     },
     {
       "evidence": {
-        "line": 981,
+        "line": 988,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1208,7 +1208,7 @@
     },
     {
       "evidence": {
-        "line": 704,
+        "line": 711,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1217,7 +1217,7 @@
     },
     {
       "evidence": {
-        "line": 798,
+        "line": 805,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1226,7 +1226,7 @@
     },
     {
       "evidence": {
-        "line": 694,
+        "line": 701,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1235,7 +1235,7 @@
     },
     {
       "evidence": {
-        "line": 721,
+        "line": 728,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1244,7 +1244,7 @@
     },
     {
       "evidence": {
-        "line": 765,
+        "line": 772,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1253,7 +1253,7 @@
     },
     {
       "evidence": {
-        "line": 1014,
+        "line": 1021,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1262,7 +1262,7 @@
     },
     {
       "evidence": {
-        "line": 1008,
+        "line": 1015,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1271,7 +1271,7 @@
     },
     {
       "evidence": {
-        "line": 632,
+        "line": 639,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1280,7 +1280,7 @@
     },
     {
       "evidence": {
-        "line": 998,
+        "line": 1005,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1289,7 +1289,7 @@
     },
     {
       "evidence": {
-        "line": 627,
+        "line": 634,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1298,7 +1298,7 @@
     },
     {
       "evidence": {
-        "line": 1024,
+        "line": 1031,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1307,7 +1307,7 @@
     },
     {
       "evidence": {
-        "line": 605,
+        "line": 612,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1316,7 +1316,7 @@
     },
     {
       "evidence": {
-        "line": 878,
+        "line": 885,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1325,7 +1325,7 @@
     },
     {
       "evidence": {
-        "line": 815,
+        "line": 822,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1334,7 +1334,7 @@
     },
     {
       "evidence": {
-        "line": 753,
+        "line": 760,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1343,7 +1343,7 @@
     },
     {
       "evidence": {
-        "line": 562,
+        "line": 569,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1352,7 +1352,7 @@
     },
     {
       "evidence": {
-        "line": 748,
+        "line": 755,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1361,7 +1361,7 @@
     },
     {
       "evidence": {
-        "line": 699,
+        "line": 706,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "defined_in",
@@ -1379,7 +1379,7 @@
     },
     {
       "evidence": {
-        "line": 195,
+        "line": 196,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1487,7 +1487,7 @@
     },
     {
       "evidence": {
-        "line": 1116,
+        "line": 1119,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1496,7 +1496,7 @@
     },
     {
       "evidence": {
-        "line": 1140,
+        "line": 1143,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1505,7 +1505,7 @@
     },
     {
       "evidence": {
-        "line": 1130,
+        "line": 1133,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1514,7 +1514,7 @@
     },
     {
       "evidence": {
-        "line": 1136,
+        "line": 1139,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1523,7 +1523,7 @@
     },
     {
       "evidence": {
-        "line": 1144,
+        "line": 1147,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1532,7 +1532,7 @@
     },
     {
       "evidence": {
-        "line": 1110,
+        "line": 1113,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1541,7 +1541,7 @@
     },
     {
       "evidence": {
-        "line": 1124,
+        "line": 1127,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1550,7 +1550,7 @@
     },
     {
       "evidence": {
-        "line": 1330,
+        "line": 1333,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1559,7 +1559,7 @@
     },
     {
       "evidence": {
-        "line": 1655,
+        "line": 1669,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1568,7 +1568,7 @@
     },
     {
       "evidence": {
-        "line": 1244,
+        "line": 1247,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1577,7 +1577,7 @@
     },
     {
       "evidence": {
-        "line": 1188,
+        "line": 1191,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1586,7 +1586,7 @@
     },
     {
       "evidence": {
-        "line": 1410,
+        "line": 1413,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1595,7 +1595,7 @@
     },
     {
       "evidence": {
-        "line": 1857,
+        "line": 1865,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1604,16 +1604,7 @@
     },
     {
       "evidence": {
-        "line": 1783,
-        "path": "apps/desktop/src/App.tsx"
-      },
-      "kind": "defined_in",
-      "source": "component:apps/desktop/src/App.tsx:DialogueFlow",
-      "target": "file:apps/desktop/src/App.tsx"
-    },
-    {
-      "evidence": {
-        "line": 1753,
+        "line": 1767,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1622,7 +1613,7 @@
     },
     {
       "evidence": {
-        "line": 1789,
+        "line": 1797,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1631,7 +1622,7 @@
     },
     {
       "evidence": {
-        "line": 1866,
+        "line": 1874,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1640,7 +1631,7 @@
     },
     {
       "evidence": {
-        "line": 1798,
+        "line": 1806,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1649,7 +1640,7 @@
     },
     {
       "evidence": {
-        "line": 1725,
+        "line": 1739,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1658,7 +1649,7 @@
     },
     {
       "evidence": {
-        "line": 1779,
+        "line": 1793,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1667,7 +1658,7 @@
     },
     {
       "evidence": {
-        "line": 1735,
+        "line": 1749,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1685,7 +1676,7 @@
     },
     {
       "evidence": {
-        "line": 1818,
+        "line": 1826,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1694,7 +1685,7 @@
     },
     {
       "evidence": {
-        "line": 1896,
+        "line": 1904,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1703,7 +1694,7 @@
     },
     {
       "evidence": {
-        "line": 1148,
+        "line": 1151,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1721,7 +1712,7 @@
     },
     {
       "evidence": {
-        "line": 1845,
+        "line": 1853,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1730,7 +1721,7 @@
     },
     {
       "evidence": {
-        "line": 1823,
+        "line": 1831,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1739,7 +1730,7 @@
     },
     {
       "evidence": {
-        "line": 1164,
+        "line": 1167,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1802,7 +1793,7 @@
     },
     {
       "evidence": {
-        "line": 1064,
+        "line": 1067,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1829,7 +1820,7 @@
     },
     {
       "evidence": {
-        "line": 1562,
+        "line": 1565,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1901,7 +1892,7 @@
     },
     {
       "evidence": {
-        "line": 2074,
+        "line": 2084,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1919,7 +1910,7 @@
     },
     {
       "evidence": {
-        "line": 1534,
+        "line": 1537,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1955,7 +1946,7 @@
     },
     {
       "evidence": {
-        "line": 1983,
+        "line": 1991,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1964,7 +1955,7 @@
     },
     {
       "evidence": {
-        "line": 2062,
+        "line": 2072,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1973,7 +1964,7 @@
     },
     {
       "evidence": {
-        "line": 1904,
+        "line": 1912,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1982,7 +1973,7 @@
     },
     {
       "evidence": {
-        "line": 1929,
+        "line": 1937,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2000,7 +1991,7 @@
     },
     {
       "evidence": {
-        "line": 1305,
+        "line": 1308,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2009,7 +2000,7 @@
     },
     {
       "evidence": {
-        "line": 1317,
+        "line": 1320,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2018,7 +2009,7 @@
     },
     {
       "evidence": {
-        "line": 1299,
+        "line": 1302,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2027,7 +2018,7 @@
     },
     {
       "evidence": {
-        "line": 1275,
+        "line": 1278,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -4479,12 +4470,21 @@
         "path": "crates/aurora-project/src/hashing.rs"
       },
       "kind": "defined_in",
+      "source": "domain_type:crates/aurora-project/src/hashing.rs:AnalysisPhase",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 28,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "defined_in",
       "source": "domain_type:crates/aurora-project/src/hashing.rs:HashProgress",
       "target": "file:crates/aurora-project/src/hashing.rs"
     },
     {
       "evidence": {
-        "line": 21,
+        "line": 54,
         "path": "crates/aurora-project/src/hashing.rs"
       },
       "kind": "defined_in",
@@ -4619,7 +4619,25 @@
     },
     {
       "evidence": {
-        "line": 65,
+        "line": 14,
+        "path": "crates/aurora-resource/src/catalog_cache.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-resource/src/catalog_cache.rs:ResourceCatalogCacheState",
+      "target": "file:crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
+      "evidence": {
+        "line": 23,
+        "path": "crates/aurora-resource/src/catalog_cache.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-resource/src/catalog_cache.rs:ResourceCatalogCacheSummary",
+      "target": "file:crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
+      "evidence": {
+        "line": 69,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4628,7 +4646,7 @@
     },
     {
       "evidence": {
-        "line": 81,
+        "line": 85,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4637,7 +4655,16 @@
     },
     {
       "evidence": {
-        "line": 99,
+        "line": 217,
+        "path": "crates/aurora-resource/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "domain_type:crates/aurora-resource/src/lib.rs:ResourceCatalogBuild",
+      "target": "file:crates/aurora-resource/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 103,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4646,7 +4673,7 @@
     },
     {
       "evidence": {
-        "line": 73,
+        "line": 77,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4655,7 +4682,7 @@
     },
     {
       "evidence": {
-        "line": 33,
+        "line": 37,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4664,7 +4691,7 @@
     },
     {
       "evidence": {
-        "line": 209,
+        "line": 213,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4673,7 +4700,7 @@
     },
     {
       "evidence": {
-        "line": 203,
+        "line": 207,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4682,7 +4709,7 @@
     },
     {
       "evidence": {
-        "line": 90,
+        "line": 94,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4691,7 +4718,7 @@
     },
     {
       "evidence": {
-        "line": 117,
+        "line": 121,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4700,7 +4727,7 @@
     },
     {
       "evidence": {
-        "line": 22,
+        "line": 26,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4709,7 +4736,7 @@
     },
     {
       "evidence": {
-        "line": 110,
+        "line": 114,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -4718,7 +4745,7 @@
     },
     {
       "evidence": {
-        "line": 51,
+        "line": 55,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -5294,7 +5321,7 @@
     },
     {
       "evidence": {
-        "line": 149,
+        "line": 147,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "imports",
@@ -5303,7 +5330,7 @@
     },
     {
       "evidence": {
-        "line": 148,
+        "line": 146,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "imports",
@@ -5312,7 +5339,7 @@
     },
     {
       "evidence": {
-        "line": 147,
+        "line": 145,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "imports",
@@ -5321,7 +5348,7 @@
     },
     {
       "evidence": {
-        "line": 150,
+        "line": 148,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "imports",
@@ -5330,7 +5357,7 @@
     },
     {
       "evidence": {
-        "line": 154,
+        "line": 152,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "imports",
@@ -5339,7 +5366,7 @@
     },
     {
       "evidence": {
-        "line": 146,
+        "line": 144,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "imports",
@@ -5348,7 +5375,7 @@
     },
     {
       "evidence": {
-        "line": 155,
+        "line": 153,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "imports",
@@ -5366,7 +5393,7 @@
     },
     {
       "evidence": {
-        "line": 869,
+        "line": 876,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5375,7 +5402,7 @@
     },
     {
       "evidence": {
-        "line": 813,
+        "line": 820,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5384,7 +5411,7 @@
     },
     {
       "evidence": {
-        "line": 791,
+        "line": 798,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5393,7 +5420,7 @@
     },
     {
       "evidence": {
-        "line": 746,
+        "line": 753,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5402,7 +5429,7 @@
     },
     {
       "evidence": {
-        "line": 578,
+        "line": 585,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5411,7 +5438,7 @@
     },
     {
       "evidence": {
-        "line": 989,
+        "line": 996,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5420,7 +5447,7 @@
     },
     {
       "evidence": {
-        "line": 661,
+        "line": 668,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5429,7 +5456,7 @@
     },
     {
       "evidence": {
-        "line": 642,
+        "line": 649,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5438,7 +5465,7 @@
     },
     {
       "evidence": {
-        "line": 830,
+        "line": 837,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5447,7 +5474,7 @@
     },
     {
       "evidence": {
-        "line": 891,
+        "line": 898,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5456,7 +5483,7 @@
     },
     {
       "evidence": {
-        "line": 656,
+        "line": 663,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5465,7 +5492,7 @@
     },
     {
       "evidence": {
-        "line": 593,
+        "line": 600,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5474,7 +5501,7 @@
     },
     {
       "evidence": {
-        "line": 808,
+        "line": 815,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5483,7 +5510,7 @@
     },
     {
       "evidence": {
-        "line": 555,
+        "line": 562,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5492,7 +5519,7 @@
     },
     {
       "evidence": {
-        "line": 837,
+        "line": 844,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5501,7 +5528,7 @@
     },
     {
       "evidence": {
-        "line": 850,
+        "line": 857,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5510,7 +5537,7 @@
     },
     {
       "evidence": {
-        "line": 862,
+        "line": 869,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5519,7 +5546,7 @@
     },
     {
       "evidence": {
-        "line": 649,
+        "line": 656,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5528,7 +5555,7 @@
     },
     {
       "evidence": {
-        "line": 996,
+        "line": 1003,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5537,7 +5564,7 @@
     },
     {
       "evidence": {
-        "line": 618,
+        "line": 625,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5546,7 +5573,7 @@
     },
     {
       "evidence": {
-        "line": 964,
+        "line": 971,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5555,7 +5582,7 @@
     },
     {
       "evidence": {
-        "line": 932,
+        "line": 939,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5564,7 +5591,7 @@
     },
     {
       "evidence": {
-        "line": 939,
+        "line": 946,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5573,7 +5600,7 @@
     },
     {
       "evidence": {
-        "line": 959,
+        "line": 966,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5582,7 +5609,7 @@
     },
     {
       "evidence": {
-        "line": 954,
+        "line": 961,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5591,7 +5618,7 @@
     },
     {
       "evidence": {
-        "line": 585,
+        "line": 592,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5600,7 +5627,7 @@
     },
     {
       "evidence": {
-        "line": 673,
+        "line": 680,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5609,7 +5636,7 @@
     },
     {
       "evidence": {
-        "line": 687,
+        "line": 694,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5618,7 +5645,7 @@
     },
     {
       "evidence": {
-        "line": 680,
+        "line": 687,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5627,7 +5654,7 @@
     },
     {
       "evidence": {
-        "line": 666,
+        "line": 673,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5636,7 +5663,7 @@
     },
     {
       "evidence": {
-        "line": 796,
+        "line": 803,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5645,7 +5672,7 @@
     },
     {
       "evidence": {
-        "line": 550,
+        "line": 557,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5654,7 +5681,7 @@
     },
     {
       "evidence": {
-        "line": 560,
+        "line": 567,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5663,7 +5690,7 @@
     },
     {
       "evidence": {
-        "line": 886,
+        "line": 893,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5672,7 +5699,7 @@
     },
     {
       "evidence": {
-        "line": 842,
+        "line": 849,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5681,7 +5708,7 @@
     },
     {
       "evidence": {
-        "line": 734,
+        "line": 741,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5690,7 +5717,7 @@
     },
     {
       "evidence": {
-        "line": 924,
+        "line": 931,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5699,7 +5726,7 @@
     },
     {
       "evidence": {
-        "line": 714,
+        "line": 721,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5708,7 +5735,7 @@
     },
     {
       "evidence": {
-        "line": 969,
+        "line": 976,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5717,7 +5744,7 @@
     },
     {
       "evidence": {
-        "line": 949,
+        "line": 956,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5726,7 +5753,7 @@
     },
     {
       "evidence": {
-        "line": 904,
+        "line": 911,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5735,7 +5762,7 @@
     },
     {
       "evidence": {
-        "line": 974,
+        "line": 981,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5744,7 +5771,7 @@
     },
     {
       "evidence": {
-        "line": 914,
+        "line": 921,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5753,7 +5780,7 @@
     },
     {
       "evidence": {
-        "line": 625,
+        "line": 632,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5762,7 +5789,7 @@
     },
     {
       "evidence": {
-        "line": 763,
+        "line": 770,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5771,7 +5798,7 @@
     },
     {
       "evidence": {
-        "line": 944,
+        "line": 951,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5780,7 +5807,7 @@
     },
     {
       "evidence": {
-        "line": 729,
+        "line": 736,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5789,7 +5816,7 @@
     },
     {
       "evidence": {
-        "line": 692,
+        "line": 699,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5798,7 +5825,7 @@
     },
     {
       "evidence": {
-        "line": 855,
+        "line": 862,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5807,7 +5834,7 @@
     },
     {
       "evidence": {
-        "line": 719,
+        "line": 726,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5816,7 +5843,7 @@
     },
     {
       "evidence": {
-        "line": 979,
+        "line": 986,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5825,7 +5852,7 @@
     },
     {
       "evidence": {
-        "line": 603,
+        "line": 610,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5834,7 +5861,7 @@
     },
     {
       "evidence": {
-        "line": 739,
+        "line": 746,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5843,7 +5870,7 @@
     },
     {
       "evidence": {
-        "line": 776,
+        "line": 783,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5852,7 +5879,7 @@
     },
     {
       "evidence": {
-        "line": 919,
+        "line": 926,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5861,7 +5888,7 @@
     },
     {
       "evidence": {
-        "line": 899,
+        "line": 906,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5870,7 +5897,7 @@
     },
     {
       "evidence": {
-        "line": 909,
+        "line": 916,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5879,7 +5906,7 @@
     },
     {
       "evidence": {
-        "line": 570,
+        "line": 577,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5888,7 +5915,7 @@
     },
     {
       "evidence": {
-        "line": 876,
+        "line": 883,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5897,7 +5924,7 @@
     },
     {
       "evidence": {
-        "line": 784,
+        "line": 791,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5906,7 +5933,7 @@
     },
     {
       "evidence": {
-        "line": 825,
+        "line": 832,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5915,7 +5942,7 @@
     },
     {
       "evidence": {
-        "line": 984,
+        "line": 991,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5924,7 +5951,7 @@
     },
     {
       "evidence": {
-        "line": 709,
+        "line": 716,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5933,7 +5960,7 @@
     },
     {
       "evidence": {
-        "line": 801,
+        "line": 808,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5942,7 +5969,7 @@
     },
     {
       "evidence": {
-        "line": 697,
+        "line": 704,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5951,7 +5978,7 @@
     },
     {
       "evidence": {
-        "line": 724,
+        "line": 731,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5960,7 +5987,7 @@
     },
     {
       "evidence": {
-        "line": 771,
+        "line": 778,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5969,7 +5996,7 @@
     },
     {
       "evidence": {
-        "line": 611,
+        "line": 618,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5978,7 +6005,7 @@
     },
     {
       "evidence": {
-        "line": 881,
+        "line": 888,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5987,7 +6014,7 @@
     },
     {
       "evidence": {
-        "line": 820,
+        "line": 827,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -5996,7 +6023,7 @@
     },
     {
       "evidence": {
-        "line": 756,
+        "line": 763,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -6005,7 +6032,7 @@
     },
     {
       "evidence": {
-        "line": 565,
+        "line": 572,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -6014,7 +6041,7 @@
     },
     {
       "evidence": {
-        "line": 751,
+        "line": 758,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -6023,7 +6050,7 @@
     },
     {
       "evidence": {
-        "line": 702,
+        "line": 709,
         "path": "apps/desktop/src/lib/tauri.ts"
       },
       "kind": "invokes_command",
@@ -6379,6 +6406,15 @@
       },
       "kind": "imports",
       "source": "file:crates/aurora-project/examples/analyze_module.rs",
+      "target": "crate:aurora-project"
+    },
+    {
+      "evidence": {
+        "line": 1,
+        "path": "crates/aurora-project/examples/benchmark_analysis.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-project/examples/benchmark_analysis.rs",
       "target": "crate:aurora-project"
     },
     {
@@ -6851,6 +6887,15 @@
     },
     {
       "evidence": {
+        "line": 2,
+        "path": "crates/aurora-resource/src/catalog_cache.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-resource/src/catalog_cache.rs",
+      "target": "crate:aurora-core"
+    },
+    {
+      "evidence": {
         "line": 1,
         "path": "crates/aurora-resource/src/lib.rs"
       },
@@ -6866,6 +6911,15 @@
       "kind": "imports",
       "source": "file:crates/aurora-resource/src/lib.rs",
       "target": "crate:aurora-erf"
+    },
+    {
+      "evidence": {
+        "line": 10,
+        "path": "crates/aurora-resource/src/lib.rs"
+      },
+      "kind": "imports",
+      "source": "file:crates/aurora-resource/src/lib.rs",
+      "target": "file:crates/aurora-resource/src/catalog_cache.rs"
     },
     {
       "evidence": {
@@ -6914,7 +6968,7 @@
     },
     {
       "evidence": {
-        "line": 154,
+        "line": 155,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "defined_in",
@@ -6923,7 +6977,7 @@
     },
     {
       "evidence": {
-        "line": 117,
+        "line": 118,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "defined_in",
@@ -6941,7 +6995,7 @@
     },
     {
       "evidence": {
-        "line": 143,
+        "line": 144,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "defined_in",
@@ -6950,7 +7004,7 @@
     },
     {
       "evidence": {
-        "line": 72,
+        "line": 73,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "defined_in",
@@ -6959,7 +7013,7 @@
     },
     {
       "evidence": {
-        "line": 102,
+        "line": 103,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "defined_in",
@@ -6968,7 +7022,7 @@
     },
     {
       "evidence": {
-        "line": 98,
+        "line": 99,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "defined_in",
@@ -6977,7 +7031,7 @@
     },
     {
       "evidence": {
-        "line": 80,
+        "line": 81,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "defined_in",
@@ -8354,7 +8408,7 @@
     },
     {
       "evidence": {
-        "line": 42,
+        "line": 44,
         "path": "crates/aurora-project/src/analysis.rs"
       },
       "kind": "defined_in",
@@ -8363,7 +8417,16 @@
     },
     {
       "evidence": {
-        "line": 53,
+        "line": 73,
+        "path": "crates/aurora-project/src/analysis.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-project/src/analysis.rs:analyze_module_file_with_cache",
+      "target": "file:crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "evidence": {
+        "line": 61,
         "path": "crates/aurora-project/src/analysis.rs"
       },
       "kind": "defined_in",
@@ -8408,11 +8471,20 @@
     },
     {
       "evidence": {
-        "line": 25,
+        "line": 58,
         "path": "crates/aurora-project/src/hashing.rs"
       },
       "kind": "defined_in",
       "source": "rust_function:crates/aurora-project/src/hashing.rs:hash_module_file",
+      "target": "file:crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "evidence": {
+        "line": 37,
+        "path": "crates/aurora-project/src/hashing.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-project/src/hashing.rs:stage",
       "target": "file:crates/aurora-project/src/hashing.rs"
     },
     {
@@ -8480,7 +8552,7 @@
     },
     {
       "evidence": {
-        "line": 213,
+        "line": 223,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8489,7 +8561,16 @@
     },
     {
       "evidence": {
-        "line": 353,
+        "line": 229,
+        "path": "crates/aurora-resource/src/lib.rs"
+      },
+      "kind": "defined_in",
+      "source": "rust_function:crates/aurora-resource/src/lib.rs:build_with_cache",
+      "target": "file:crates/aurora-resource/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 378,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8498,7 +8579,7 @@
     },
     {
       "evidence": {
-        "line": 148,
+        "line": 152,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8507,7 +8588,7 @@
     },
     {
       "evidence": {
-        "line": 348,
+        "line": 373,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8516,7 +8597,7 @@
     },
     {
       "evidence": {
-        "line": 314,
+        "line": 339,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8525,7 +8606,7 @@
     },
     {
       "evidence": {
-        "line": 152,
+        "line": 156,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8534,7 +8615,7 @@
     },
     {
       "evidence": {
-        "line": 172,
+        "line": 176,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8543,7 +8624,7 @@
     },
     {
       "evidence": {
-        "line": 123,
+        "line": 127,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "defined_in",
@@ -8732,7 +8813,7 @@
     },
     {
       "evidence": {
-        "line": 6228,
+        "line": 6239,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8768,7 +8849,7 @@
     },
     {
       "evidence": {
-        "line": 5674,
+        "line": 5685,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8849,7 +8930,7 @@
     },
     {
       "evidence": {
-        "line": 6245,
+        "line": 6256,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8867,7 +8948,7 @@
     },
     {
       "evidence": {
-        "line": 6112,
+        "line": 6123,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8876,7 +8957,7 @@
     },
     {
       "evidence": {
-        "line": 5808,
+        "line": 5819,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8885,7 +8966,7 @@
     },
     {
       "evidence": {
-        "line": 5849,
+        "line": 5860,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8894,7 +8975,7 @@
     },
     {
       "evidence": {
-        "line": 6056,
+        "line": 6067,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8903,7 +8984,7 @@
     },
     {
       "evidence": {
-        "line": 6000,
+        "line": 6011,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -8984,7 +9065,7 @@
     },
     {
       "evidence": {
-        "line": 5669,
+        "line": 5680,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9011,7 +9092,7 @@
     },
     {
       "evidence": {
-        "line": 5782,
+        "line": 5793,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9029,7 +9110,7 @@
     },
     {
       "evidence": {
-        "line": 5930,
+        "line": 5941,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9038,7 +9119,7 @@
     },
     {
       "evidence": {
-        "line": 5940,
+        "line": 5951,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9047,7 +9128,7 @@
     },
     {
       "evidence": {
-        "line": 5695,
+        "line": 5706,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9056,7 +9137,7 @@
     },
     {
       "evidence": {
-        "line": 6173,
+        "line": 6184,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9065,7 +9146,7 @@
     },
     {
       "evidence": {
-        "line": 5753,
+        "line": 5764,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9092,7 +9173,7 @@
     },
     {
       "evidence": {
-        "line": 5923,
+        "line": 5934,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9137,7 +9218,7 @@
     },
     {
       "evidence": {
-        "line": 6192,
+        "line": 6203,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9173,7 +9254,7 @@
     },
     {
       "evidence": {
-        "line": 5770,
+        "line": 5781,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9182,7 +9263,7 @@
     },
     {
       "evidence": {
-        "line": 5679,
+        "line": 5690,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9191,7 +9272,7 @@
     },
     {
       "evidence": {
-        "line": 5741,
+        "line": 5752,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9236,7 +9317,7 @@
     },
     {
       "evidence": {
-        "line": 6215,
+        "line": 6226,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "defined_in",
@@ -9362,7 +9443,7 @@
     },
     {
       "evidence": {
-        "line": 6300,
+        "line": 6311,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "tests",
@@ -9371,7 +9452,7 @@
     },
     {
       "evidence": {
-        "line": 6335,
+        "line": 6348,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "tests",
@@ -9380,7 +9461,7 @@
     },
     {
       "evidence": {
-        "line": 6350,
+        "line": 6363,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "tests",
@@ -9389,7 +9470,7 @@
     },
     {
       "evidence": {
-        "line": 6365,
+        "line": 6378,
         "path": "apps/desktop/src-tauri/src/commands.rs"
       },
       "kind": "tests",
@@ -9398,7 +9479,7 @@
     },
     {
       "evidence": {
-        "line": 217,
+        "line": 219,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "tests",
@@ -9407,7 +9488,7 @@
     },
     {
       "evidence": {
-        "line": 256,
+        "line": 259,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "tests",
@@ -9416,7 +9497,7 @@
     },
     {
       "evidence": {
-        "line": 229,
+        "line": 231,
         "path": "apps/desktop/src-tauri/src/jobs.rs"
       },
       "kind": "tests",
@@ -10388,7 +10469,7 @@
     },
     {
       "evidence": {
-        "line": 179,
+        "line": 216,
         "path": "crates/aurora-project/src/analysis.rs"
       },
       "kind": "tests",
@@ -10433,7 +10514,7 @@
     },
     {
       "evidence": {
-        "line": 106,
+        "line": 140,
         "path": "crates/aurora-project/src/hashing.rs"
       },
       "kind": "tests",
@@ -10442,7 +10523,7 @@
     },
     {
       "evidence": {
-        "line": 126,
+        "line": 160,
         "path": "crates/aurora-project/src/hashing.rs"
       },
       "kind": "tests",
@@ -10577,7 +10658,25 @@
     },
     {
       "evidence": {
-        "line": 995,
+        "line": 190,
+        "path": "crates/aurora-resource/src/catalog_cache.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-resource/src/catalog_cache.rs:cache_round_trip_requires_the_current_signature",
+      "target": "file:crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
+      "evidence": {
+        "line": 201,
+        "path": "crates/aurora-resource/src/catalog_cache.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-resource/src/catalog_cache.rs:source_signature_changes_when_a_game_resource_changes",
+      "target": "file:crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
+      "evidence": {
+        "line": 1065,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "tests",
@@ -10586,7 +10685,7 @@
     },
     {
       "evidence": {
-        "line": 928,
+        "line": 998,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "tests",
@@ -10595,7 +10694,16 @@
     },
     {
       "evidence": {
-        "line": 963,
+        "line": 1115,
+        "path": "crates/aurora-resource/src/lib.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-resource/src/lib.rs:persistent_game_catalog_cache_hits_and_invalidates",
+      "target": "file:crates/aurora-resource/src/lib.rs"
+    },
+    {
+      "evidence": {
+        "line": 1033,
         "path": "crates/aurora-resource/src/lib.rs"
       },
       "kind": "tests",
@@ -10677,8 +10785,8 @@
   ],
   "metadata": {
     "schema_version": 1,
-    "source_digest": "sha256:793bfa75d848e6960b6e8a70573227f0186c3bf69576822d2bc46456034fd21f",
-    "source_file_count": 78
+    "source_digest": "sha256:c23dd9530ad5816c398f3e988d36fecd1240f2e53e3a4f5410cbcec97bac305d",
+    "source_file_count": 82
   },
   "nodes": [
     {
@@ -10693,7 +10801,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:analyzeModule",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 318,
+      "line": 320,
       "name": "analyzeModule",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10709,7 +10817,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:asDialogueLocalizedString",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1833,
+      "line": 1841,
       "name": "asDialogueLocalizedString",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10717,7 +10825,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:blueprintFieldLabel",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1101,
+      "line": 1104,
       "name": "blueprintFieldLabel",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10725,7 +10833,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:browse",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 308,
+      "line": 310,
       "name": "browse",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10733,7 +10841,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:buildEditedHak",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 408,
+      "line": 410,
       "name": "buildEditedHak",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10741,7 +10849,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:buildEditedModule",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 388,
+      "line": 390,
       "name": "buildEditedModule",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10749,7 +10857,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:chooseCompiler",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2012,
+      "line": 2020,
       "name": "chooseCompiler",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10757,7 +10865,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:cleanEditedResources",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 448,
+      "line": 450,
       "name": "cleanEditedResources",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10765,7 +10873,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:commit",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1169,
+      "line": 1172,
       "name": "commit",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10773,23 +10881,15 @@
       "id": "client_operation:apps/desktop/src/App.tsx:compileSource",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2016,
+      "line": 2024,
       "name": "compileSource",
-      "path": "apps/desktop/src/App.tsx"
-    },
-    {
-      "id": "client_operation:apps/desktop/src/App.tsx:configureNwscriptMonaco",
-      "kind": "client_operation",
-      "layer": "interface",
-      "line": 2087,
-      "name": "configureNwscriptMonaco",
       "path": "apps/desktop/src/App.tsx"
     },
     {
       "id": "client_operation:apps/desktop/src/App.tsx:deployEditedResources",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 430,
+      "line": 432,
       "name": "deployEditedResources",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10797,7 +10897,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:diagnosticsForDependencies",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1452,
+      "line": 1455,
       "name": "diagnosticsForDependencies",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10805,7 +10905,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:dialogueLinkEditContext",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1880,
+      "line": 1888,
       "name": "dialogueLinkEditContext",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10813,7 +10913,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:dialogueNodeEditableFields",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1804,
+      "line": 1812,
       "name": "dialogueNodeEditableFields",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10821,7 +10921,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:dialogueNodeRefFromId",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1876,
+      "line": 1884,
       "name": "dialogueNodeRefFromId",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10829,7 +10929,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:editSelectedBlueprintStructure",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 506,
+      "line": 508,
       "name": "editSelectedBlueprintStructure",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10837,7 +10937,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:editSelectedGff",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 487,
+      "line": 489,
       "name": "editSelectedGff",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10845,7 +10945,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:execute",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1343,
+      "line": 1346,
       "name": "execute",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10853,7 +10953,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:executeLaunch",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1370,
+      "line": 1373,
       "name": "executeLaunch",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10861,7 +10961,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:exportEditedSources",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 419,
+      "line": 421,
       "name": "exportEditedSources",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10869,7 +10969,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:formatElapsedTime",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1554,
+      "line": 1557,
       "name": "formatElapsedTime",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10909,7 +11009,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:moveEditCursor",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 375,
+      "line": 377,
       "name": "moveEditCursor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10917,7 +11017,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:openEditWorkspace",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 352,
+      "line": 354,
       "name": "openEditWorkspace",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10933,7 +11033,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:pushError",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 295,
+      "line": 297,
       "name": "pushError",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10949,7 +11049,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:saveSource",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1999,
+      "line": 2007,
       "name": "saveSource",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10957,7 +11057,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:selectResource",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 466,
+      "line": 468,
       "name": "selectResource",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10965,7 +11065,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:stopJob",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 343,
+      "line": 345,
       "name": "stopJob",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -10997,7 +11097,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:updateField",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 291,
+      "line": 293,
       "name": "updateField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -11194,6 +11294,14 @@
       "path": "apps/desktop/src/components/HelpCenter.tsx"
     },
     {
+      "id": "client_operation:apps/desktop/src/components/NwscriptEditor.tsx:configureNwscriptMonaco",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 31,
+      "name": "configureNwscriptMonaco",
+      "path": "apps/desktop/src/components/NwscriptEditor.tsx"
+    },
+    {
       "id": "client_operation:apps/desktop/src/lib/projectPreferences.ts:browserStorage",
       "kind": "client_operation",
       "layer": "interface",
@@ -11229,7 +11337,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:addWorkspaceAreaInstance",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 864,
+      "line": 871,
       "name": "addWorkspaceAreaInstance",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11237,7 +11345,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:advanceAgentRun",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 810,
+      "line": 817,
       "name": "advanceAgentRun",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11245,7 +11353,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:applyAiChangeSet",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 786,
+      "line": 793,
       "name": "applyAiChangeSet",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11253,7 +11361,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:applyAuroraWorkspaceSync",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 741,
+      "line": 748,
       "name": "applyAuroraWorkspaceSync",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11261,7 +11369,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:applyGffEdit",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 572,
+      "line": 579,
       "name": "applyGffEdit",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11269,7 +11377,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:assetPreviewBytes",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 986,
+      "line": 993,
       "name": "assetPreviewBytes",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11277,7 +11385,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:buildWorkspaceHak",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 658,
+      "line": 665,
       "name": "buildWorkspaceHak",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11285,7 +11393,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:buildWorkspaceModule",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 637,
+      "line": 644,
       "name": "buildWorkspaceModule",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11293,7 +11401,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:cancelAgentRun",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 827,
+      "line": 834,
       "name": "cancelAgentRun",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11301,7 +11409,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:cancelJob",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 888,
+      "line": 895,
       "name": "cancelJob",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11309,7 +11417,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:cleanWorkspaceDevelopment",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 651,
+      "line": 658,
       "name": "cleanWorkspaceDevelopment",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11317,7 +11425,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:compileWorkspaceScript",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 587,
+      "line": 594,
       "name": "compileWorkspaceScript",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11325,7 +11433,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:createAgentRun",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 803,
+      "line": 810,
       "name": "createAgentRun",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11333,7 +11441,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:createEditWorkspace",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 552,
+      "line": 559,
       "name": "createEditWorkspace",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11341,7 +11449,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:createNewModule",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 832,
+      "line": 839,
       "name": "createNewModule",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11349,7 +11457,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:createWorkspaceArea",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 844,
+      "line": 851,
       "name": "createWorkspaceArea",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11357,7 +11465,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:deleteWorkspaceArea",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 857,
+      "line": 864,
       "name": "deleteWorkspaceArea",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11365,7 +11473,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:deployWorkspaceDevelopment",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 644,
+      "line": 651,
       "name": "deployWorkspaceDevelopment",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11373,7 +11481,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:diagnosticReport",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 993,
+      "line": 1000,
       "name": "diagnosticReport",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11381,7 +11489,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editAreaStructure",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 613,
+      "line": 620,
       "name": "editAreaStructure",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11389,7 +11497,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editBlueprintStructure",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 961,
+      "line": 968,
       "name": "editBlueprintStructure",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11397,7 +11505,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editDialogueField",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 926,
+      "line": 933,
       "name": "editDialogueField",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11405,7 +11513,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editDialogueStructure",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 934,
+      "line": 941,
       "name": "editDialogueStructure",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11413,7 +11521,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editFactionStructure",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 956,
+      "line": 963,
       "name": "editFactionStructure",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11421,7 +11529,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editJournalStructure",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 951,
+      "line": 958,
       "name": "editJournalStructure",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11429,7 +11537,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editScriptSource",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 580,
+      "line": 587,
       "name": "editScriptSource",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11437,7 +11545,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editWorkspaceModuleDependencies",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 682,
+      "line": 689,
       "name": "editWorkspaceModuleDependencies",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11445,7 +11553,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editWorkspaceTlk",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 675,
+      "line": 682,
       "name": "editWorkspaceTlk",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11453,7 +11561,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:editWorkspaceTwoDa",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 668,
+      "line": 675,
       "name": "editWorkspaceTwoDa",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11461,7 +11569,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:exportWorkspaceSources",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 663,
+      "line": 670,
       "name": "exportWorkspaceSources",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11469,7 +11577,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:getAgentStudioState",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 793,
+      "line": 800,
       "name": "getAgentStudioState",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11477,7 +11585,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:getAppStatus",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 545,
+      "line": 552,
       "name": "getAppStatus",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11485,7 +11593,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:getEditWorkspace",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 557,
+      "line": 564,
       "name": "getEditWorkspace",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11493,7 +11601,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:getJob",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 883,
+      "line": 890,
       "name": "getJob",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11501,7 +11609,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:getStandardPalette",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 839,
+      "line": 846,
       "name": "getStandardPalette",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11509,7 +11617,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectAuroraWorkspace",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 731,
+      "line": 738,
       "name": "inspectAuroraWorkspace",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11517,7 +11625,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectDialogue",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 921,
+      "line": 928,
       "name": "inspectDialogue",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11525,7 +11633,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectGitWorkspace",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 711,
+      "line": 718,
       "name": "inspectGitWorkspace",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11533,7 +11641,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectNarrative",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 966,
+      "line": 973,
       "name": "inspectNarrative",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11541,7 +11649,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectNarrativeDocuments",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 946,
+      "line": 953,
       "name": "inspectNarrativeDocuments",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11549,7 +11657,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectResource",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 901,
+      "line": 908,
       "name": "inspectResource",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11557,7 +11665,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectScene",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 971,
+      "line": 978,
       "name": "inspectScene",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11565,7 +11673,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectScript",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 911,
+      "line": 918,
       "name": "inspectScript",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11573,7 +11681,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectWorkspaceArea",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 620,
+      "line": 627,
       "name": "inspectWorkspaceArea",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11581,7 +11689,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectWorkspaceWalkmesh",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 758,
+      "line": 765,
       "name": "inspectWorkspaceWalkmesh",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11589,7 +11697,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:inspectWorld",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 941,
+      "line": 948,
       "name": "inspectWorld",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11597,7 +11705,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:isAppError",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1053,
+      "line": 1060,
       "name": "isAppError",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11605,7 +11713,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:launchWorkspaceTestProfile",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 726,
+      "line": 733,
       "name": "launchWorkspaceTestProfile",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11613,7 +11721,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:listWorkspaceBuildProfiles",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 689,
+      "line": 696,
       "name": "listWorkspaceBuildProfiles",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11621,7 +11729,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:listWorkspaceCreatedAreas",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 852,
+      "line": 859,
       "name": "listWorkspaceCreatedAreas",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11629,7 +11737,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:listWorkspaceLaunchProfiles",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 716,
+      "line": 723,
       "name": "listWorkspaceLaunchProfiles",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11637,7 +11745,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:modelPreviewGlb",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 976,
+      "line": 983,
       "name": "modelPreviewGlb",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11645,7 +11753,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:moveAreaInstance",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 597,
+      "line": 604,
       "name": "moveAreaInstance",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11653,7 +11761,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:normalizeAppError",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1030,
+      "line": 1037,
       "name": "normalizeAppError",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11661,7 +11769,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:planAuroraWorkspaceSync",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 736,
+      "line": 743,
       "name": "planAuroraWorkspaceSync",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11669,7 +11777,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:previewAiChangeSet",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 773,
+      "line": 780,
       "name": "previewAiChangeSet",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11677,7 +11785,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:queryDialogues",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 916,
+      "line": 923,
       "name": "queryDialogues",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11685,7 +11793,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:queryResources",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 893,
+      "line": 900,
       "name": "queryResources",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11693,7 +11801,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:queryScripts",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 906,
+      "line": 913,
       "name": "queryScripts",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11701,7 +11809,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:redoEditCommand",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 567,
+      "line": 574,
       "name": "redoEditCommand",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11709,7 +11817,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:removeWorkspaceAreaInstance",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 871,
+      "line": 878,
       "name": "removeWorkspaceAreaInstance",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11717,7 +11825,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:requestAiChangeSet",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 778,
+      "line": 785,
       "name": "requestAiChangeSet",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11725,7 +11833,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:requireTauri",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1042,
+      "line": 1049,
       "name": "requireTauri",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11733,7 +11841,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:resolveAgentApproval",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 822,
+      "line": 829,
       "name": "resolveAgentApproval",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11741,7 +11849,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:resolveTexture",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 981,
+      "line": 988,
       "name": "resolveTexture",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11749,7 +11857,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:runWorkspaceBuildProfile",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 704,
+      "line": 711,
       "name": "runWorkspaceBuildProfile",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11757,7 +11865,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:saveAgentPolicy",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 798,
+      "line": 805,
       "name": "saveAgentPolicy",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11765,7 +11873,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:saveWorkspaceBuildProfile",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 694,
+      "line": 701,
       "name": "saveWorkspaceBuildProfile",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11773,7 +11881,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:saveWorkspaceLaunchProfile",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 721,
+      "line": 728,
       "name": "saveWorkspaceLaunchProfile",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11781,7 +11889,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:saveWorkspaceWalkmesh",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 765,
+      "line": 772,
       "name": "saveWorkspaceWalkmesh",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11789,7 +11897,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectCompiler",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1014,
+      "line": 1021,
       "name": "selectCompiler",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11797,7 +11905,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectDirectory",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1008,
+      "line": 1015,
       "name": "selectDirectory",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11805,7 +11913,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectHakOutput",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 632,
+      "line": 639,
       "name": "selectHakOutput",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11813,7 +11921,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectModule",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 998,
+      "line": 1005,
       "name": "selectModule",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11821,7 +11929,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectModuleOutput",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 627,
+      "line": 634,
       "name": "selectModuleOutput",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11829,7 +11937,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:selectNwnExecutable",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1024,
+      "line": 1031,
       "name": "selectNwnExecutable",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11837,7 +11945,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:setAreaTile",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 605,
+      "line": 612,
       "name": "setAreaTile",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11845,7 +11953,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:startModuleAnalysis",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 878,
+      "line": 885,
       "name": "startModuleAnalysis",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11853,7 +11961,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:testAgentProvider",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 815,
+      "line": 822,
       "name": "testAgentProvider",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11861,7 +11969,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:transformWalkmeshDraft",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 753,
+      "line": 760,
       "name": "transformWalkmeshDraft",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11869,7 +11977,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:undoEditCommand",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 562,
+      "line": 569,
       "name": "undoEditCommand",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11877,7 +11985,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:validateWalkmeshDraft",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 748,
+      "line": 755,
       "name": "validateWalkmeshDraft",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11885,7 +11993,7 @@
       "id": "client_operation:apps/desktop/src/lib/tauri.ts:verifyWorkspaceReproducibleBuild",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 699,
+      "line": 706,
       "name": "verifyWorkspaceReproducibleBuild",
       "path": "apps/desktop/src/lib/tauri.ts"
     },
@@ -11901,7 +12009,7 @@
       "id": "component:apps/desktop/src/App.tsx:App",
       "kind": "component",
       "layer": "interface",
-      "line": 195,
+      "line": 196,
       "name": "App",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -11997,7 +12105,7 @@
       "id": "component:apps/desktop/src/App.tsx:BlueprintAddEntryForm",
       "kind": "component",
       "layer": "interface",
-      "line": 1116,
+      "line": 1119,
       "name": "BlueprintAddEntryForm",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12005,7 +12113,7 @@
       "id": "component:apps/desktop/src/App.tsx:BlueprintEncounterAddForm",
       "kind": "component",
       "layer": "interface",
-      "line": 1140,
+      "line": 1143,
       "name": "BlueprintEncounterAddForm",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12013,7 +12121,7 @@
       "id": "component:apps/desktop/src/App.tsx:BlueprintItemPropertyAddForm",
       "kind": "component",
       "layer": "interface",
-      "line": 1130,
+      "line": 1133,
       "name": "BlueprintItemPropertyAddForm",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12021,7 +12129,7 @@
       "id": "component:apps/desktop/src/App.tsx:BlueprintResrefAddForm",
       "kind": "component",
       "layer": "interface",
-      "line": 1136,
+      "line": 1139,
       "name": "BlueprintResrefAddForm",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12029,7 +12137,7 @@
       "id": "component:apps/desktop/src/App.tsx:BlueprintStructureButton",
       "kind": "component",
       "layer": "interface",
-      "line": 1144,
+      "line": 1147,
       "name": "BlueprintStructureButton",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12037,7 +12145,7 @@
       "id": "component:apps/desktop/src/App.tsx:BlueprintStructureEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1110,
+      "line": 1113,
       "name": "BlueprintStructureEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12045,7 +12153,7 @@
       "id": "component:apps/desktop/src/App.tsx:BlueprintUtcAddForm",
       "kind": "component",
       "layer": "interface",
-      "line": 1124,
+      "line": 1127,
       "name": "BlueprintUtcAddForm",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12053,7 +12161,7 @@
       "id": "component:apps/desktop/src/App.tsx:BuildProfilesPanel",
       "kind": "component",
       "layer": "interface",
-      "line": 1330,
+      "line": 1333,
       "name": "BuildProfilesPanel",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12061,7 +12169,7 @@
       "id": "component:apps/desktop/src/App.tsx:CatalogView",
       "kind": "component",
       "layer": "interface",
-      "line": 1655,
+      "line": 1669,
       "name": "CatalogView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12069,7 +12177,7 @@
       "id": "component:apps/desktop/src/App.tsx:DependencyEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1244,
+      "line": 1247,
       "name": "DependencyEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12077,7 +12185,7 @@
       "id": "component:apps/desktop/src/App.tsx:DependencyReportView",
       "kind": "component",
       "layer": "interface",
-      "line": 1188,
+      "line": 1191,
       "name": "DependencyReportView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12085,7 +12193,7 @@
       "id": "component:apps/desktop/src/App.tsx:DependencyRow",
       "kind": "component",
       "layer": "interface",
-      "line": 1410,
+      "line": 1413,
       "name": "DependencyRow",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12093,23 +12201,15 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueAddLinkEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1857,
+      "line": 1865,
       "name": "DialogueAddLinkEditor",
-      "path": "apps/desktop/src/App.tsx"
-    },
-    {
-      "id": "component:apps/desktop/src/App.tsx:DialogueFlow",
-      "kind": "component",
-      "layer": "interface",
-      "line": 1783,
-      "name": "DialogueFlow",
       "path": "apps/desktop/src/App.tsx"
     },
     {
       "id": "component:apps/desktop/src/App.tsx:DialogueGraphView",
       "kind": "component",
       "layer": "interface",
-      "line": 1753,
+      "line": 1767,
       "name": "DialogueGraphView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12117,7 +12217,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueInspector",
       "kind": "component",
       "layer": "interface",
-      "line": 1789,
+      "line": 1797,
       "name": "DialogueInspector",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12125,7 +12225,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueLinkFieldEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1866,
+      "line": 1874,
       "name": "DialogueLinkFieldEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12133,7 +12233,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueNodeFieldEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1798,
+      "line": 1806,
       "name": "DialogueNodeFieldEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12141,7 +12241,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueSummaryView",
       "kind": "component",
       "layer": "interface",
-      "line": 1725,
+      "line": 1739,
       "name": "DialogueSummaryView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12149,7 +12249,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueTreeBranch",
       "kind": "component",
       "layer": "interface",
-      "line": 1779,
+      "line": 1793,
       "name": "DialogueTreeBranch",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12157,7 +12257,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueWorkspace",
       "kind": "component",
       "layer": "interface",
-      "line": 1735,
+      "line": 1749,
       "name": "DialogueWorkspace",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12173,7 +12273,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableDialogueField",
       "kind": "component",
       "layer": "interface",
-      "line": 1818,
+      "line": 1826,
       "name": "EditableDialogueField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12181,7 +12281,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableDialogueTargetField",
       "kind": "component",
       "layer": "interface",
-      "line": 1896,
+      "line": 1904,
       "name": "EditableDialogueTargetField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12189,7 +12289,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableGffField",
       "kind": "component",
       "layer": "interface",
-      "line": 1148,
+      "line": 1151,
       "name": "EditableGffField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12205,7 +12305,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableLocalizedDialogueField",
       "kind": "component",
       "layer": "interface",
-      "line": 1845,
+      "line": 1853,
       "name": "EditableLocalizedDialogueField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12213,7 +12313,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableScalarDialogueField",
       "kind": "component",
       "layer": "interface",
-      "line": 1823,
+      "line": 1831,
       "name": "EditableScalarDialogueField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12221,7 +12321,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableScalarGffField",
       "kind": "component",
       "layer": "interface",
-      "line": 1164,
+      "line": 1167,
       "name": "EditableScalarGffField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12277,7 +12377,7 @@
       "id": "component:apps/desktop/src/App.tsx:GffFieldEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1064,
+      "line": 1067,
       "name": "GffFieldEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12301,7 +12401,7 @@
       "id": "component:apps/desktop/src/App.tsx:JobProgress",
       "kind": "component",
       "layer": "interface",
-      "line": 1562,
+      "line": 1565,
       "name": "JobProgress",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12365,7 +12465,7 @@
       "id": "component:apps/desktop/src/App.tsx:NcsTechnicalView",
       "kind": "component",
       "layer": "interface",
-      "line": 2074,
+      "line": 2084,
       "name": "NcsTechnicalView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12381,7 +12481,7 @@
       "id": "component:apps/desktop/src/App.tsx:PathField",
       "kind": "component",
       "layer": "interface",
-      "line": 1534,
+      "line": 1537,
       "name": "PathField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12413,7 +12513,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptDocumentView",
       "kind": "component",
       "layer": "interface",
-      "line": 1983,
+      "line": 1991,
       "name": "ScriptDocumentView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12421,7 +12521,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptMetadata",
       "kind": "component",
       "layer": "interface",
-      "line": 2062,
+      "line": 2072,
       "name": "ScriptMetadata",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12429,7 +12529,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptSummaryView",
       "kind": "component",
       "layer": "interface",
-      "line": 1904,
+      "line": 1912,
       "name": "ScriptSummaryView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12437,7 +12537,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptWorkspace",
       "kind": "component",
       "layer": "interface",
-      "line": 1929,
+      "line": 1937,
       "name": "ScriptWorkspace",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12453,7 +12553,7 @@
       "id": "component:apps/desktop/src/App.tsx:TlkEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1305,
+      "line": 1308,
       "name": "TlkEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12461,7 +12561,7 @@
       "id": "component:apps/desktop/src/App.tsx:TlkEntryEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1317,
+      "line": 1320,
       "name": "TlkEntryEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12469,7 +12569,7 @@
       "id": "component:apps/desktop/src/App.tsx:TwoDaCellEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1299,
+      "line": 1302,
       "name": "TwoDaCellEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12477,7 +12577,7 @@
       "id": "component:apps/desktop/src/App.tsx:TwoDaEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1275,
+      "line": 1278,
       "name": "TwoDaEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14762,10 +14862,18 @@
       "path": "crates/aurora-project/src/dependencies.rs"
     },
     {
-      "id": "domain_type:crates/aurora-project/src/hashing.rs:HashProgress",
+      "id": "domain_type:crates/aurora-project/src/hashing.rs:AnalysisPhase",
       "kind": "domain_type",
       "layer": "project",
       "line": 13,
+      "name": "AnalysisPhase",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-project/src/hashing.rs:HashProgress",
+      "kind": "domain_type",
+      "layer": "project",
+      "line": 28,
       "name": "HashProgress",
       "path": "crates/aurora-project/src/hashing.rs"
     },
@@ -14773,7 +14881,7 @@
       "id": "domain_type:crates/aurora-project/src/hashing.rs:ModuleFingerprint",
       "kind": "domain_type",
       "layer": "project",
-      "line": 21,
+      "line": 54,
       "name": "ModuleFingerprint",
       "path": "crates/aurora-project/src/hashing.rs"
     },
@@ -14890,10 +14998,26 @@
       "path": "crates/aurora-project/src/texture.rs"
     },
     {
+      "id": "domain_type:crates/aurora-resource/src/catalog_cache.rs:ResourceCatalogCacheState",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 14,
+      "name": "ResourceCatalogCacheState",
+      "path": "crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-resource/src/catalog_cache.rs:ResourceCatalogCacheSummary",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 23,
+      "name": "ResourceCatalogCacheSummary",
+      "path": "crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResolvedResource",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 65,
+      "line": 69,
       "name": "ResolvedResource",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14901,15 +15025,23 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceCatalog",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 81,
+      "line": 85,
       "name": "ResourceCatalog",
+      "path": "crates/aurora-resource/src/lib.rs"
+    },
+    {
+      "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceCatalogBuild",
+      "kind": "domain_type",
+      "layer": "domain",
+      "line": 217,
+      "name": "ResourceCatalogBuild",
       "path": "crates/aurora-resource/src/lib.rs"
     },
     {
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceCatalogSummary",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 99,
+      "line": 103,
       "name": "ResourceCatalogSummary",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14917,7 +15049,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceDiagnostic",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 73,
+      "line": 77,
       "name": "ResourceDiagnostic",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14925,7 +15057,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceLocation",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 33,
+      "line": 37,
       "name": "ResourceLocation",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14933,7 +15065,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceManager",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 209,
+      "line": 213,
       "name": "ResourceManager",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14941,7 +15073,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceManagerConfig",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 203,
+      "line": 207,
       "name": "ResourceManagerConfig",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14949,7 +15081,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourcePage",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 90,
+      "line": 94,
       "name": "ResourcePage",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14957,7 +15089,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceSourceCount",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 117,
+      "line": 121,
       "name": "ResourceSourceCount",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14965,7 +15097,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceSourceKind",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 22,
+      "line": 26,
       "name": "ResourceSourceKind",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14973,7 +15105,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceTypeCount",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 110,
+      "line": 114,
       "name": "ResourceTypeCount",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -14981,7 +15113,7 @@
       "id": "domain_type:crates/aurora-resource/src/lib.rs:ResourceVersion",
       "kind": "domain_type",
       "layer": "domain",
-      "line": 51,
+      "line": 55,
       "name": "ResourceVersion",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -15378,12 +15510,28 @@
       "path": "apps/desktop/src/components/AuroraSyncPanel.tsx"
     },
     {
+      "id": "file:apps/desktop/src/components/DialogueFlow.tsx",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "DialogueFlow.tsx",
+      "path": "apps/desktop/src/components/DialogueFlow.tsx"
+    },
+    {
       "id": "file:apps/desktop/src/components/HelpCenter.tsx",
       "kind": "file",
       "layer": "interface",
       "line": 1,
       "name": "HelpCenter.tsx",
       "path": "apps/desktop/src/components/HelpCenter.tsx"
+    },
+    {
+      "id": "file:apps/desktop/src/components/NwscriptEditor.tsx",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "NwscriptEditor.tsx",
+      "path": "apps/desktop/src/components/NwscriptEditor.tsx"
     },
     {
       "id": "file:apps/desktop/src/lib/monaco.ts",
@@ -15706,6 +15854,14 @@
       "path": "crates/aurora-project/examples/analyze_module.rs"
     },
     {
+      "id": "file:crates/aurora-project/examples/benchmark_analysis.rs",
+      "kind": "file",
+      "layer": "project",
+      "line": 1,
+      "name": "benchmark_analysis.rs",
+      "path": "crates/aurora-project/examples/benchmark_analysis.rs"
+    },
+    {
       "id": "file:crates/aurora-project/examples/build_walkmesh_runtime_overlay.rs",
       "kind": "file",
       "layer": "project",
@@ -15834,6 +15990,14 @@
       "path": "crates/aurora-project/tests/synthetic_lot1.rs"
     },
     {
+      "id": "file:crates/aurora-resource/src/catalog_cache.rs",
+      "kind": "file",
+      "layer": "domain",
+      "line": 1,
+      "name": "catalog_cache.rs",
+      "path": "crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
       "id": "file:crates/aurora-resource/src/lib.rs",
       "kind": "file",
       "layer": "domain",
@@ -15917,7 +16081,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:cancel",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 154,
+      "line": 155,
       "name": "cancel",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -15925,7 +16089,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:complete",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 117,
+      "line": 118,
       "name": "complete",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -15941,7 +16105,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:fail",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 143,
+      "line": 144,
       "name": "fail",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -15949,7 +16113,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:get",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 72,
+      "line": 73,
       "name": "get",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -15957,7 +16121,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:set_progress",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 102,
+      "line": 103,
       "name": "set_progress",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -15965,7 +16129,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:set_running",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 98,
+      "line": 99,
       "name": "set_running",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -15973,7 +16137,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/jobs.rs:with_analysis",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 80,
+      "line": 81,
       "name": "with_analysis",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -17197,15 +17361,23 @@
       "id": "rust_function:crates/aurora-project/src/analysis.rs:analyze_module_file",
       "kind": "rust_function",
       "layer": "project",
-      "line": 42,
+      "line": 44,
       "name": "analyze_module_file",
+      "path": "crates/aurora-project/src/analysis.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-project/src/analysis.rs:analyze_module_file_with_cache",
+      "kind": "rust_function",
+      "layer": "project",
+      "line": 73,
+      "name": "analyze_module_file_with_cache",
       "path": "crates/aurora-project/src/analysis.rs"
     },
     {
       "id": "rust_function:crates/aurora-project/src/analysis.rs:analyze_module_file_with_roots",
       "kind": "rust_function",
       "layer": "project",
-      "line": 53,
+      "line": 61,
       "name": "analyze_module_file_with_roots",
       "path": "crates/aurora-project/src/analysis.rs"
     },
@@ -17245,8 +17417,16 @@
       "id": "rust_function:crates/aurora-project/src/hashing.rs:hash_module_file",
       "kind": "rust_function",
       "layer": "project",
-      "line": 25,
+      "line": 58,
       "name": "hash_module_file",
+      "path": "crates/aurora-project/src/hashing.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-project/src/hashing.rs:stage",
+      "kind": "rust_function",
+      "layer": "project",
+      "line": 37,
+      "name": "stage",
       "path": "crates/aurora-project/src/hashing.rs"
     },
     {
@@ -17309,15 +17489,23 @@
       "id": "rust_function:crates/aurora-resource/src/lib.rs:build",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 213,
+      "line": 223,
       "name": "build",
+      "path": "crates/aurora-resource/src/lib.rs"
+    },
+    {
+      "id": "rust_function:crates/aurora-resource/src/lib.rs:build_with_cache",
+      "kind": "rust_function",
+      "layer": "domain",
+      "line": 229,
+      "name": "build_with_cache",
       "path": "crates/aurora-resource/src/lib.rs"
     },
     {
       "id": "rust_function:crates/aurora-resource/src/lib.rs:extract_to_cache",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 353,
+      "line": 378,
       "name": "extract_to_cache",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -17325,7 +17513,7 @@
       "id": "rust_function:crates/aurora-resource/src/lib.rs:get",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 148,
+      "line": 152,
       "name": "get",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -17333,7 +17521,7 @@
       "id": "rust_function:crates/aurora-resource/src/lib.rs:hash",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 348,
+      "line": 373,
       "name": "hash",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -17341,7 +17529,7 @@
       "id": "rust_function:crates/aurora-resource/src/lib.rs:read",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 314,
+      "line": 339,
       "name": "read",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -17349,7 +17537,7 @@
       "id": "rust_function:crates/aurora-resource/src/lib.rs:search",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 152,
+      "line": 156,
       "name": "search",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -17357,7 +17545,7 @@
       "id": "rust_function:crates/aurora-resource/src/lib.rs:search_many",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 172,
+      "line": 176,
       "name": "search_many",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -17365,7 +17553,7 @@
       "id": "rust_function:crates/aurora-resource/src/lib.rs:summary",
       "kind": "rust_function",
       "layer": "domain",
-      "line": 123,
+      "line": 127,
       "name": "summary",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -17533,7 +17721,7 @@
       "id": "tauri_command:asset_preview_bytes",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6228,
+      "line": 6239,
       "name": "asset_preview_bytes",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17565,7 +17753,7 @@
       "id": "tauri_command:cancel_job",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5674,
+      "line": 5685,
       "name": "cancel_job",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17637,7 +17825,7 @@
       "id": "tauri_command:diagnostic_report",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6245,
+      "line": 6256,
       "name": "diagnostic_report",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17653,7 +17841,7 @@
       "id": "tauri_command:edit_blueprint_structure_command",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6112,
+      "line": 6123,
       "name": "edit_blueprint_structure_command",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17661,7 +17849,7 @@
       "id": "tauri_command:edit_dialogue_field",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5808,
+      "line": 5819,
       "name": "edit_dialogue_field",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17669,7 +17857,7 @@
       "id": "tauri_command:edit_dialogue_structure_command",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5849,
+      "line": 5860,
       "name": "edit_dialogue_structure_command",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17677,7 +17865,7 @@
       "id": "tauri_command:edit_faction_structure_command",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6056,
+      "line": 6067,
       "name": "edit_faction_structure_command",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17685,7 +17873,7 @@
       "id": "tauri_command:edit_journal_structure_command",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6000,
+      "line": 6011,
       "name": "edit_journal_structure_command",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17757,7 +17945,7 @@
       "id": "tauri_command:get_job",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5669,
+      "line": 5680,
       "name": "get_job",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17781,7 +17969,7 @@
       "id": "tauri_command:inspect_dialogue",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5782,
+      "line": 5793,
       "name": "inspect_dialogue",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17797,7 +17985,7 @@
       "id": "tauri_command:inspect_narrative",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5930,
+      "line": 5941,
       "name": "inspect_narrative",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17805,7 +17993,7 @@
       "id": "tauri_command:inspect_narrative_documents",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5940,
+      "line": 5951,
       "name": "inspect_narrative_documents",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17813,7 +18001,7 @@
       "id": "tauri_command:inspect_resource",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5695,
+      "line": 5706,
       "name": "inspect_resource",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17821,7 +18009,7 @@
       "id": "tauri_command:inspect_scene",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6173,
+      "line": 6184,
       "name": "inspect_scene",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17829,7 +18017,7 @@
       "id": "tauri_command:inspect_script",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5753,
+      "line": 5764,
       "name": "inspect_script",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17853,7 +18041,7 @@
       "id": "tauri_command:inspect_world",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5923,
+      "line": 5934,
       "name": "inspect_world",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17893,7 +18081,7 @@
       "id": "tauri_command:model_preview_glb",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6192,
+      "line": 6203,
       "name": "model_preview_glb",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17925,7 +18113,7 @@
       "id": "tauri_command:query_dialogues",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5770,
+      "line": 5781,
       "name": "query_dialogues",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17933,7 +18121,7 @@
       "id": "tauri_command:query_resources",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5679,
+      "line": 5690,
       "name": "query_resources",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17941,7 +18129,7 @@
       "id": "tauri_command:query_scripts",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 5741,
+      "line": 5752,
       "name": "query_scripts",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -17981,7 +18169,7 @@
       "id": "tauri_command:resolve_texture",
       "kind": "tauri_command",
       "layer": "tauri",
-      "line": 6215,
+      "line": 6226,
       "name": "resolve_texture",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -18093,7 +18281,7 @@
       "id": "test:apps/desktop/src-tauri/src/commands.rs:ai_endpoints_require_https_except_for_local_models",
       "kind": "test",
       "layer": "tests",
-      "line": 6300,
+      "line": 6311,
       "name": "ai_endpoints_require_https_except_for_local_models",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -18101,7 +18289,7 @@
       "id": "test:apps/desktop/src-tauri/src/commands.rs:ai_response_decoder_accepts_strict_json_and_rejects_markdown",
       "kind": "test",
       "layer": "tests",
-      "line": 6335,
+      "line": 6348,
       "name": "ai_response_decoder_accepts_strict_json_and_rejects_markdown",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -18109,7 +18297,7 @@
       "id": "test:apps/desktop/src-tauri/src/commands.rs:every_registered_agent_capability_has_a_local_executor",
       "kind": "test",
       "layer": "tests",
-      "line": 6350,
+      "line": 6363,
       "name": "every_registered_agent_capability_has_a_local_executor",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -18117,7 +18305,7 @@
       "id": "test:apps/desktop/src-tauri/src/commands.rs:provider_context_redacts_local_paths_unless_explicitly_allowed",
       "kind": "test",
       "layer": "tests",
-      "line": 6365,
+      "line": 6378,
       "name": "provider_context_redacts_local_paths_unless_explicitly_allowed",
       "path": "apps/desktop/src-tauri/src/commands.rs"
     },
@@ -18125,7 +18313,7 @@
       "id": "test:apps/desktop/src-tauri/src/jobs.rs:cancelling_a_running_job_sets_the_flag_and_state",
       "kind": "test",
       "layer": "tests",
-      "line": 217,
+      "line": 219,
       "name": "cancelling_a_running_job_sets_the_flag_and_state",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -18133,7 +18321,7 @@
       "id": "test:apps/desktop/src-tauri/src/jobs.rs:compares_dependencies_with_the_last_successful_analysis",
       "kind": "test",
       "layer": "tests",
-      "line": 256,
+      "line": 259,
       "name": "compares_dependencies_with_the_last_successful_analysis",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -18141,7 +18329,7 @@
       "id": "test:apps/desktop/src-tauri/src/jobs.rs:reserves_one_hundred_percent_for_a_completed_job",
       "kind": "test",
       "layer": "tests",
-      "line": 229,
+      "line": 231,
       "name": "reserves_one_hundred_percent_for_a_completed_job",
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
@@ -19005,7 +19193,7 @@
       "id": "test:crates/aurora-project/src/analysis.rs:rejects_a_container_without_module_info",
       "kind": "test",
       "layer": "tests",
-      "line": 179,
+      "line": 216,
       "name": "rejects_a_container_without_module_info",
       "path": "crates/aurora-project/src/analysis.rs"
     },
@@ -19045,7 +19233,7 @@
       "id": "test:crates/aurora-project/src/hashing.rs:hashes_a_file_in_streaming_mode",
       "kind": "test",
       "layer": "tests",
-      "line": 106,
+      "line": 140,
       "name": "hashes_a_file_in_streaming_mode",
       "path": "crates/aurora-project/src/hashing.rs"
     },
@@ -19053,7 +19241,7 @@
       "id": "test:crates/aurora-project/src/hashing.rs:observes_cancellation_before_reading",
       "kind": "test",
       "layer": "tests",
-      "line": 126,
+      "line": 160,
       "name": "observes_cancellation_before_reading",
       "path": "crates/aurora-project/src/hashing.rs"
     },
@@ -19170,10 +19358,26 @@
       "path": "crates/aurora-project/tests/synthetic_lot1.rs"
     },
     {
+      "id": "test:crates/aurora-resource/src/catalog_cache.rs:cache_round_trip_requires_the_current_signature",
+      "kind": "test",
+      "layer": "tests",
+      "line": 190,
+      "name": "cache_round_trip_requires_the_current_signature",
+      "path": "crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
+      "id": "test:crates/aurora-resource/src/catalog_cache.rs:source_signature_changes_when_a_game_resource_changes",
+      "kind": "test",
+      "layer": "tests",
+      "line": 201,
+      "name": "source_signature_changes_when_a_game_resource_changes",
+      "path": "crates/aurora-resource/src/catalog_cache.rs"
+    },
+    {
       "id": "test:crates/aurora-resource/src/lib.rs:key_and_bif_records_keep_offsets_and_can_be_read_on_demand",
       "kind": "test",
       "layer": "tests",
-      "line": 995,
+      "line": 1065,
       "name": "key_and_bif_records_keep_offsets_and_can_be_read_on_demand",
       "path": "crates/aurora-resource/src/lib.rs"
     },
@@ -19181,15 +19385,23 @@
       "id": "test:crates/aurora-resource/src/lib.rs:loose_development_resources_shadow_override_resources",
       "kind": "test",
       "layer": "tests",
-      "line": 928,
+      "line": 998,
       "name": "loose_development_resources_shadow_override_resources",
+      "path": "crates/aurora-resource/src/lib.rs"
+    },
+    {
+      "id": "test:crates/aurora-resource/src/lib.rs:persistent_game_catalog_cache_hits_and_invalidates",
+      "kind": "test",
+      "layer": "tests",
+      "line": 1115,
+      "name": "persistent_game_catalog_cache_hits_and_invalidates",
       "path": "crates/aurora-resource/src/lib.rs"
     },
     {
       "id": "test:crates/aurora-resource/src/lib.rs:search_is_bounded_and_keeps_shadowed_provenance",
       "kind": "test",
       "layer": "tests",
-      "line": 963,
+      "line": 1033,
       "name": "search_is_bounded_and_keeps_shadowed_provenance",
       "path": "crates/aurora-resource/src/lib.rs"
     },

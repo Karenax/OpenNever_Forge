@@ -404,7 +404,7 @@ describe("OpenNever Forge shell", () => {
           kind: "module_analysis",
           state: "running",
           sourcePath: "C:/module.mod",
-          progress: { bytesRead: 512, totalBytes: 512, percent: 100 },
+          progress: { bytesRead: 512, totalBytes: 512, percent: 100, phase: "persisting" },
         }}
       />,
     );
@@ -425,7 +425,7 @@ describe("OpenNever Forge shell", () => {
           kind: "module_analysis",
           state: "completed",
           sourcePath: "C:/module.mod",
-          progress: { bytesRead: 512, totalBytes: 512, percent: 100 },
+          progress: { bytesRead: 512, totalBytes: 512, percent: 100, phase: "world" },
         }}
       />,
     );

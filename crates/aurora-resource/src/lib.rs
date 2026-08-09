@@ -8,6 +8,10 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
+mod catalog_cache;
+
+pub use catalog_cache::{ResourceCatalogCacheState, ResourceCatalogCacheSummary};
+
 const KEY_HEADER_SIZE: usize = 64;
 const KEY_FILE_RECORD_SIZE: usize = 12;
 const KEY_RESOURCE_RECORD_SIZE: usize = 22;
@@ -209,11 +213,25 @@ pub struct ResourceManagerConfig {
 
 pub struct ResourceManager;
 
+#[derive(Debug, Clone)]
+pub struct ResourceCatalogBuild {
+    pub catalog: ResourceCatalog,
+    pub cache: ResourceCatalogCacheSummary,
+}
+
 impl ResourceManager {
     pub fn build(
         config: &ResourceManagerConfig,
         cancelled: &AtomicBool,
     ) -> AppResult<ResourceCatalog> {
+        Ok(Self::build_with_cache(config, None, cancelled)?.catalog)
+    }
+
+    pub fn build_with_cache(
+        config: &ResourceManagerConfig,
+        cache_path: Option<&Path>,
+        cancelled: &AtomicBool,
+    ) -> AppResult<ResourceCatalogBuild> {
         let mut versions = BTreeMap::<ResourceKey, Vec<ResourceVersion>>::new();
         let mut diagnostics = Vec::new();
 
@@ -263,52 +281,59 @@ impl ResourceManager {
             )?;
         }
 
-        if let Some(game) = &config.game_install_path {
-            scan_directory(
-                &game.join("ovr"),
-                ResourceSourceKind::Override,
-                12,
-                &mut versions,
-                &mut diagnostics,
-                cancelled,
-            )?;
-            if let Some(language_root) = preferred_language_root(game) {
-                scan_directory(
-                    &language_root.join("data/ovr"),
-                    ResourceSourceKind::Override,
-                    11,
-                    &mut versions,
-                    &mut diagnostics,
-                    cancelled,
-                )?;
+        let cache = if let Some(game) = &config.game_install_path {
+            let language_root = preferred_language_root(game);
+            let signature =
+                catalog_cache::game_source_signature(game, language_root.as_deref(), cancelled)?;
+            let cached = cache_path
+                .and_then(|path| catalog_cache::load(path, &signature))
+                .map(|catalog| (catalog, ResourceCatalogCacheState::Hit));
+            let (game_catalog, state) = match cached {
+                Some(value) => value,
+                None => {
+                    let mut game_versions = BTreeMap::new();
+                    let mut game_diagnostics = Vec::new();
+                    scan_directory(
+                        &game.join("ovr"),
+                        ResourceSourceKind::Override,
+                        12,
+                        &mut game_versions,
+                        &mut game_diagnostics,
+                        cancelled,
+                    )?;
+                    if let Some(language_root) = &language_root {
+                        scan_directory(
+                            &language_root.join("data/ovr"),
+                            ResourceSourceKind::Override,
+                            11,
+                            &mut game_versions,
+                            &mut game_diagnostics,
+                            cancelled,
+                        )?;
+                    }
+                    scan_keys(game, &mut game_versions, &mut game_diagnostics, cancelled)?;
+                    let catalog = finalize_catalog(game_versions, game_diagnostics);
+                    if let Some(path) = cache_path {
+                        catalog_cache::store(path, &signature, &catalog)?;
+                    }
+                    (catalog, ResourceCatalogCacheState::Miss)
+                }
+            };
+            let game_resource_count = game_catalog.entries.len();
+            merge_catalog(&mut versions, &mut diagnostics, game_catalog);
+            ResourceCatalogCacheSummary {
+                state,
+                signature: Some(signature),
+                path: cache_path.map(|path| path.display().to_string()),
+                game_resource_count,
             }
-            scan_keys(game, &mut versions, &mut diagnostics, cancelled)?;
-        }
+        } else {
+            ResourceCatalogCacheSummary::default()
+        };
 
-        let mut entries = Vec::with_capacity(versions.len());
-        let mut version_count = 0;
-        let mut shadowed_count = 0;
-        for (key, mut candidates) in versions {
-            candidates.sort_by(|left, right| {
-                left.priority
-                    .cmp(&right.priority)
-                    .then_with(|| left.source_path.cmp(&right.source_path))
-                    .then_with(|| left.offset.cmp(&right.offset))
-            });
-            version_count += candidates.len();
-            shadowed_count += candidates.len().saturating_sub(1);
-            let selected = candidates.remove(0);
-            entries.push(ResolvedResource {
-                key,
-                selected,
-                shadowed: candidates,
-            });
-        }
-        Ok(ResourceCatalog {
-            entries,
-            version_count,
-            shadowed_count,
-            diagnostics,
+        Ok(ResourceCatalogBuild {
+            catalog: finalize_catalog(versions, diagnostics),
+            cache,
         })
     }
 
@@ -383,6 +408,51 @@ impl ResourceManager {
             AppError::io("write resource cache", target.display().to_string(), &error)
         })?;
         Ok(target)
+    }
+}
+
+fn finalize_catalog(
+    versions: BTreeMap<ResourceKey, Vec<ResourceVersion>>,
+    diagnostics: Vec<ResourceDiagnostic>,
+) -> ResourceCatalog {
+    let mut entries = Vec::with_capacity(versions.len());
+    let mut version_count = 0;
+    let mut shadowed_count = 0;
+    for (key, mut candidates) in versions {
+        candidates.sort_by(|left, right| {
+            left.priority
+                .cmp(&right.priority)
+                .then_with(|| left.source_path.cmp(&right.source_path))
+                .then_with(|| left.offset.cmp(&right.offset))
+        });
+        version_count += candidates.len();
+        shadowed_count += candidates.len().saturating_sub(1);
+        let selected = candidates.remove(0);
+        entries.push(ResolvedResource {
+            key,
+            selected,
+            shadowed: candidates,
+        });
+    }
+    ResourceCatalog {
+        entries,
+        version_count,
+        shadowed_count,
+        diagnostics,
+    }
+}
+
+fn merge_catalog(
+    versions: &mut BTreeMap<ResourceKey, Vec<ResourceVersion>>,
+    diagnostics: &mut Vec<ResourceDiagnostic>,
+    catalog: ResourceCatalog,
+) {
+    diagnostics.extend(catalog.diagnostics);
+    for entry in catalog.entries {
+        push_version(versions, entry.selected);
+        for shadowed in entry.shadowed {
+            push_version(versions, shadowed);
+        }
     }
 }
 
@@ -1040,5 +1110,42 @@ mod tests {
             ResourceManager::read(version, &AtomicBool::new(false)).expect("read BIF resource"),
             b"2DA"
         );
+    }
+
+    #[test]
+    fn persistent_game_catalog_cache_hits_and_invalidates() {
+        let root = tempdir().expect("temp");
+        let game = root.path().join("game");
+        fs::create_dir_all(game.join("ovr")).expect("override directory");
+        let loose = game.join("ovr/shared.2da");
+        fs::write(&loose, b"first").expect("loose resource");
+        let module = root.path().join("fixture.mod");
+        let mut module_bytes = vec![0_u8; 160];
+        module_bytes[0..4].copy_from_slice(b"MOD ");
+        module_bytes[4..8].copy_from_slice(b"V1.0");
+        module_bytes[20..24].copy_from_slice(&160_u32.to_le_bytes());
+        module_bytes[24..28].copy_from_slice(&160_u32.to_le_bytes());
+        module_bytes[28..32].copy_from_slice(&160_u32.to_le_bytes());
+        fs::write(&module, module_bytes).expect("module");
+        let cache = root.path().join("catalog.json");
+        let config = ResourceManagerConfig {
+            module_path: module,
+            game_install_path: Some(game),
+            ..ResourceManagerConfig::default()
+        };
+        let cancelled = AtomicBool::new(false);
+
+        let first = ResourceManager::build_with_cache(&config, Some(&cache), &cancelled)
+            .expect("cold build");
+        let second = ResourceManager::build_with_cache(&config, Some(&cache), &cancelled)
+            .expect("warm build");
+        fs::write(&loose, b"second version").expect("change source");
+        let third = ResourceManager::build_with_cache(&config, Some(&cache), &cancelled)
+            .expect("invalidated build");
+
+        assert_eq!(first.cache.state, ResourceCatalogCacheState::Miss);
+        assert_eq!(second.cache.state, ResourceCatalogCacheState::Hit);
+        assert_eq!(third.cache.state, ResourceCatalogCacheState::Miss);
+        assert_eq!(second.cache.game_resource_count, 1);
     }
 }

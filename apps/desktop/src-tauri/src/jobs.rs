@@ -1,6 +1,6 @@
 use aurora_core::{AppError, AppResult, ErrorSeverity};
 use aurora_project::{
-    HashProgress, ModuleAnalysis, ModuleDependencyReport, compare_dependency_reports,
+    AnalysisPhase, HashProgress, ModuleAnalysis, ModuleDependencyReport, compare_dependency_reports,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -55,6 +55,7 @@ impl JobRegistry {
                 bytes_read: 0,
                 total_bytes: 0,
                 percent: 0.0,
+                phase: AnalysisPhase::Hashing,
             },
             result: None,
             error: None,
@@ -187,6 +188,7 @@ impl JobSnapshot {
                 dependency_report: analysis.dependency_report.clone(),
                 resource_catalog: Default::default(),
                 resource_catalog_summary: analysis.resource_catalog_summary.clone(),
+                resource_catalog_cache: analysis.resource_catalog_cache.clone(),
                 structured_summary: analysis.structured_summary.clone(),
                 script_index: Default::default(),
                 script_index_summary: analysis.script_index_summary.clone(),
@@ -239,6 +241,7 @@ mod tests {
                     bytes_read: 512,
                     total_bytes: 512,
                     percent: 100.0,
+                    phase: AnalysisPhase::ResourceCatalog,
                 },
             )
             .expect("job exists");

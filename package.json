@@ -11,7 +11,10 @@
     "test": "pnpm --filter @opennever/desktop test",
     "test:run": "pnpm --filter @opennever/desktop test:run",
     "validate:glb": "node tools/validate-glb.mjs",
-    "check:graph": "python scripts/architecture_graph.py check"
+    "check:bundle": "node tools/check-bundle-budget.mjs",
+    "check:graph": "python scripts/architecture_graph.py check",
+    "sbom": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create_sbom.ps1",
+    "verify:distribution": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_distribution.ps1"
   },
   "devDependencies": {
     "gltf-validator": "2.0.0-dev.3.10"

@@ -36,9 +36,7 @@ import {
   X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import Editor, { type Monaco } from "@monaco-editor/react";
-import { Background, Controls, MiniMap, ReactFlow, type Edge, type Node } from "@xyflow/react";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
   cancelJob,
   assetPreviewBytes,
@@ -155,6 +153,9 @@ import {
 import { useUiStore } from "./store/uiStore";
 import "./App.css";
 
+const DialogueFlow = lazy(() => import("./components/DialogueFlow"));
+const NwscriptEditor = lazy(() => import("./components/NwscriptEditor"));
+
 type ProjectField = "modulePath" | "gameInstallPath" | "userDataPath";
 
 type Diagnostic = {
@@ -239,6 +240,7 @@ function App() {
   const moduleInfo = analysis?.moduleInfo;
   const dependencyReport = analysis?.dependencyReport;
   const resourceCatalogSummary = analysis?.resourceCatalogSummary;
+  const resourceCatalogCache = analysis?.resourceCatalogCache;
   const structuredSummary = analysis?.structuredSummary;
   const scriptIndexSummary = analysis?.scriptIndexSummary;
   const dialogueIndexSummary = analysis?.dialogueIndexSummary;
@@ -719,6 +721,7 @@ function App() {
                   <Metric label="Zones" value={(worldSummary?.areas ?? 0).toLocaleString("fr-FR")} />
                   <Metric label="Dialogues" value={(dialogueIndexSummary?.dialogues ?? 0).toLocaleString("fr-FR")} />
                   <Metric label="Scripts" value={(scriptIndexSummary?.scripts ?? 0).toLocaleString("fr-FR")} />
+                  <Metric label="Catalogue" value={resourceCatalogCache?.state === "hit" ? "cache chaud" : resourceCatalogCache?.state === "miss" ? "cache créé" : "direct"} />
                 </div>
                 {job?.state === "completed" && !editWorkspace && (
                   <button type="button" className="primary-button forge-entry" disabled={editBusy} onClick={openEditWorkspace}>
@@ -1562,7 +1565,7 @@ function formatElapsedTime(seconds: number) {
 
 export function JobProgress({ job }: { job: JobSnapshot }) {
   const active = !terminalStates.has(job.state);
-  const finalizing = active && job.progress.percent >= 99;
+  const finalizing = active && job.progress.phase === "persisting";
   const visiblePercent = Math.min(job.progress.percent, active ? 99 : 100);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -1577,6 +1580,17 @@ export function JobProgress({ job }: { job: JobSnapshot }) {
     return () => window.clearInterval(timer);
   }, [job.id, active]);
 
+  const phaseLabels: Record<JobSnapshot["progress"]["phase"], string> = {
+    hashing: "Empreinte du module",
+    inventory: "Inventaire du conteneur",
+    dependencies: "Résolution des dépendances",
+    resource_catalog: "Catalogue des ressources",
+    structured_resources: "Structures Aurora",
+    scripts: "Index des scripts",
+    dialogues: "Index des dialogues",
+    world: "Modèle du monde",
+    persisting: "Persistance de l’index",
+  };
   const phase =
     job.state === "queued"
       ? "Préparation de l’analyse"
@@ -1590,7 +1604,7 @@ export function JobProgress({ job }: { job: JobSnapshot }) {
               ? "Analyse annulée"
               : finalizing
                 ? "Finalisation de l’index"
-                : "Analyse en cours";
+                : phaseLabels[job.progress.phase];
   const detail = finalizing
     ? "Enregistrement du catalogue et préparation des vues — le travail continue."
     : job.state === "running"
@@ -1772,19 +1786,13 @@ function DialogueGraphView({ jobId, graph, loading, editWorkspace, onWorkspace, 
   };
   return <div className="dialogue-document"><div className="script-tabs"><button type="button" className={tab==="tree"?"active":""} onClick={()=>setTab("tree")}>Arbre simplifié</button><button type="button" className={tab==="graph"?"active":""} onClick={()=>setTab("graph")}>Graphe complet</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>GFF brut</button><strong>{currentGraph.key.resref}</strong></div>
     {editWorkspace&&<div className="dialogue-structure-actions"><strong>Structure DLG</strong><button type="button" disabled={structureBusy} onClick={()=>void commitStructure({kind:"add_node",nodeKind:"entry"}).catch(()=>undefined)}>+ Nœud Entry</button><button type="button" disabled={structureBusy} onClick={()=>void commitStructure({kind:"add_node",nodeKind:"reply"}).catch(()=>undefined)}>+ Nœud Reply</button><DialogueAddLinkEditor graph={currentGraph} source={null} label="Ajouter un départ" onAdd={commitStructure}/>{structureMessage&&<small>{structureMessage}</small>}</div>}
-    <div className="dialogue-content">{tab==="tree"?<div className="dialogue-tree">{currentGraph.tree.map(value=><DialogueTreeBranch key={value.nodeId} value={value} onSelect={setSelectedNode}/>)}</div>:tab==="graph"?<DialogueFlow graph={currentGraph} onSelect={setSelectedNode}/>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}</div>
+    <div className="dialogue-content">{tab==="tree"?<div className="dialogue-tree">{currentGraph.tree.map(value=><DialogueTreeBranch key={value.nodeId} value={value} onSelect={setSelectedNode}/>)}</div>:tab==="graph"?<Suspense fallback={<div className="dialogue-empty">Chargement du grapheâ€¦</div>}><DialogueFlow graph={currentGraph} onSelect={setSelectedNode}/></Suspense>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}</div>
     <DialogueInspector graph={currentGraph} node={node} editWorkspace={editWorkspace} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/>
   </div>;
 }
 
 function DialogueTreeBranch({ value, onSelect }: { value: DialogueTreeNode; onSelect: (id:string)=>void }) {
   return <div className="dialogue-tree-branch"><button type="button" className={`dialogue-tree-node ${value.kind}`} onClick={()=>onSelect(value.nodeId)}><code>{value.nodeId}</code><span>{value.displayText??"Texte non résolu"}</span>{value.cycle&&<em>cycle</em>}{value.repeated&&<em>lien partagé</em>}</button>{value.children.length>0&&<div className="dialogue-tree-children">{value.children.map((child,index)=><DialogueTreeBranch key={`${child.nodeId}-${index}`} value={child} onSelect={onSelect}/>)}</div>}</div>;
-}
-
-function DialogueFlow({ graph, onSelect }: { graph: DialogueGraph; onSelect: (id:string)=>void }) {
-  const nodes:Node[]=graph.nodes.map(value=>({id:value.id,position:{x:value.kind==="entry"?0:430,y:value.index*92},data:{label:<div className={`flow-dialogue-node ${value.kind}`}><code>{value.id}</code><span>{value.displayText?.slice(0,100)??"Texte non résolu"}</span></div>},className:graph.sharedNodes.includes(value.id)?"shared":""}));
-  const edges:Edge[]=graph.links.filter(value=>value.source&&!value.broken).map(value=>({id:value.id,source:value.source as string,target:value.target,animated:graph.cycles.some(cycle=>cycle.includes(value.source as string)&&cycle.includes(value.target)),label:value.conditionScript??undefined,style:{stroke:value.isChild?"#d59b55":"#5f819e"}}));
-  return <div className="dialogue-flow"><ReactFlow nodes={nodes} edges={edges} fitView nodesDraggable={false} nodesConnectable={false} elementsSelectable onNodeClick={(_,value)=>onSelect(value.id)}><Background color="#27323c" gap={24}/><MiniMap pannable zoomable nodeColor={node=>node.id.startsWith("entry")?"#567d9d":"#9a7044"}/><Controls showInteractive={false}/></ReactFlow></div>;
 }
 
 function DialogueInspector({ graph, node, editWorkspace, onCommitField, onCommitStructure, onOpenScript }: { graph: DialogueGraph; node?: DialogueGraph["nodes"][number]; editWorkspace?: WorkspaceSnapshot; onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>; onCommitStructure:(action:DialogueStructureAction)=>Promise<void>; onOpenScript:(script:string)=>void }) {
@@ -2034,7 +2042,9 @@ function ScriptDocumentView({ document, loading, tab, onTab, jobId, editWorkspac
       {tab === "source" ? (
         document.nss ? (
           <>
-            <Editor height="430px" theme="opennever-dark" language="nwscript" value={draft} onChange={(value) => setDraft(value ?? "")} beforeMount={configureNwscriptMonaco} options={{ readOnly: !editWorkspace, domReadOnly: !editWorkspace, automaticLayout: true, minimap: { enabled: false }, fontFamily: "Cascadia Code, Consolas, monospace", fontSize: 12, scrollBeyondLastLine: false, renderWhitespace: "selection" }} />
+            <Suspense fallback={<div className="script-document-empty">Chargement de Monacoâ€¦</div>}>
+              <NwscriptEditor value={draft} readOnly={!editWorkspace} onChange={setDraft} />
+            </Suspense>
             {editWorkspace && (
               <div className="script-edit-actions">
                 <button type="button" className="secondary-button" disabled={busy || draft === savedText} onClick={saveSource}>Enregistrer NSS</button>
@@ -2083,16 +2093,6 @@ function NcsTechnicalView({ document }: { document: ScriptDocument }) {
       <pre>{formatHex(ncs.hexPreview)}</pre>
     </div>
   );
-}
-
-function configureNwscriptMonaco(monaco: Monaco) {
-  if (!monaco.languages.getLanguages().some((language: { id: string }) => language.id === "nwscript")) monaco.languages.register({ id: "nwscript" });
-  monaco.languages.setMonarchTokensProvider("nwscript", {
-    keywords: ["break", "case", "const", "continue", "default", "do", "else", "for", "if", "return", "struct", "switch", "while"],
-    typeKeywords: ["void", "int", "float", "string", "object", "vector", "location", "effect", "event", "itemproperty", "talent", "sqlquery", "json"],
-    tokenizer: { root: [[/[a-zA-Z_]\w*/, { cases: { "@keywords": "keyword", "@typeKeywords": "type", "@default": "identifier" } }], [/\/\/.*$/, "comment"], [/\/\*/, "comment", "@comment"], [/"([^"\\]|\\.)*$/, "string.invalid"], [/"/, "string", "@string"], [/#\s*include/, "keyword.directive"], [/[{}()[\]]/, "@brackets"], [/[0-9]+(\.[0-9]+)?/, "number"]], comment: [[/[^/*]+/, "comment"], [/\*\//, "comment", "@pop"], [/[/*]/, "comment"]], string: [[/[^\\"]+/, "string"], [/\\./, "string.escape"], [/"/, "string", "@pop"]] },
-  });
-  monaco.editor.defineTheme("opennever-dark", { base: "vs-dark", inherit: true, rules: [{ token: "keyword", foreground: "D59B55" }, { token: "type", foreground: "73B4E8" }, { token: "comment", foreground: "66798A" }], colors: { "editor.background": "#0D1217", "editor.lineHighlightBackground": "#151C23" } });
 }
 
 function formatHex(hex: string) { return hex.match(/.{1,32}/g)?.join("\n") ?? hex; }

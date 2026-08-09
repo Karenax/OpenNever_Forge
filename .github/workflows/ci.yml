@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  checks: write
 
 jobs:
   windows:
@@ -27,19 +28,61 @@ jobs:
           components: rustfmt, clippy
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
+      - name: Audit production frontend dependencies
+        run: pnpm audit --prod --audit-level=low
       - name: Typecheck frontend
         run: pnpm lint
       - name: Test frontend
         run: pnpm test:run
       - name: Build frontend
         run: pnpm build
+      - name: Enforce bundle and source budgets
+        run: pnpm check:bundle
       - name: Check Rust formatting
         run: cargo fmt --all -- --check
       - name: Lint Rust
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test Rust
         run: cargo test --workspace
+      - name: Build Windows release candidate
+        run: pnpm tauri build
+      - name: Build MCP release companion
+        run: cargo build --release -p opennever-mcp
+      - name: Install Rust SBOM generator
+        run: cargo install --locked cargo-cyclonedx --version 0.5.9
+      - name: Create CycloneDX SBOMs
+        shell: pwsh
+        run: ./scripts/create_sbom.ps1 | Format-List
+      - name: Create release manifest
+        shell: pwsh
+        run: ./scripts/create_release_manifest.ps1 -OutputPath target/release/release-manifest.json -RequireClean | Format-List
+      - name: Verify unsigned distribution bundle
+        shell: pwsh
+        run: ./scripts/verify_distribution.ps1 -RequireClean | Format-List
       - name: Test Python tooling and synthetic fixtures
         run: python -m unittest discover -s tests -v
       - name: Check architecture graph freshness
         run: python scripts/architecture_graph.py check
+      - name: Upload unsigned Windows candidate
+        uses: actions/upload-artifact@v6
+        with:
+          name: opennever-forge-windows-unsigned
+          if-no-files-found: error
+          path: |
+            target/release/opennever-forge-desktop.exe
+            target/release/opennever-mcp.exe
+            target/release/bundle/nsis/*.exe
+            target/release/release-manifest.json
+            target/release/SHA256SUMS
+            target/release/sbom/*.cdx.json
+
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans licenses sources
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -37,10 +37,10 @@ use aurora_gff::{GenericGff, parse_gff};
 use aurora_index::{CatalogPersistence, load_dependency_baseline, replace_resource_catalog};
 use aurora_nwscript::{CompileResult, CompilerConfig, NssDocument, compile_nss, parse_nss};
 use aurora_project::{
-    DependencyRoots, DiagnosticReport, DialogueGraph, DialoguePage, ModuleDependencyReport,
-    NarrativeModel, ResourceManager, ResourcePage, ResourceSourceKind, SceneManifest,
-    ScriptDocument, ScriptPage, WorldIndex, analyze_module_file_with_roots, build_asset_preview,
-    cached_model_preview, compare_dependency_reports,
+    AnalysisPhase, DependencyRoots, DiagnosticReport, DialogueGraph, DialoguePage, HashProgress,
+    ModuleDependencyReport, NarrativeModel, ResourceManager, ResourcePage, ResourceSourceKind,
+    SceneManifest, ScriptDocument, ScriptPage, WorldIndex, analyze_module_file_with_cache,
+    build_asset_preview, cached_model_preview, compare_dependency_reports,
 };
 use aurora_tlk::{TalkTable, TlkEditAction, apply_tlk_edit, parse_tlk, write_tlk};
 use aurora_world::{AreaMap, adapt_area, adapt_narrative};
@@ -5576,6 +5576,7 @@ pub fn start_module_analysis(
         user_data_path: optional_directory(request.user_data_path, "user_data_path")?,
     };
     let database_path = PathBuf::from(&state.database.path);
+    let catalog_cache_path = state.asset_cache_root.join("resource-catalog-v1.json");
     let module_source_path = module_path.display().to_string();
     let previous_dependency_report = load_dependency_baseline(&database_path, &module_source_path)?
         .map(|json| {
@@ -5598,47 +5599,57 @@ pub fn start_module_analysis(
             emit_snapshot(&app_handle, &snapshot);
         }
 
-        let result =
-            analyze_module_file_with_roots(&module_path, &roots, &cancellation, |progress| {
+        let result = analyze_module_file_with_cache(
+            &module_path,
+            &roots,
+            Some(&catalog_cache_path),
+            &cancellation,
+            |progress| {
                 if let Some(snapshot) = registry.set_progress(&job_id, progress) {
                     emit_snapshot(&app_handle, &snapshot);
                 }
-            })
-            .and_then(|mut analysis| {
-                compare_dependency_reports(
-                    &mut analysis.dependency_report,
-                    previous_dependency_report.as_ref(),
-                );
-                let summary =
-                    serde_json::to_string(&analysis.structured_summary).map_err(|error| {
-                        AppError::database(
-                            database_path.display().to_string(),
-                            format!("cannot serialize structured summary: {error}"),
-                        )
-                    })?;
-                let dependencies =
-                    serde_json::to_string(&analysis.dependency_report).map_err(|error| {
-                        AppError::database(
-                            database_path.display().to_string(),
-                            format!("cannot serialize dependency baseline: {error}"),
-                        )
-                    })?;
-                replace_resource_catalog(
-                    &database_path,
-                    CatalogPersistence {
-                        project_id: &analysis.fingerprint.sha256,
-                        source_digest: &analysis.fingerprint.sha256,
-                        catalog: &analysis.resource_catalog,
-                        structured_summary_json: &summary,
-                        source_path: &module_source_path,
-                        dependency_report_json: &dependencies,
-                        script_index: &analysis.script_index,
-                        dialogue_index: &analysis.dialogue_index,
-                        world_index: &analysis.world_index,
-                    },
-                )?;
-                Ok(analysis)
-            });
+            },
+        )
+        .and_then(|mut analysis| {
+            if let Some(snapshot) = registry.set_progress(
+                &job_id,
+                HashProgress::stage(AnalysisPhase::Persisting, 96.0),
+            ) {
+                emit_snapshot(&app_handle, &snapshot);
+            }
+            compare_dependency_reports(
+                &mut analysis.dependency_report,
+                previous_dependency_report.as_ref(),
+            );
+            let summary = serde_json::to_string(&analysis.structured_summary).map_err(|error| {
+                AppError::database(
+                    database_path.display().to_string(),
+                    format!("cannot serialize structured summary: {error}"),
+                )
+            })?;
+            let dependencies =
+                serde_json::to_string(&analysis.dependency_report).map_err(|error| {
+                    AppError::database(
+                        database_path.display().to_string(),
+                        format!("cannot serialize dependency baseline: {error}"),
+                    )
+                })?;
+            replace_resource_catalog(
+                &database_path,
+                CatalogPersistence {
+                    project_id: &analysis.fingerprint.sha256,
+                    source_digest: &analysis.fingerprint.sha256,
+                    catalog: &analysis.resource_catalog,
+                    structured_summary_json: &summary,
+                    source_path: &module_source_path,
+                    dependency_report_json: &dependencies,
+                    script_index: &analysis.script_index,
+                    dialogue_index: &analysis.dialogue_index,
+                    world_index: &analysis.world_index,
+                },
+            )?;
+            Ok(analysis)
+        });
 
         let snapshot = match result {
             Ok(fingerprint) => registry.complete(&job_id, fingerprint),
@@ -6301,8 +6312,10 @@ mod tests {
     fn ai_endpoints_require_https_except_for_local_models() {
         assert!(validated_ai_endpoint("http://127.0.0.1:11434/v1/chat/completions").is_ok());
         assert!(validated_ai_endpoint("http://localhost:1234/v1/chat/completions").is_ok());
-        let mut legacy_context = aurora_agent::ContextPolicy::default();
-        legacy_context.allow_insecure_local_http = false;
+        let mut legacy_context = aurora_agent::ContextPolicy {
+            allow_insecure_local_http: false,
+            ..aurora_agent::ContextPolicy::default()
+        };
         legacy_context.allowed_provider_hosts.clear();
         assert!(
             validated_agent_endpoint(
