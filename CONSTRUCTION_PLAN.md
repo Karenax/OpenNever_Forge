@@ -1,7 +1,7 @@
 # Plan de construction — NWN Editor
 
-Version : 0.1
-Date : 2 août 2026
+Version : 0.2
+Date : 10 août 2026
 Source : `C:\Users\karen\Downloads\NWN_EDITOR_CONTEXT.md`
 État initial constaté : `E:\OpenNever_Forge` est vide et n'est pas encore un dépôt Git.
 
@@ -36,6 +36,9 @@ Fondations
 8. Aucune dépendance n'est ajoutée avant examen de sa licence, de sa maintenance et de son rôle exact.
 9. Les outils GPL restent des références ou des processus externes tant qu'une décision de licence n'autorise pas autre chose.
 10. Chaque lot livre un incrément installable, testé et démontrable sur Windows 10/11.
+11. Une fonction n'est livrée que si un humain peut la trouver, la comprendre, la modifier et
+    vérifier son résultat sur un corpus réel ; la présence d'une commande backend ou d'un formulaire
+    brut ne constitue pas une fonction exploitable.
 
 ## 3. Architecture cible
 
@@ -461,6 +464,33 @@ d’une autre zone. L’arbre encore sale, le certificat absent, le profil Windo
 publication non autorisée laissent le lot `BLOQUÉ_EXTERNE`; aucune de ces conditions n'est convertie
 en réussite. Le Lot 40 n'ajoute aucun nouveau format, éditeur ou pouvoir IA.
 
+## 7 quinquies. Phase 7 — refondation d'usage et qualification humaine
+
+### Lot 41 — ateliers métier exploitables
+
+**Statut au 10 août 2026 : en cours.** La chaîne technique des Lots 0 à 40 reste acquise, mais elle
+ne qualifie plus à elle seule le produit comme remplaçant d'Aurora. Le contrat détaillé et ses portes
+de sortie sont dans `docs/UX_REFONDATION.md`.
+
+Objectif : transformer chaque capacité déjà présente en atelier utilisable sur un module réel, sans
+exposer l'utilisateur à un arbre GFF brut, à une liste démesurée ou à des identifiants numériques
+sans traduction métier.
+
+Ordre d'exécution :
+
+1. **41.0 — coque d'atelier** : espace central prioritaire, inspecteur contextuel et densité lisible ;
+2. **41.1 — dialogues** : voisinage borné, recherche globale, navigation, édition et ajout de liens ;
+3. **41.2 — zones** : palette Resource Manager, filtres, sélection, placement et déplacement visuel ;
+4. **41.3 — récit** : ateliers séparés pour journal/quêtes et factions, sélection avant édition ;
+5. **41.4 — blueprints** : catégories métier, recherche, propriétés centrales et provenance distincte ;
+6. **41.5 — Agent Studio** : parcours guidé fournisseur → test → contexte → objectif → exécution ;
+7. **41.6 — documentation et recette** : aide opératoire, tests de charge, build, graphe et parcours
+   humain sur un module représentatif.
+
+Porte de sortie : chaque atelier permet un cycle trouver → comprendre → modifier → valider, avec une
+preuve automatisée sur les gros volumes et une recette visuelle/manuelle. Les limites restantes sont
+affichées comme telles ; ni la release du Lot 40 ni un test moteur ne remplacent cette qualification.
+
 ## 8. Chantiers transversaux obligatoires
 
 ### Tests et corpus
@@ -557,19 +587,17 @@ Ces choix ne bloquent pas la rédaction du plan mais bloquent certains commits :
 
 ## 12. Prochaine action recommandée
 
-Les Lots 0 à 39 sont implémentés. Le **Lot 40 a exécuté tout son périmètre logiciel local** : porte
-release, SBOM CycloneDX, manifeste schéma 2, checksums, signature conditionnelle, vérification hors
-workspace, workflow manuel protégé et qualification moteur réelle, client compris. Le verdict reste
-`BLOQUÉ_EXTERNE`.
+Le Lot 40 conserve sa valeur de preuve technique et moteur, mais la priorité produit est désormais le
+**Lot 41** : terminer la qualification humaine de tous les ateliers sur un module représentatif. La
+publication publique reste suspendue tant que les portes de `docs/UX_REFONDATION.md` ne passent pas.
 
 Prochaines actions, dans cet ordre :
 
-1. autoriser séparément l’intégration Git des Lots 36 à 40 afin d’obtenir un commit propre et un tag
-   explicite ;
-2. fournir un certificat Authenticode valide avec horodatage RFC 3161 ;
-3. qualifier l’installeur signé et sa désinstallation sur un profil Windows propre, puis rejouer le
-   cycle Toolset sur cette candidate exacte ;
-4. autoriser séparément le brouillon GitHub, son retéléchargement contrôlé et sa publication.
+1. terminer les ateliers métier du Lot 41 et leurs tests de charge ;
+2. exécuter la recette visuelle et le cycle complet trouver → modifier → construire → tester ;
+3. corriger toute régression d'usage avant de requalifier une candidate ;
+4. seulement ensuite reprendre les prérequis externes du Lot 40 : Authenticode, profil Windows
+   propre et publication explicitement autorisée.
 
-Voir `docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md` pour les règles d’arrêt et
-`docs/validation/lot40-exit-review.md` pour la matrice G0–G6 actuelle.
+Voir `docs/UX_REFONDATION.md` pour les critères produit et
+`docs/validation/lot40-exit-review.md` pour l'historique des seules preuves techniques G0–G6.

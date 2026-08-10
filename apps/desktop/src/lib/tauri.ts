@@ -77,6 +77,8 @@ export type DevelopmentDeployment = {
 };
 export type DevelopmentCleanupReport = { removed: string[]; preservedChanged: string[] };
 export type PaletteManifest = { schemaVersion: number; categories: Array<{ id: string; label: string; resourceTypes: number[] }> };
+export type BlueprintFieldOption = { value: number; label: string; source: string };
+export type BlueprintFieldOptions = { fields: Record<string, BlueprintFieldOption[]> };
 export type WorkspaceExportManifest = { schemaVersion: number; workspaceId: string; sourceSha256: string; files: DevelopmentFile[]; deletedResources: ResourceKey[] };
 export type AuroraSyncManifest = { schemaVersion: number; root: string; files: DevelopmentFile[] };
 export type AuroraSyncState = "identical" | "toolset_only" | "workspace_only" | "toolset_changed" | "workspace_changed" | "conflict";
@@ -847,6 +849,11 @@ export async function createNewModule(request: {
 export async function getStandardPalette(): Promise<PaletteManifest> {
   requireTauri();
   return invoke<PaletteManifest>("get_standard_palette");
+}
+
+export async function getBlueprintFieldOptions(request: { jobId: string; fileType: string }): Promise<BlueprintFieldOptions> {
+  requireTauri();
+  return invoke<BlueprintFieldOptions>("get_blueprint_field_options", { request });
 }
 
 export async function createWorkspaceArea(request: {

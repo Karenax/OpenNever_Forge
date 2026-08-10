@@ -1,3 +1,4 @@
+mod blueprint_options;
 mod commands;
 mod jobs;
 mod logging;
@@ -99,6 +100,7 @@ pub fn run() {
             commands::resolve_agent_approval,
             commands::create_new_module,
             commands::get_standard_palette,
+            commands::get_blueprint_field_options,
             commands::create_workspace_area,
             commands::list_workspace_created_areas,
             commands::delete_workspace_area,

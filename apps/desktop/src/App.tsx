@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   Sparkles,
   SquareStack,
+  Users,
   Orbit,
   PencilLine,
   Redo2,
@@ -36,12 +37,14 @@ import {
   X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   cancelJob,
   assetPreviewBytes,
   getAppStatus,
   getJob,
+  getStandardPalette,
+  getBlueprintFieldOptions,
   inspectResource,
   inspectDialogue,
   inspectNarrativeDocuments,
@@ -102,7 +105,6 @@ import {
   transformWalkmeshDraft,
   undoEditCommand,
   validateWalkmeshDraft,
-  type JobSnapshot,
   type ModuleDependency,
   type ModuleDependencyReport,
   type ResolvedResource,
@@ -141,17 +143,22 @@ import {
   type TwoDaEditAction,
   type TlkEditAction,
   type NwnLaunchProfile,
+  type BlueprintFieldOption,
 } from "./lib/tauri";
 import { AuroraSyncPanel } from "./components/AuroraSyncPanel";
 import { AiAssistantPanel } from "./components/AiAssistantPanel";
 import { AgentStudio } from "./components/AgentStudio";
 import { HelpCenter } from "./components/HelpCenter";
+import { JobProgress } from "./components/JobProgress";
+import { EditableBlueprintOptionField, formatBlueprintOption } from "./components/BlueprintOptionField";
 import {
   loadProjectPreferences,
   saveProjectPreferences,
 } from "./lib/projectPreferences";
 import { useUiStore } from "./store/uiStore";
 import "./App.css";
+
+export { JobProgress };
 
 const DialogueFlow = lazy(() => import("./components/DialogueFlow"));
 const NwscriptEditor = lazy(() => import("./components/NwscriptEditor"));
@@ -171,7 +178,8 @@ const explorerGroupDefinitions = [
   { id: "areas", label: "Zones", icon: Map, section: "Monde" },
   { id: "scene", label: "Vue 3D", icon: Orbit, section: "Monde" },
   { id: "dialogues", label: "Dialogues", icon: MessageSquareText, section: "Récit" },
-  { id: "narrative", label: "Journal et factions", icon: BookOpen, section: "Récit" },
+  { id: "journal", label: "Journal et quêtes", icon: BookOpen, section: "Récit" },
+  { id: "factions", label: "Factions", icon: Users, section: "Récit" },
   { id: "scripts", label: "Scripts", icon: Code2, section: "Contenu" },
   { id: "blueprints", label: "Blueprints", icon: Box, section: "Contenu" },
   { id: "assets", label: "Assets", icon: SquareStack, section: "Contenu" },
@@ -209,6 +217,7 @@ function App() {
   const [explorerOpen, setExplorerOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [lastContentView,setLastContentView]=useState("module");
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([
     {
       id: "source-readonly",
@@ -261,8 +270,10 @@ function App() {
             ? undefined
             : item.id === "dialogues"
             ? dialogueIndexSummary?.dialogues ?? 0
-            : item.id === "narrative"
-            ? (worldSummary?.journalCategories ?? 0) + (worldSummary?.factions ?? 0)
+            : item.id === "journal"
+            ? worldSummary?.journalCategories ?? 0
+            : item.id === "factions"
+            ? worldSummary?.factions ?? 0
             : item.id === "areas"
             ? worldSummary?.areas ?? 0
             : item.id === "assets"
@@ -290,6 +301,13 @@ function App() {
   useEffect(() => {
     saveProjectPreferences(project);
   }, [project]);
+
+  useEffect(() => {
+    if (["dialogues", "areas", "journal", "factions", "blueprints", "agent"].includes(activeExplorerItem)) {
+      setInspectorOpen(false);
+    }
+    if(!["agent","help"].includes(activeExplorerItem))setLastContentView(activeExplorerItem);
+  }, [activeExplorerItem]);
 
   function updateField(field: ProjectField, value: string) {
     setProject((current) => ({ ...current, [field]: value }));
@@ -875,12 +893,15 @@ function App() {
             {activeExplorerItem === "agent" && (
               <section className="agent-sanctum workspace-page" aria-label="Forge arcanique">
                 <header className="workspace-page-header">
-                  <div><span className="rpg-kicker"><Sparkles size={13} /> FORGE ARCANIQUE</span><h1>Agent Studio</h1><p>À gauche : un agent multi-étapes pour construire. À droite : une proposition ponctuelle à relire avant application.</p></div>
+                  <div><span className="rpg-kicker"><Sparkles size={13} /> FORGE ARCANIQUE</span><h1>Agent Studio</h1><p>Choisissez le modèle, le contexte courant et le résultat attendu. Les réglages experts restent disponibles à la demande.</p></div>
                 </header>
                 {editWorkspace && jobId ? (
-                  <div className="agent-command-grid">
-                    <div className="agent-command-column scroll-panel"><AgentStudio jobId={jobId} workspace={editWorkspace} onError={pushError} /></div>
-                    <div className="agent-command-column scroll-panel"><AiAssistantPanel jobId={jobId} workspace={editWorkspace} selectedResource={selectedResource?.key} onWorkspaceChange={setEditWorkspace} onError={pushError} /></div>
+                  <div className="agent-guided-workspace scroll-panel">
+                    <AgentStudio jobId={jobId} workspace={editWorkspace} selectedResource={selectedResource?.key} activeView={lastContentView} onError={pushError} />
+                    <details className="agent-single-change">
+                      <summary>Mode expert · proposition ponctuelle sur une ressource</summary>
+                      <AiAssistantPanel jobId={jobId} workspace={editWorkspace} selectedResource={selectedResource?.key} onWorkspaceChange={setEditWorkspace} onError={pushError} />
+                    </details>
                   </div>
                 ) : (
                   <div className="locked-workspace"><Bot size={40} /><h2>L’atelier doit être ouvert</h2><p>Analysez un module puis créez son espace d’édition avant d’autoriser un agent à proposer des changements.</p><button type="button" className="primary-button" onClick={() => setActiveExplorerItem("module")}><LayoutDashboard size={15} /> Revenir à la campagne</button></div>
@@ -898,11 +919,26 @@ function App() {
               <DialogueWorkspace jobId={jobId} summary={dialogueIndexSummary} filter={resourceFilter} editWorkspace={editWorkspace} onWorkspace={setEditWorkspace} onOpenScript={(script) => { setResourceFilter(script); setActiveExplorerItem("scripts"); }} />
             )}
 
-            {worldSummary && jobId && ["narrative", "areas", "assets", "scene", "graph"].includes(activeExplorerItem) && (
+            {worldSummary && jobId && ["journal", "factions", "areas", "assets", "scene", "graph"].includes(activeExplorerItem) && (
               <PhaseOneWorkspace jobId={jobId} activeView={activeExplorerItem} editWorkspace={editWorkspace} onWorkspace={setEditWorkspace} />
             )}
 
-            {resourceCatalogSummary && jobId && ["blueprints", "resources", "tables"].includes(activeExplorerItem) && (
+            {resourceCatalogSummary && jobId && activeExplorerItem === "blueprints" && (
+              <BlueprintWorkspace
+                jobId={jobId}
+                summary={resourceCatalogSummary}
+                initialFilter={resourceFilter}
+                selected={selectedResource}
+                inspection={inspection}
+                inspectionBusy={inspectionBusy}
+                editWorkspace={editWorkspace}
+                onSelect={selectResource}
+                onCommit={editSelectedGff}
+                onStructure={editSelectedBlueprintStructure}
+              />
+            )}
+
+            {resourceCatalogSummary && jobId && ["resources", "tables"].includes(activeExplorerItem) && (
               <CatalogView
                 jobId={jobId}
                 summary={resourceCatalogSummary}
@@ -991,7 +1027,7 @@ function App() {
               {inspectionBusy && <small>Lecture bornée en cours…</small>}
               {inspection && (
                 <>
-                  {inspection.kind === "gff" && editWorkspace && (
+                  {inspection.kind === "gff" && editWorkspace && activeExplorerItem !== "blueprints" && (
                     <GffFieldEditor document={inspection.value} onCommit={editSelectedGff} onStructure={editSelectedBlueprintStructure} />
                   )}
                   {inspection.kind === "two_da" && editWorkspace && jobId && selectedResource && (
@@ -1069,10 +1105,12 @@ function GffFieldEditor({
   document,
   onCommit,
   onStructure,
+  fieldOptions,
 }: {
   document: GenericGff;
   onCommit: (path: string, before: GenericGffValue, after: GenericGffValue) => Promise<void>;
   onStructure: (action: BlueprintStructureAction) => Promise<void>;
+  fieldOptions?: Record<string, BlueprintFieldOption[]>;
 }) {
   const blueprint=blueprintFileTypes.has(document.fileType);
   const editable = document.root.fields.filter((field) =>
@@ -1089,6 +1127,7 @@ function GffFieldEditor({
           label={blueprintFieldLabel(field.label)??field.label}
           value={field.value}
           boolean={blueprintBooleanFields.has(field.label)}
+          options={fieldOptions?.[field.label]}
           onCommit={(after) => onCommit(`/${field.label}`, field.value, after)}
         />
       ))}
@@ -1153,15 +1192,18 @@ function EditableGffField({
   label,
   value,
   boolean=false,
+  options,
   onCommit,
 }: {
   label: string;
   value: GenericGffValue;
   boolean?:boolean;
+  options?:BlueprintFieldOption[];
   onCommit: (after: GenericGffValue) => Promise<void>;
 }) {
   if(value.kind==="localized_string")return <EditableLocalizedDialogueField field={{label,path:label,value}} onCommit={(_,__,after)=>onCommit(after)}/>;
   if(boolean&&isIntegerGffValue(value))return <EditableBooleanGffField field={{label,path:label,value}} onCommit={(_,__,after)=>onCommit(after)}/>;
+  if(options?.length&&isIntegerGffValue(value))return <EditableBlueprintOptionField label={label} value={value} options={options} onCommit={onCommit}/>;
   return <EditableScalarGffField label={label} value={value} onCommit={onCommit}/>;
 }
 
@@ -1555,109 +1597,6 @@ function PathField({ label, hint, value, placeholder, onChange, onBrowse }: Path
   );
 }
 
-function formatElapsedTime(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return minutes > 0
-    ? `${minutes} min ${remainingSeconds.toString().padStart(2, "0")} s`
-    : `${remainingSeconds} s`;
-}
-
-export function JobProgress({ job }: { job: JobSnapshot }) {
-  const active = !terminalStates.has(job.state);
-  const finalizing = active && job.progress.phase === "persisting";
-  const visiblePercent = Math.min(job.progress.percent, active ? 99 : 100);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  useEffect(() => {
-    setElapsedSeconds(0);
-    if (!active) return;
-
-    const startedAt = Date.now();
-    const timer = window.setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1_000));
-    }, 1_000);
-    return () => window.clearInterval(timer);
-  }, [job.id, active]);
-
-  const phaseLabels: Record<JobSnapshot["progress"]["phase"], string> = {
-    hashing: "Empreinte du module",
-    inventory: "Inventaire du conteneur",
-    dependencies: "Résolution des dépendances",
-    resource_catalog: "Catalogue des ressources",
-    structured_resources: "Structures Aurora",
-    scripts: "Index des scripts",
-    dialogues: "Index des dialogues",
-    world: "Modèle du monde",
-    persisting: "Persistance de l’index",
-  };
-  const phase =
-    job.state === "queued"
-      ? "Préparation de l’analyse"
-      : job.state === "cancelling"
-        ? "Annulation en cours"
-        : job.state === "completed"
-          ? "Analyse terminée"
-          : job.state === "failed"
-            ? "Analyse interrompue"
-            : job.state === "cancelled"
-              ? "Analyse annulée"
-              : finalizing
-                ? "Finalisation de l’index"
-                : phaseLabels[job.progress.phase];
-  const detail = finalizing
-    ? "Enregistrement du catalogue et préparation des vues — le travail continue."
-    : job.state === "running"
-      ? `Lecture et indexation des ressources · ${visiblePercent.toFixed(1)} % parcourus`
-      : job.state === "queued"
-        ? "La tâche va démarrer dans un instant."
-        : job.state === "cancelling"
-          ? "La demande d’arrêt a été transmise au moteur."
-          : job.state === "completed"
-            ? "Le module et ses ressources sont prêts."
-            : job.error?.userMessage ?? "La tâche ne travaille plus.";
-
-  return (
-    <div
-      className={`job-progress ${active ? "is-active" : `is-${job.state}`}`}
-      aria-live="polite"
-      aria-busy={active}
-      role="status"
-    >
-      <div className="job-progress-heading">
-        <span>Analyse du module</span>
-        <strong>
-          {active ? (
-            <><LoaderCircle className="job-progress-spinner" size={13} /> ACTIF · {formatElapsedTime(elapsedSeconds)}</>
-          ) : (
-            `${visiblePercent.toFixed(1)} %`
-          )}
-        </strong>
-      </div>
-      <div
-        className={`progress-track ${finalizing ? "is-indeterminate" : ""}`}
-        role="progressbar"
-        aria-label={phase}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        {...(!finalizing ? { "aria-valuenow": visiblePercent } : {})}
-      >
-        <div
-          className={finalizing ? "progress-sweep" : `progress-fill ${active ? "is-animated" : "is-static"}`}
-          style={finalizing ? undefined : { width: `${visiblePercent}%` }}
-        />
-      </div>
-      <div className="job-progress-activity">
-        <span className="activity-pulse" aria-hidden="true" />
-        <span>
-          <strong>{phase}</strong>
-          <small>{detail}</small>
-        </span>
-      </div>
-    </div>
-  );
-}
-
 type CatalogViewProps = {
   jobId: string;
   summary: ResourceCatalogSummary;
@@ -1666,6 +1605,39 @@ type CatalogViewProps = {
   selected?: ResolvedResource;
   onSelect: (resource: ResolvedResource) => void;
 };
+
+const blueprintTypeLabels:Record<number,string>={2025:"Objet",2027:"Créature",2032:"Déclencheur",2035:"Son",2040:"Rencontre",2042:"Porte",2044:"Plaçable",2051:"Marchand",2055:"Module",2058:"Point de passage"};
+
+function BlueprintWorkspace({jobId,summary,initialFilter,selected,inspection,inspectionBusy,editWorkspace,onSelect,onCommit,onStructure}:{jobId:string;summary:ResourceCatalogSummary;initialFilter:string;selected?:ResolvedResource;inspection?:ResourceInspection;inspectionBusy:boolean;editWorkspace?:WorkspaceSnapshot;onSelect:(resource:ResolvedResource)=>void;onCommit:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onStructure:(action:BlueprintStructureAction)=>Promise<void>}) {
+  const paletteQuery=useQuery({queryKey:["standard-palette"],queryFn:getStandardPalette,staleTime:Number.POSITIVE_INFINITY});
+  const [category,setCategory]=useState("all");
+  const [query,setQuery]=useState(initialFilter);
+  const [page,setPage]=useState(0);
+  const [tab,setTab]=useState<"properties"|"provenance"|"raw">("properties");
+  const fieldOptionsQuery=useQuery({queryKey:["blueprint-field-options",jobId,inspection?.kind==="gff"?inspection.value.fileType:null],queryFn:()=>getBlueprintFieldOptions({jobId,fileType:(inspection as Extract<ResourceInspection,{kind:"gff"}>).value.fileType}),enabled:inspection?.kind==="gff",staleTime:Number.POSITIVE_INFINITY});
+  useEffect(()=>setQuery(initialFilter),[initialFilter]);
+  useEffect(()=>setPage(0),[category,query]);
+  const categories=paletteQuery.data?.categories??[];
+  const categoryTypes=category==="all"?Array.from(resourceTypesByGroup.blueprints):categories.find(value=>value.id===category)?.resourceTypes??[];
+  const pageSize=80;
+  const resourcesQuery=useQuery({queryKey:["blueprint-workspace",jobId,category,query,page],queryFn:()=>queryResources({jobId,query,resourceTypes:categoryTypes,offset:page*pageSize,limit:pageSize})});
+  const resources=resourcesQuery.data?.items??[];
+  const total=resourcesQuery.data?.total??0;
+  const pages=Math.max(1,Math.ceil(total/pageSize));
+  return <section className="blueprint-workspace" aria-label="Atelier des blueprints"><aside className="blueprint-browser"><header><span className="eyebrow">PALETTE DU MODULE</span><h2>Blueprints</h2><span>{total.toLocaleString("fr-FR")} résultat(s)</span></header><label className="blueprint-search"><Search size={14}/><input aria-label="Rechercher un blueprint" value={query} onChange={event=>setQuery(event.currentTarget.value)} placeholder="Nom ou ResRef…"/></label><select aria-label="Catégorie de blueprint" value={category} onChange={event=>setCategory(event.currentTarget.value)}><option value="all">Toutes les catégories</option>{categories.map(value=><option key={value.id} value={value.id}>{value.label}</option>)}</select><div className="blueprint-list">{resources.map(resource=><button type="button" key={`${resource.key.resref}-${resource.key.resourceType}`} className={selected?.key.resref===resource.key.resref&&selected.key.resourceType===resource.key.resourceType?"selected":""} onClick={()=>onSelect(resource)}><span>{blueprintTypeLabels[resource.key.resourceType]??`Type ${resource.key.resourceType}`}</span><strong>{resource.key.resref}</strong><small>{resource.selected.sourceKind}{resource.shadowed.length?` · ${resource.shadowed.length} version(s) masquée(s)`:""}</small></button>)}{!resources.length&&<p>{resourcesQuery.isLoading?"Chargement…":"Aucun blueprint ne correspond."}</p>}</div><div className="catalog-pagination compact"><button type="button" disabled={page===0} onClick={()=>setPage(value=>Math.max(0,value-1))}>Précédent</button><span>{page+1}/{pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setPage(value=>value+1)}>Suivant</button></div></aside><main className="blueprint-document">{selected?<><header className="blueprint-document-header"><div><span className="eyebrow">{blueprintTypeLabels[selected.key.resourceType]??"BLUEPRINT"}</span><h2>{selected.key.resref}</h2><span>{selected.selected.sourceKind} · {selected.selected.size.toLocaleString("fr-FR")} octets</span></div><span className="format-badge">{editWorkspace?"Édition contrôlée":"Lecture seule"}</span></header><nav className="blueprint-tabs" aria-label="Vues du blueprint"><button type="button" className={tab==="properties"?"active":""} onClick={()=>setTab("properties")}>Propriétés métier</button><button type="button" className={tab==="provenance"?"active":""} onClick={()=>setTab("provenance")}>Provenance</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>GFF brut</button></nav>{inspectionBusy?<div className="blueprint-empty"><LoaderCircle className="agent-spinner" size={20}/> Lecture du blueprint…</div>:inspection?.kind==="gff"?<div className="blueprint-editor-scroll">{tab==="properties"&&<>{editWorkspace?<GffFieldEditor document={inspection.value} onCommit={onCommit} onStructure={onStructure} fieldOptions={fieldOptionsQuery.data?.fields}/>:<BlueprintReadView document={inspection.value} fieldOptions={fieldOptionsQuery.data?.fields}/>}</>}{tab==="provenance"&&<div className="blueprint-provenance"><Property label="ResRef" value={selected.key.resref}/><Property label="Type" value={blueprintTypeLabels[selected.key.resourceType]??String(selected.key.resourceType)}/><Property label="Couche active" value={selected.selected.sourceKind}/><Property label="Priorité" value={String(selected.selected.priority)}/><Property label="Versions masquées" value={String(selected.shadowed.length)}/><code>{selected.selected.sourcePath}</code></div>}{tab==="raw"&&<pre className="blueprint-raw">{JSON.stringify(inspection.value,null,2)}</pre>}</div>:<div className="blueprint-empty">Cette ressource n’est pas un blueprint GFF pris en charge.</div>}</>:<div className="blueprint-empty"><Box size={42}/><h2>Sélectionnez un blueprint</h2><p>Recherchez par catégorie ou ResRef. Ses propriétés s’ouvriront ici, dans l’espace central.</p><span>{summary.resourceCount.toLocaleString("fr-FR")} ressources résolues dans le module.</span></div>}</main></section>;
+}
+
+function BlueprintReadView({document,fieldOptions}:{document:GenericGff;fieldOptions?:Record<string,BlueprintFieldOption[]>}) {
+  const fields=document.root.fields.filter(field=>blueprintFieldLabel(field.label)!==undefined);
+  return <div className="blueprint-read-view"><p>Créez un espace d’édition depuis Construire pour modifier ces valeurs. Les identifiants techniques restent affichés comme information secondaire.</p><div>{fields.map(field=><article key={field.label}><span>{blueprintFieldLabel(field.label)}</span><strong>{fieldOptions?.[field.label]?.length?formatBlueprintOption(field.value,fieldOptions[field.label]):formatGffValue(field.value)}</strong><code>{field.label}</code></article>)}</div></div>;
+}
+
+function formatGffValue(value:GenericGffValue):string {
+  if(value.kind==="localized_string"&&typeof value.value==="object"&&value.value!==null){const localized=value.value as {values?:Array<{text?:string}>;stringRef?:number|null};return localized.values?.find(item=>item.text)?.text??(localized.stringRef===null||localized.stringRef===undefined?"Texte non résolu":`StrRef ${localized.stringRef}`)}
+  if(typeof value.value==="string"||typeof value.value==="number"||typeof value.value==="boolean")return String(value.value);
+  if(Array.isArray(value.value))return `${value.value.length} élément(s)`;
+  return "Structure avancée";
+}
 
 function CatalogView({ jobId, summary, activeGroup, filter, selected, onSelect }: CatalogViewProps) {
   const [page, setPage] = useState(0);
@@ -1766,7 +1738,7 @@ function DialogueWorkspace({ jobId, summary, filter, editWorkspace, onWorkspace,
 }
 
 function DialogueGraphView({ jobId, graph, loading, editWorkspace, onWorkspace, onOpenScript }: { jobId: string; graph?: DialogueGraph; loading: boolean; editWorkspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void; onOpenScript: (script: string)=>void }) {
-  const [tab,setTab]=useState<"tree"|"graph"|"raw">("tree"); const [selectedNode,setSelectedNode]=useState<string>();
+  const [tab,setTab]=useState<"tree"|"graph"|"raw">("graph"); const [selectedNode,setSelectedNode]=useState<string>();
   const [editedGraph,setEditedGraph]=useState<DialogueGraph>();
   const [structureBusy,setStructureBusy]=useState(false);const [structureMessage,setStructureMessage]=useState("");
   useEffect(()=>{if(graph)setEditedGraph(graph)},[graph]);
@@ -1784,15 +1756,18 @@ function DialogueGraphView({ jobId, graph, loading, editWorkspace, onWorkspace, 
     setStructureBusy(true);setStructureMessage("Mise à jour de la structure…");
     try{const result=await editDialogueStructure({jobId,workspaceId:editWorkspace.workspaceId,resref:currentGraph.key.resref,action});onWorkspace(result.workspace);setEditedGraph(result.graph);setStructureMessage("Structure enregistrée dans l'overlay.")}catch(error){setStructureMessage(normalizeAppError(error).technicalMessage);throw error}finally{setStructureBusy(false)}
   };
+  const connectNodes=async(sourceId:string,targetId:string)=>{const source=dialogueNodeRef(sourceId);const target=dialogueNodeRef(targetId);if(!source||!target)throw new Error("Nœud DLG invalide");await commitStructure({kind:"add_link",source,target})};
   return <div className="dialogue-document"><div className="script-tabs"><button type="button" className={tab==="tree"?"active":""} onClick={()=>setTab("tree")}>Arbre simplifié</button><button type="button" className={tab==="graph"?"active":""} onClick={()=>setTab("graph")}>Graphe complet</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>GFF brut</button><strong>{currentGraph.key.resref}</strong></div>
     {editWorkspace&&<div className="dialogue-structure-actions"><strong>Structure DLG</strong><button type="button" disabled={structureBusy} onClick={()=>void commitStructure({kind:"add_node",nodeKind:"entry"}).catch(()=>undefined)}>+ Nœud Entry</button><button type="button" disabled={structureBusy} onClick={()=>void commitStructure({kind:"add_node",nodeKind:"reply"}).catch(()=>undefined)}>+ Nœud Reply</button><DialogueAddLinkEditor graph={currentGraph} source={null} label="Ajouter un départ" onAdd={commitStructure}/>{structureMessage&&<small>{structureMessage}</small>}</div>}
-    <div className="dialogue-content">{tab==="tree"?<div className="dialogue-tree">{currentGraph.tree.map(value=><DialogueTreeBranch key={value.nodeId} value={value} onSelect={setSelectedNode}/>)}</div>:tab==="graph"?<Suspense fallback={<div className="dialogue-empty">Chargement du grapheâ€¦</div>}><DialogueFlow graph={currentGraph} onSelect={setSelectedNode}/></Suspense>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}</div>
-    <DialogueInspector graph={currentGraph} node={node} editWorkspace={editWorkspace} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/>
+    <div className="dialogue-editor-surface"><div className="dialogue-content">{tab==="tree"?<div className="dialogue-tree">{currentGraph.tree.map(value=><DialogueTreeBranch key={value.nodeId} value={value} depth={0} onSelect={setSelectedNode}/>)}</div>:tab==="graph"?<Suspense fallback={<div className="dialogue-empty">Chargement du graphe…</div>}><DialogueFlow graph={currentGraph} selectedId={selectedNode} onSelect={setSelectedNode} onConnect={editWorkspace?connectNodes:undefined}/></Suspense>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}</div><DialogueInspector graph={currentGraph} node={node} editWorkspace={editWorkspace} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/></div>
   </div>;
 }
 
-function DialogueTreeBranch({ value, onSelect }: { value: DialogueTreeNode; onSelect: (id:string)=>void }) {
-  return <div className="dialogue-tree-branch"><button type="button" className={`dialogue-tree-node ${value.kind}`} onClick={()=>onSelect(value.nodeId)}><code>{value.nodeId}</code><span>{value.displayText??"Texte non résolu"}</span>{value.cycle&&<em>cycle</em>}{value.repeated&&<em>lien partagé</em>}</button>{value.children.length>0&&<div className="dialogue-tree-children">{value.children.map((child,index)=><DialogueTreeBranch key={`${child.nodeId}-${index}`} value={child} onSelect={onSelect}/>)}</div>}</div>;
+function dialogueNodeRef(id:string):DialogueNodeRef|undefined {const [kind,indexText]=id.split(":");const index=Number(indexText);return (kind==="entry"||kind==="reply")&&Number.isInteger(index)&&index>=0?{kind,index}:undefined}
+
+function DialogueTreeBranch({ value, depth, onSelect }: { value: DialogueTreeNode; depth:number; onSelect: (id:string)=>void }) {
+  const [open,setOpen]=useState(depth<1);
+  return <div className="dialogue-tree-branch"><div className={`dialogue-tree-node ${value.kind}`}>{value.children.length>0?<button type="button" className="dialogue-tree-toggle" aria-label={open?"Replier la branche":"Déplier la branche"} onClick={()=>setOpen(current=>!current)}>{open?"−":"+"}</button>:<span/>}<button type="button" className="dialogue-tree-select" onClick={()=>onSelect(value.nodeId)}><code>{value.nodeId}</code><span>{value.displayText??"Texte non résolu"}</span>{value.cycle&&<em>cycle</em>}{value.repeated&&<em>lien partagé</em>}</button></div>{open&&value.children.length>0&&<div className="dialogue-tree-children">{value.children.map((child,index)=><DialogueTreeBranch key={`${child.nodeId}-${index}`} value={child} depth={depth+1} onSelect={onSelect}/>)}</div>}</div>;
 }
 
 function DialogueInspector({ graph, node, editWorkspace, onCommitField, onCommitStructure, onOpenScript }: { graph: DialogueGraph; node?: DialogueGraph["nodes"][number]; editWorkspace?: WorkspaceSnapshot; onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>; onCommitStructure:(action:DialogueStructureAction)=>Promise<void>; onOpenScript:(script:string)=>void }) {
@@ -2129,7 +2104,7 @@ function PhaseOneWorkspace({ jobId, activeView, editWorkspace, onWorkspace }: { 
   if (!world) return <section className="inventory-card world-workspace">L’index global n’est pas disponible.</section>;
   return <section className={"inventory-card world-workspace" + (activeView === "scene" ? " scene-workspace-shell" : "")} aria-label="Explorateur de la Phase 1">
     <div className="inventory-heading"><div><span className="eyebrow">SOURCE RUST · PROVENANCE CONSERVÉE</span><h2>{worldViewTitle(activeView)}</h2></div><label className="world-filter"><Search size={13} /><input value={filter} onChange={(event) => setFilter(event.currentTarget.value)} placeholder="Filtrer cette vue…" /></label></div>
-    {activeView === "narrative" && <NarrativeView jobId={jobId} world={world} filter={filter} editWorkspace={editWorkspace} onWorkspace={onWorkspace} />}
+    {(activeView === "journal" || activeView === "factions") && <NarrativeView mode={activeView} jobId={jobId} world={world} filter={filter} editWorkspace={editWorkspace} onWorkspace={onWorkspace} />}
     {activeView === "areas" && <AreaMapView jobId={jobId} world={world} filter={filter} editWorkspace={editWorkspace} onWorkspace={onWorkspace} />}
     {activeView === "assets" && <><WalkmeshWorkbench jobId={jobId} workspace={editWorkspace} onWorkspace={onWorkspace} /><AssetView jobId={jobId} assets={world.assets.assets} filter={filter} /></>}
     {activeView === "scene" && <SceneView jobId={jobId} world={world} filter={filter} />}
@@ -2138,24 +2113,31 @@ function PhaseOneWorkspace({ jobId, activeView, editWorkspace, onWorkspace }: { 
 }
 
 function worldViewTitle(view: string) {
-  return ({ narrative: "Journal, quêtes et factions", areas: "Carte 2D des zones", assets: "Modèles, textures et animations", scene: "Vue 3D des zones", graph: "Graphe global et validation" } as Record<string, string>)[view] ?? "Phase 1";
+  return ({ journal: "Journal et quêtes", factions: "Factions et réputations", areas: "Carte 2D des zones", assets: "Modèles, textures et animations", scene: "Vue 3D des zones", graph: "Graphe global et validation" } as Record<string, string>)[view] ?? "Phase 1";
 }
 
-function NarrativeView({ jobId, world, filter, editWorkspace, onWorkspace }: { jobId:string; world: WorldIndex; filter: string; editWorkspace?:WorkspaceSnapshot; onWorkspace:(workspace:WorkspaceSnapshot)=>void }) {
+function NarrativeView({ mode, jobId, world, filter, editWorkspace, onWorkspace }: { mode:"journal"|"factions"; jobId:string; world: WorldIndex; filter: string; editWorkspace?:WorkspaceSnapshot; onWorkspace:(workspace:WorkspaceSnapshot)=>void }) {
   const narrativeQuery=useQuery({queryKey:["narrative-documents",jobId,editWorkspace?.workspaceId,editWorkspace?.cursor],queryFn:()=>inspectNarrativeDocuments({jobId,workspaceId:editWorkspace?.workspaceId})});
-  const narrative=narrativeQuery.data?.model??world.narrative;
+  const inspectedNarrative=narrativeQuery.data;
+  const narrative=inspectedNarrative?{
+    ...inspectedNarrative.model,
+    categories:inspectedNarrative.journal?inspectedNarrative.model.categories:world.narrative.categories,
+    factions:inspectedNarrative.factions?inspectedNarrative.model.factions:world.narrative.factions,
+    reputations:inspectedNarrative.factions?inspectedNarrative.model.reputations:world.narrative.reputations,
+  }:world.narrative;
   const query = filter.trim().toLocaleLowerCase();
   const categories = narrative.categories.map((value,index)=>({value,index})).filter(({value}) => [value.tag, value.name.text ?? "", String(value.name.stringRef ?? "")].some((candidate) => candidate.toLocaleLowerCase().includes(query)));
+  const [selectedCategoryIndex,setSelectedCategoryIndex]=useState<number>();
+  const [selectedFactionIndex,setSelectedFactionIndex]=useState<number>();
+  useEffect(()=>{if(!categories.some(({index})=>index===selectedCategoryIndex))setSelectedCategoryIndex(categories[0]?.index)},[categories,selectedCategoryIndex]);
+  const filteredFactions=narrative.factions.map((value,index)=>({value,index})).filter(({value})=>value.name.toLocaleLowerCase().includes(query));
+  useEffect(()=>{if(!filteredFactions.some(({index})=>index===selectedFactionIndex))setSelectedFactionIndex(filteredFactions[0]?.index)},[filteredFactions,selectedFactionIndex]);
   const commit=async(document:NarrativeDocument,path:string,before:GenericGffValue,after:GenericGffValue)=>{if(!editWorkspace)return;const result=await applyGffEdit({jobId,workspaceId:editWorkspace.workspaceId,resource:document.resource,path,before,after});onWorkspace(result.workspace)};
   const commitJournalStructure=async(action:JournalStructureAction)=>{if(!editWorkspace||!narrativeQuery.data?.journal)return;onWorkspace(await editJournalStructure({jobId,workspaceId:editWorkspace.workspaceId,resource:narrativeQuery.data.journal.resource,action}))};
   const commitFactionStructure=async(action:FactionStructureAction)=>{if(!editWorkspace||!narrativeQuery.data?.factions)return;onWorkspace(await editFactionStructure({jobId,workspaceId:editWorkspace.workspaceId,resource:narrativeQuery.data.factions.resource,action}))};
-  return <div className="narrative-layout"><div className="journal-list"><h3>Journal · {categories.length} catégorie(s)</h3>
-    {editWorkspace&&narrativeQuery.data?.journal&&<JournalStructureToolbar onCommit={commitJournalStructure}/>}
-    {categories.map(({value:category,index}) => <article key={`${category.tag}-${index}`} className="journal-category"><header><strong>{category.name.text ?? category.tag}</strong><code>{category.tag}</code><span>priorité {category.priority} · {category.xp} XP</span></header>
-      {editWorkspace&&narrativeQuery.data?.journal&&<JournalCategoryEditor document={narrativeQuery.data.journal} categoryIndex={index} onCommit={commit} onStructure={commitJournalStructure}/>}
-      {category.entries.map((entry,entryIndex) => <div className={entry.finalState ? "journal-entry final" : "journal-entry"} key={`${entry.id}-${entryIndex}`}><b>Étape {entry.id}</b><span>{entry.text.text ?? "StrRef " + String(entry.text.stringRef ?? "absente")}</span>{entry.finalState && <em>état final</em>}{editWorkspace&&narrativeQuery.data?.journal&&<JournalEntryEditor document={narrativeQuery.data.journal} categoryIndex={index} entryIndex={entryIndex} onCommit={commit} onStructure={commitJournalStructure}/>}</div>)}
-    </article>)}</div><FactionMatrix narrative={narrative} query={query} document={editWorkspace?narrativeQuery.data?.factions??undefined:undefined} onCommit={commit} onStructure={commitFactionStructure}/><div className="confidence-legend"><b>Confiance</b><span className="certain">certain · champ explicite</span><span className="probable">probable · rapprochement nommé</span><span className="possible">possible · cible non résolue</span></div>
-  </div>;
+  if(mode==="factions")return <div className="faction-workspace"><aside className="faction-browser"><h3>{filteredFactions.length} faction(s)</h3>{editWorkspace&&narrativeQuery.data?.factions&&<FactionStructureToolbar factions={narrative.factions} onCommit={commitFactionStructure}/>}<div className="faction-browser-list">{filteredFactions.map(({value,index})=><button type="button" key={`${value.id}-${index}`} className={selectedFactionIndex===index?"selected":""} onClick={()=>setSelectedFactionIndex(index)}><strong>{value.name}</strong><span>ID {value.id}{value.parentId===null?" · sans parent":` · parent ${value.parentId}`}</span></button>)}</div></aside><FactionMatrix narrative={narrative} query={query} selectedFactionIndex={selectedFactionIndex} document={editWorkspace?narrativeQuery.data?.factions??undefined:undefined} onCommit={commit} onStructure={commitFactionStructure}/></div>;
+  const selectedCategory=categories.find(({index})=>index===selectedCategoryIndex);
+  return <div className="journal-workspace"><aside className="journal-browser"><h3>{categories.length} quête(s)</h3>{editWorkspace&&narrativeQuery.data?.journal&&<JournalStructureToolbar onCommit={commitJournalStructure}/>}<div className="journal-browser-list">{categories.map(({value,index})=><button type="button" key={`${value.tag}-${index}`} className={selectedCategoryIndex===index?"selected":""} onClick={()=>setSelectedCategoryIndex(index)}><strong>{value.name.text??value.tag}</strong><code>{value.tag}</code><span>{value.entries.length} étape(s) · priorité {value.priority} · {value.xp} XP</span></button>)}</div></aside>{selectedCategory?<article className="journal-document"><header><div><span className="eyebrow">QUÊTE SÉLECTIONNÉE</span><h3>{selectedCategory.value.name.text??selectedCategory.value.tag}</h3><code>{selectedCategory.value.tag}</code></div><span>{selectedCategory.value.entries.length} étape(s)</span></header>{editWorkspace&&narrativeQuery.data?.journal&&<JournalCategoryEditor document={narrativeQuery.data.journal} categoryIndex={selectedCategory.index} onCommit={commit} onStructure={commitJournalStructure}/>}<div className="journal-steps">{selectedCategory.value.entries.map((entry,entryIndex)=><details className={entry.finalState?"journal-step-card final":"journal-step-card"} key={`${entry.id}-${entryIndex}`} open={entryIndex===0}><summary><b>Étape {entry.id}</b><span>{entry.text.text??`StrRef ${String(entry.text.stringRef??"absente")}`}</span>{entry.finalState&&<em>État final</em>}</summary>{editWorkspace&&narrativeQuery.data?.journal&&<JournalEntryEditor document={narrativeQuery.data.journal} categoryIndex={selectedCategory.index} entryIndex={entryIndex} onCommit={commit} onStructure={commitJournalStructure}/>}</details>)}</div></article>:<div className="narrative-empty">Aucune quête ne correspond à la recherche.</div>}</div>;
 }
 
 type NarrativeCommit=(document:NarrativeDocument,path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;
@@ -2210,11 +2192,12 @@ function EditableBooleanGffField({field,onCommit}:{field:{label:string;path:stri
   return <label className="gff-field-row"><span>{field.label}</span><input type="checkbox" checked={draft} onChange={event=>setDraft(event.currentTarget.checked)}/><button type="button" disabled={busy||draft===original} onClick={()=>void commit()}>{busy?"…":"Appliquer"}</button>{message&&<small>{message}</small>}</label>;
 }
 
-function FactionMatrix({ narrative, query, document, onCommit, onStructure }: { narrative: WorldIndex["narrative"]; query: string; document?:NarrativeDocument; onCommit:NarrativeCommit; onStructure:FactionStructureCommit }) {
+function FactionMatrix({ narrative, query, selectedFactionIndex, document, onCommit, onStructure }: { narrative: WorldIndex["narrative"]; query: string; selectedFactionIndex?:number; document?:NarrativeDocument; onCommit:NarrativeCommit; onStructure:FactionStructureCommit }) {
   const indexedFactions=narrative.factions.map((value,index)=>({value,index})).filter(({value}) => value.name.toLocaleLowerCase().includes(query)).slice(0, 24);
   const factions=indexedFactions.map(({value})=>value);
   const reputation = new globalThis.Map(narrative.reputations.map((value) => [String(value.sourceId) + ":" + String(value.targetId), value.value]));
-  return <div className="faction-matrix"><h3>Matrice des factions · {narrative.factions.length}</h3>{document&&<FactionStructureToolbar factions={narrative.factions} onCommit={onStructure}/>} {document&&<div className="faction-editors">{indexedFactions.map(({value,index})=><FactionEditor key={`${value.id}-${index}`} document={document} factionIndex={index} onCommit={onCommit} onStructure={onStructure}/>)}</div>}<div className="faction-table-wrap"><table><thead><tr><th>Faction</th>{factions.map((value) => <th key={value.id} title={value.name}>{value.id}</th>)}</tr></thead><tbody>{factions.map((source) => <tr key={source.id}><th>{source.name}</th>{factions.map((target) => { const score = reputation.get(String(source.id) + ":" + String(target.id)); return <td key={target.id} className={score === undefined ? "" : score < 10 ? "hostile" : score > 50 ? "friendly" : "neutral"}>{score ?? "—"}</td>; })}</tr>)}</tbody></table></div>{document&&<FactionReputationEditors document={document} factions={narrative.factions} onCommit={onCommit} onStructure={onStructure}/>}</div>;
+  const selected=indexedFactions.find(({index})=>index===selectedFactionIndex);
+  return <main className="faction-matrix"><header><div><span className="eyebrow">MATRICE FAC</span><h3>Relations entre {factions.length} faction(s)</h3></div><span>0 hostile · 50 neutre · 100 amical</span></header>{document&&selected&&<FactionEditor key={`${selected.value.id}-${selected.index}`} document={document} factionIndex={selected.index} onCommit={onCommit} onStructure={onStructure}/>}<div className="faction-table-wrap"><table><thead><tr><th>Source \ Cible</th>{factions.map((value) => <th key={value.id} title={`ID ${value.id}`}>{value.name}</th>)}</tr></thead><tbody>{factions.map((source) => <tr key={source.id}><th>{source.name}</th>{factions.map((target) => { const score = reputation.get(String(source.id) + ":" + String(target.id)); return <td key={target.id} title={`${source.name} → ${target.name}`} className={score === undefined ? "" : score < 10 ? "hostile" : score > 50 ? "friendly" : "neutral"}>{score ?? "—"}</td>; })}</tr>)}</tbody></table></div>{document&&<details className="reputation-editor"><summary>Modifier ou ajouter une relation détaillée</summary><FactionReputationEditors document={document} factions={narrative.factions} onCommit={onCommit} onStructure={onStructure}/></details>}</main>;
 }
 
 function FactionStructureToolbar({factions,onCommit}:{factions:WorldIndex["narrative"]["factions"];onCommit:FactionStructureCommit}) {
@@ -2285,6 +2268,8 @@ function AreaMapView({ jobId, world, filter, editWorkspace, onWorkspace }: { job
   const deletedAreas = new Set(editWorkspace?.deletedResources.filter((resource) => resource.resourceType === 2012).map((resource) => resource.resref) ?? []);
   const areas = [...world.areas.filter((area) => !deletedAreas.has(area.resref)), ...activeCreatedAreas].filter((value) => (value.resref + " " + (value.name.text ?? "") + " " + (value.tileset ?? "")).toLocaleLowerCase().includes(filter.toLocaleLowerCase()));
   const [selected, setSelected] = useState<string>(); const [instance, setInstance] = useState<string>(); const [tile, setTile] = useState<string>();
+  const [zoom,setZoom]=useState(1);
+  const [hiddenCategories,setHiddenCategories]=useState<Set<string>>(new Set());
   useEffect(() => { if (!areas.some((value) => value.resref === selected)) setSelected(areas[0]?.resref); }, [areas, selected]);
   useEffect(() => {
     let active = true;
@@ -2304,7 +2289,10 @@ function AreaMapView({ jobId, world, filter, editWorkspace, onWorkspace }: { job
     onWorkspace(await deleteWorkspaceArea({ jobId, workspaceId: editWorkspace.workspaceId, resref }));
     setSelected(undefined);
   };
-  return <div className="area-workspace"><div className="area-list">{editWorkspace && <AreaCreationForm jobId={jobId} workspace={editWorkspace} onAreaCreated={(result) => { onWorkspace(result.workspace); setCreatedAreas((current) => [...current.filter((area) => area.resref !== result.area.resref), result.area]); setSelected(result.area.resref); }} />}{areas.map((value) => <button type="button" className={value.resref === selected ? "selected" : ""} key={value.resref} onClick={() => { setSelected(value.resref); setInstance(undefined); setTile(undefined); }}><strong>{value.name.text ?? value.resref}</strong><code>{value.resref}</code><span>{value.width}×{value.height} · {value.instances.length} instances</span></button>)}</div>{area ? <><div className="area-actions">{editWorkspace && <button type="button" className="danger-button" onClick={() => void removeArea(area.resref)}>Supprimer la zone</button>}</div><AreaCanvas area={area} selected={instance} selectedTile={tile} onSelect={(id) => { setInstance(id); setTile(undefined); }} onSelectTile={(id) => { setTile(id); setInstance(undefined); }} /><AreaInspector jobId={jobId} area={area} selected={instance} selectedTile={tile} editWorkspace={editWorkspace} onWorkspace={onWorkspace} /></> : <p>Aucune zone.</p>}</div>;
+  const categories=area?[...new Set(area.instances.map(value=>value.category))].sort():[];
+  const moveFromCanvas=async(instanceId:string,x:number,y:number)=>{if(!editWorkspace||!area)return;const value=area.instances.find(candidate=>candidate.id===instanceId);if(!value||Math.abs(value.x-x)<0.02&&Math.abs(value.y-y)<0.02)return;onWorkspace(await moveAreaInstance({jobId,workspaceId:editWorkspace.workspaceId,area:area.resref,instanceId,before:{x:value.x,y:value.y,z:value.z,bearing:value.bearing??0},after:{x,y,z:value.z,bearing:value.bearing??0}}))};
+  const toggleCategory=(category:string)=>setHiddenCategories(current=>{const next=new Set(current);if(next.has(category))next.delete(category);else next.add(category);return next});
+  return <div className="area-workspace"><aside className="area-list"><header><span className="eyebrow">ZONES DU MODULE</span><strong>{areas.length} zone(s)</strong></header>{editWorkspace && <AreaCreationForm jobId={jobId} workspace={editWorkspace} onAreaCreated={(result) => { onWorkspace(result.workspace); setCreatedAreas((current) => [...current.filter((area) => area.resref !== result.area.resref), result.area]); setSelected(result.area.resref); }} />}{areas.map((value) => <button type="button" className={value.resref === selected ? "selected" : ""} key={value.resref} onClick={() => { setSelected(value.resref); setInstance(undefined); setTile(undefined); setZoom(1); }}><strong>{value.name.text ?? value.resref}</strong><code>{value.resref}</code><span>{value.width}×{value.height} · {value.instances.length} instances</span></button>)}</aside>{area ? <><main className="area-stage"><div className="area-toolbar"><div><strong>{area.name.text??area.resref}</strong><span>{area.width}×{area.height} tuiles · {area.instances.length} instances</span></div><label>Zoom<input aria-label="Zoom de la carte" type="range" min="0.5" max="2.5" step="0.1" value={zoom} onChange={event=>setZoom(Number(event.currentTarget.value))}/><span>{Math.round(zoom*100)} %</span></label><button type="button" onClick={()=>setZoom(1)}>Recentrer</button>{editWorkspace && <button type="button" className="danger-button" onClick={() => void removeArea(area.resref)}>Supprimer la zone</button>}</div><div className="area-category-filters" aria-label="Filtres d’instances">{categories.map(category=><button type="button" key={category} className={hiddenCategories.has(category)?"muted":"active"} onClick={()=>toggleCategory(category)}><span className={`area-category-dot ${category}`}/>{category}</button>)}</div><AreaCanvas area={area} zoom={zoom} hiddenCategories={hiddenCategories} editable={Boolean(editWorkspace)} selected={instance} selectedTile={tile} onSelect={(id) => { setInstance(id); setTile(undefined); }} onSelectTile={(id) => { setTile(id); setInstance(undefined); }} onMove={moveFromCanvas}/></main><AreaInspector jobId={jobId} area={area} selected={instance} selectedTile={tile} editWorkspace={editWorkspace} onWorkspace={onWorkspace} /></> : <p className="area-empty">Aucune zone ne correspond à la recherche.</p>}</div>;
 }
 
 function AreaCreationForm({ jobId, workspace, onAreaCreated }: { jobId: string; workspace: WorkspaceSnapshot; onAreaCreated: (result: { workspace: WorkspaceSnapshot; area: AreaMap }) => void }) {
@@ -2342,14 +2330,18 @@ function applyAreaWorkspaceValues(area: AreaMap, values: Record<string, unknown>
   };
 }
 
-function AreaCanvas({ area, selected, selectedTile, onSelect, onSelectTile }: { area: AreaMap; selected?: string; selectedTile?: string; onSelect: (id: string) => void; onSelectTile: (id: string) => void }) {
+function AreaCanvas({ area, zoom, hiddenCategories, editable, selected, selectedTile, onSelect, onSelectTile, onMove }: { area: AreaMap; zoom:number; hiddenCategories:Set<string>; editable:boolean; selected?: string; selectedTile?: string; onSelect: (id: string) => void; onSelectTile: (id: string) => void; onMove:(id:string,x:number,y:number)=>Promise<void> }) {
   const width = Math.max(area.width, 1); const height = Math.max(area.height, 1);
-  return <div className="area-map-frame"><div className="area-map" style={{ aspectRatio: String(width) + "/" + String(height) }}>
+  const dragStart=useRef<{id:string;x:number;y:number}|null>(null);
+  const pointerUp=(event:ReactPointerEvent<HTMLButtonElement>,id:string)=>{const start=dragStart.current;dragStart.current=null;onSelect(id);if(!editable||!start||start.id!==id||Math.hypot(event.clientX-start.x,event.clientY-start.y)<4)return;const map=event.currentTarget.parentElement?.getBoundingClientRect();if(!map||map.width<=0||map.height<=0)return;const x=Math.max(0,Math.min(width*10,(event.clientX-map.left)/map.width*width*10));const y=Math.max(0,Math.min(height*10,(map.bottom-event.clientY)/map.height*height*10));void onMove(id,Number(x.toFixed(2)),Number(y.toFixed(2)))};
+  return <div className="area-map-frame"><div className="area-map" style={{ aspectRatio: String(width) + "/" + String(height), width:`${zoom*100}%`, minWidth:`${Math.max(480,width*54)*zoom}px` }}>
     {area.tiles.map((tile) => { const id = `${tile.x}:${tile.y}`; return <button type="button" key={id} onClick={() => onSelectTile(id)} className={"area-tile" + (selectedTile === id ? " selected" : "")} title={"Tuile " + String(tile.tileId) + " · orientation " + String(tile.orientation)} style={{ left: String(tile.x / width * 100) + "%", top: String(tile.y / height * 100) + "%", width: String(100 / width) + "%", height: String(100 / height) + "%" }}><span style={{ transform: `rotate(${tile.orientation * 90}deg)` }}>{tile.tileId}</span></button>; })}
-    <svg className="area-polygons" viewBox={`0 0 ${width * 10} ${height * 10}`} preserveAspectRatio="none" aria-hidden="true">{area.instances.filter((value) => (value.geometry ?? []).length >= 3).map((value) => <polygon key={value.id} className={value.category + (selected === value.id ? " selected" : "")} points={(value.geometry ?? []).map((point) => `${value.x + point.x},${height * 10 - (value.y + point.y)}`).join(" ")} />)}</svg>
-    {area.instances.map((value) => <button type="button" aria-label={value.category + " " + (value.tag ?? value.templateResref ?? "")} key={value.id} onClick={() => onSelect(value.id)} className={"area-marker " + value.category + (selected === value.id ? " selected" : "")} style={{ left: String(Math.max(0, Math.min(100, value.x / (width * 10) * 100))) + "%", bottom: String(Math.max(0, Math.min(100, value.y / (height * 10) * 100))) + "%" }} />)}
+    <svg className="area-polygons" viewBox={`0 0 ${width * 10} ${height * 10}`} preserveAspectRatio="none" aria-hidden="true">{area.instances.filter((value) => !hiddenCategories.has(value.category)&&(value.geometry ?? []).length >= 3).map((value) => <polygon key={value.id} className={value.category + (selected === value.id ? " selected" : "")} points={(value.geometry ?? []).map((point) => `${value.x + point.x},${height * 10 - (value.y + point.y)}`).join(" ")} />)}</svg>
+    {area.instances.filter(value=>!hiddenCategories.has(value.category)).map((value) => <button type="button" aria-label={value.category + " " + (value.tag ?? value.templateResref ?? "")} title={`${value.tag??value.templateResref??value.category} · ${value.x.toFixed(2)}, ${value.y.toFixed(2)}`} key={value.id} onClick={()=>onSelect(value.id)} onPointerDown={event=>{if(editable){dragStart.current={id:value.id,x:event.clientX,y:event.clientY};event.currentTarget.setPointerCapture(event.pointerId)}}} onPointerUp={(event)=>pointerUp(event,value.id)} onPointerCancel={()=>{dragStart.current=null}} className={"area-marker " + value.category + (selected === value.id ? " selected" : "")+(editable?" draggable":"")} style={{ left: String(Math.max(0, Math.min(100, value.x / (width * 10) * 100))) + "%", bottom: String(Math.max(0, Math.min(100, value.y / (height * 10) * 100))) + "%" }}><span>{areaCategoryShortLabel(value.category)}</span></button>)}
   </div></div>;
 }
+
+function areaCategoryShortLabel(category:string){return ({creature:"C",door:"P",encounter:"R",item:"O",placeable:"PL",sound:"S",store:"M",trigger:"D",waypoint:"W"} as Record<string,string>)[category]??category.slice(0,2).toLocaleUpperCase()}
 
 function AreaInspector({ jobId, area, selected, selectedTile, editWorkspace, onWorkspace }: { jobId: string; area: AreaMap; selected?: string; selectedTile?: string; editWorkspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void }) {
   const value = area.instances.find((candidate) => candidate.id === selected);
@@ -2359,6 +2351,11 @@ function AreaInspector({ jobId, area, selected, selectedTile, editWorkspace, onW
 
 function AreaPlacementForm({ jobId, area, workspace, onWorkspace }: { jobId: string; area: string; workspace: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void }) {
   const [openPanel, setOpenPanel] = useState(false);
+  const paletteQuery=useQuery({queryKey:["standard-palette"],queryFn:getStandardPalette,staleTime:Number.POSITIVE_INFINITY});
+  const [paletteCategory,setPaletteCategory]=useState("placeables");
+  const [paletteSearch,setPaletteSearch]=useState("");
+  const category=paletteQuery.data?.categories.find(value=>value.id===paletteCategory);
+  const resourceQuery=useQuery({queryKey:["area-palette-resources",jobId,paletteCategory,paletteSearch],queryFn:()=>queryResources({jobId,query:paletteSearch,resourceTypes:category?.resourceTypes??[],offset:0,limit:80}),enabled:openPanel&&Boolean(category)});
   const [draft, setDraft] = useState({ category: "placeable", templateResref: "", tag: "", x: 5, y: 5, z: 0, bearing: 0, linkedTo: null as string | null });
   const [status, setStatus] = useState("");
   const save = async () => {
@@ -2368,8 +2365,11 @@ function AreaPlacementForm({ jobId, area, workspace, onWorkspace }: { jobId: str
       onWorkspace(result.workspace); setStatus(`Instance ${result.instanceId} ajoutée.`);
     } catch (error) { setStatus(normalizeAppError(error).technicalMessage); }
   };
-  return <div className="instance-detail area-edit-form"><button type="button" className="secondary-button" onClick={() => setOpenPanel((value) => !value)}>+ Placer une instance</button>{openPanel && <><label>Catégorie<select value={draft.category} onChange={(event) => setDraft((value) => ({ ...value, category: event.currentTarget.value }))}>{["creature", "door", "encounter", "item", "placeable", "sound", "store", "trigger", "waypoint"].map((category) => <option key={category}>{category}</option>)}</select></label><label>Blueprint ResRef<input maxLength={16} value={draft.templateResref} onChange={(event) => setDraft((value) => ({ ...value, templateResref: event.currentTarget.value.toLocaleLowerCase() }))} /></label><label>Tag<input value={draft.tag} onChange={(event) => setDraft((value) => ({ ...value, tag: event.currentTarget.value }))} /></label><div className="area-number-grid">{(["x", "y", "z", "bearing"] as const).map((field) => <label key={field}>{field.toUpperCase()}<input type="number" step="0.01" value={draft[field]} onChange={(event) => setDraft((value) => ({ ...value, [field]: Number(event.currentTarget.value) }))} /></label>)}</div><button type="button" className="primary-button" disabled={!draft.templateResref} onClick={() => void save()}>Ajouter à la zone</button>{status && <small>{status}</small>}</>}</div>;
+  const choose=(resref:string)=>{setDraft(value=>({...value,category:paletteCategoryToInstance(paletteCategory),templateResref:resref,tag:value.tag||resref}));setStatus(`${resref} sélectionné. Cliquez sur la carte après l’ajout pour ajuster sa position.`)};
+  return <div className="instance-detail area-edit-form area-palette"><button type="button" className="primary-button" onClick={() => setOpenPanel((value) => !value)}>+ Ouvrir la palette</button>{openPanel && <><div className="area-palette-heading"><strong>1 · Choisir un blueprint</strong><button type="button" onClick={()=>setOpenPanel(false)}>Fermer</button></div><select aria-label="Catégorie de la palette" value={paletteCategory} onChange={event=>{setPaletteCategory(event.currentTarget.value);setDraft(value=>({...value,category:paletteCategoryToInstance(event.currentTarget.value),templateResref:""}))}}>{(paletteQuery.data?.categories??[]).map(value=><option key={value.id} value={value.id}>{value.label}</option>)}</select><label className="area-palette-search"><Search size={13}/><input aria-label="Rechercher dans la palette" value={paletteSearch} onChange={event=>setPaletteSearch(event.currentTarget.value)} placeholder="Rechercher un ResRef…"/></label><div className="area-palette-results">{(resourceQuery.data?.items??[]).map(resource=><button type="button" key={`${resource.key.resref}-${resource.key.resourceType}`} className={draft.templateResref===resource.key.resref?"selected":""} onClick={()=>choose(resource.key.resref)}><strong>{resource.key.resref}</strong><span>{resource.selected.sourceKind}</span></button>)}{resourceQuery.isLoading&&<span>Chargement de la palette…</span>}{!resourceQuery.isLoading&&resourceQuery.data?.items.length===0&&<span>Aucun blueprint ne correspond.</span>}</div>{draft.templateResref&&<div className="area-placement-summary"><strong>2 · Préparer le placement</strong><span>{draft.templateResref} · {draft.category}</span><label>Tag lisible<input value={draft.tag} onChange={(event) => setDraft((value) => ({ ...value, tag: event.currentTarget.value }))} /></label><details><summary>Position initiale et orientation</summary><div className="area-number-grid">{(["x", "y", "z", "bearing"] as const).map((field) => <label key={field}>{field.toUpperCase()}<input type="number" step="0.01" value={draft[field]} onChange={(event) => setDraft((value) => ({ ...value, [field]: Number(event.currentTarget.value) }))} /></label>)}</div></details><button type="button" className="primary-button" onClick={() => void save()}>3 · Ajouter à la zone</button></div>}{status && <small>{status}</small>}</>}</div>;
 }
+
+function paletteCategoryToInstance(category:string){return ({creatures:"creature",doors:"door",encounters:"encounter",items:"item",placeables:"placeable",sounds:"sound",stores:"store",triggers:"trigger",waypoints:"waypoint"} as Record<string,string>)[category]??category}
 
 function AreaInstanceEditor({ jobId, area, value, workspace, onWorkspace }: { jobId: string; area: string; value: AreaMap["instances"][number]; workspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void }) {
   const [draft, setDraft] = useState({ x: value.x, y: value.y, z: value.z, bearing: value.bearing ?? 0 });

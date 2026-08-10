@@ -1,5 +1,20 @@
 # Guide utilisateur OpenNever Forge
 
+## Principe de travail depuis la refondation d’utilisabilité
+
+OpenNever Forge organise le travail par ateliers spécialisés : Dialogues, Zones, Journal et quêtes,
+Factions, Scripts et Blueprints. La liste sert à trouver une ressource, la grande zone centrale à la
+comprendre et la modifier, et le panneau contextuel à afficher les propriétés de la sélection. Les
+données GFF brutes sont réservées au diagnostic avancé.
+
+Journal/quêtes et Factions sont volontairement séparés : ils utilisent des formats, des gestes et
+des validations différents. De même, un blueprint se modifie dans son atelier central, pas dans le
+petit inspecteur global. Une modification n’atteint jamais le MOD source : elle est enregistrée dans
+l’overlay, puis peut être annulée, validée, construite ou déployée pour test.
+
+Le statut complet et les scénarios bloquants sont décrits dans
+[`UX_REFONDATION.md`](UX_REFONDATION.md).
+
 Version du guide : 4 août 2026
 
 ## Principes de sécurité
@@ -103,9 +118,19 @@ déploiement ou sauvegarde Toolset.
 
 ## Agent Studio
 
-La carte **Construction agentique** étend l’assistant ponctuel avec des exécutions multi-outils
-persistées. Commencez avec le niveau **Assistant** ou **Agent supervisé**, configurez explicitement
-le fournisseur et les dossiers d’outils, puis examinez la matrice des fonctions. Changer de niveau
+Le parcours principal suit quatre étapes visibles : choisir le fournisseur et le modèle, tester la
+liaison, contrôler le contexte courant, puis décrire le résultat et créer l’exécution. **Créer
+l’exécution ne contacte pas le modèle et ne prétend pas produire un plan** : cette action persiste
+seulement l’objectif, le fournisseur et les limites. Le premier appel portant l’objectif commence
+avec **Lancer l’agent**.
+
+La sélection courante peut être ajoutée au périmètre avec **Utiliser cette sélection** ; il n’est plus
+nécessaire de saisir `resref:type` dans le parcours normal. Les réglages de sécurité, budgets, chemins,
+`ModuleBlueprint` et matrice de fonctions sont regroupés sous **Réglages avancés**. Le mode de
+proposition ponctuelle est également un mode expert replié sous l’agent principal.
+
+Agent Studio étend l’assistant ponctuel avec des exécutions multi-outils persistées. Commencez avec le
+niveau **Assistant** ou **Agent supervisé**. Changer de niveau
 charge le preset correspondant sans effacer les chemins, les ressources/zones accordées ni les
 hôtes déjà configurés. Une clé saisie dans
 la carte est effacée après l’appel et n’est jamais sauvegardée.

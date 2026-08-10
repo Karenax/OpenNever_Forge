@@ -1,5 +1,10 @@
 # OpenNever Forge
 
+> **Orientation produit du 10 août 2026 :** le moteur d’édition est réel, mais le remplacement
+> quotidien d’Aurora n’est pas encore qualifié. Le projet est en refondation d’utilisabilité : une
+> fonction n’est désormais livrée que lorsque son parcours humain complet fonctionne sur un module
+> représentatif. Voir [`docs/UX_REFONDATION.md`](docs/UX_REFONDATION.md).
+
 Les Lots 21 à 25 ajoutent les éditeurs transactionnels TLK/2DA, les profils reproductibles, la
 synchronisation contrôlée avec les dossiers temporaires d’Aurora Toolset et les migrations
 sauvegardées des workspaces, puis l’assistant IA à contexte explicitement sélectionné. Toutes les sorties
@@ -15,6 +20,11 @@ Le contexte complet est dans [`CONTEXT.md`](CONTEXT.md), le séquencement dans
 [`docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md`](docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md).
 
 ## État actuel
+
+Les portes techniques des Lots 0 à 40 ne constituent plus, à elles seules, un verdict de produit
+exploitable. Les ateliers Dialogues, Zones, Journal, Factions, Blueprints et Agent Studio sont en
+cours de refondation selon des scénarios d’acceptation à volume réel. Toute promotion publique reste
+donc bloquée à la fois par les exigences externes du Lot 40 et par ces portes d’utilisabilité.
 
 Les Lots 0 à 10 disposent de leur porte de sortie et la Phase 1 de lecture est complète. Les Lots
 11 à 16 fournissent le socle transactionnel récupérable, les writers GFF/ERF en streaming, l'édition

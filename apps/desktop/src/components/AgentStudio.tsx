@@ -16,6 +16,7 @@ import {
   type CapabilityOverride,
   type ProviderKind,
   type ProviderProfile,
+  type ResourceKey,
   type SecurityLevel,
   type ToolScope,
   type WorkspaceSnapshot,
@@ -44,9 +45,11 @@ const defaultProvider: ProviderProfile = {
   outputCostMicroUsdPerMillionTokens: 0,
 };
 
-export function AgentStudio({ jobId, workspace, onError }: {
+export function AgentStudio({ jobId, workspace, selectedResource, activeView, onError }: {
   jobId: string;
   workspace: WorkspaceSnapshot;
+  selectedResource?: ResourceKey;
+  activeView?: string;
   onError: (error: unknown) => void;
 }) {
   const [studio, setStudio] = useState<AgentStudioState>();
@@ -137,6 +140,18 @@ export function AgentStudio({ jobId, workspace, onError }: {
         },
       };
     });
+  }
+
+  function useCurrentSelection() {
+    if (!selectedResource) return;
+    setPolicy((current) => current ? {
+      ...current,
+      scopeGrants: {
+        ...current.scopeGrants,
+        selectedResources: [selectedResource, ...current.scopeGrants.selectedResources.filter((value) => value.resref !== selectedResource.resref || value.resourceType !== selectedResource.resourceType)],
+      },
+    } : current);
+    setMessage(`La ressource ${selectedResource.resref} a été ajoutée au périmètre de cette exécution.`);
   }
 
   async function savePolicy() {
@@ -256,21 +271,22 @@ export function AgentStudio({ jobId, workspace, onError }: {
   return (
     <section className="agent-studio-card" aria-label="Agent Studio">
       <header className="agent-studio-header">
-        <div><span className="eyebrow">MODE 1 · AGENT MULTI-ÉTAPES</span><h2><Bot size={19} /> Construire ou transformer un module</h2><p>L’agent travaille en plusieurs tours, appelle les fonctions autorisées et s’arrête dès qu’une validation humaine est nécessaire.</p></div>
+        <div><span className="eyebrow">PARCOURS GUIDÉ · AGENT MULTI-ÉTAPES</span><h2><Bot size={19} /> Décrire puis superviser un résultat</h2><p>Aucun modèle n’est contacté avant Tester, Lancer ou Poursuivre. Créer l’exécution enregistre seulement votre objectif et ses limites dans le workspace.</p></div>
         <span className={`agent-level level-${policy.level}`}><Shield size={14} /> {levels.find((item) => item.value === policy.level)?.label}</span>
       </header>
 
       <div className="agent-section agent-objective agent-quick-start">
-        <div className="agent-workflow-help">
-          <strong>Comment lancer une commande ?</strong>
-          <ol><li>Choisissez le fournisseur et le modèle dans les réglages avancés.</li><li>Choisissez uniquement les données de contexte utiles, puis décrivez précisément le résultat attendu.</li><li>Cliquez sur « Préparer », puis sur « Lancer l’agent » dans l’exécution créée.</li></ol>
-          <p>« Préparer » enregistre un plan sécurisé ; cela ne contacte pas encore le modèle. « Lancer » démarre réellement le travail.</p>
+        <div className="agent-guided-step">
+          <div className="agent-step-number">1</div><div><h3>Choisir le moteur IA</h3><p>Le test envoie uniquement une demande « OK », sans contenu NWN.</p></div>
         </div>
-        <h3>1 · Décrire le travail</h3>
+        <div className="agent-provider-quick"><label>Fournisseur<select value={provider.kind} onChange={(event) => changeProviderKind(event.currentTarget.value as ProviderKind)}><option value="open_ai_responses">OpenAI · Responses API</option><option value="open_ai_chat_completions">OpenAI compatible</option><option value="ollama">Ollama local</option><option value="compatible">Serveur compatible personnalisé</option><option value="manual">Manuel · sans réseau</option></select></label><label>Modèle<input value={provider.model} disabled={provider.kind==="manual"} onChange={event=>{setProvider({...provider,model:event.currentTarget.value});setProviderTest(undefined)}} placeholder="Ex. qwen2.5-coder:7b"/></label><button type="button" className="provider-test-button" disabled={busy||provider.kind==="manual"||!provider.endpoint.trim()||!provider.model.trim()} onClick={()=>void testProvider()}>{busy&&activity.startsWith("Test")?<LoaderCircle className="agent-spinner" size={13}/>:<PlugZap size={13}/>} Tester</button></div>
+        {provider.kind!=="manual"&&<label className="agent-quick-key"><span><KeyRound size={12}/> Clé temporaire si nécessaire</span><input type="password" autoComplete="off" value={apiKey} onChange={event=>setApiKey(event.currentTarget.value)} placeholder="Jamais persistée"/></label>}
+        {providerTest&&<p className={`provider-test-result ${providerTest.ok?"success":"failure"}`} role="status">{providerTest.message}</p>}
+        <div className="agent-guided-step"><div className="agent-step-number">2</div><div><h3>Contrôler le contexte</h3><p>L’agent voit seulement les données cochées et les ressources accordées.</p></div></div>
+        <div className="agent-context-summary"><span>Atelier précédent <strong>{activeView??"module"}</strong></span>{selectedResource?<><span>Ressource sélectionnée <strong>{selectedResource.resref}</strong> · type {selectedResource.resourceType}</span><button type="button" className="secondary-button" onClick={useCurrentSelection}>Utiliser cette sélection</button></>:<span>Aucune ressource sélectionnée. L’objectif peut rester limité au module ou à une zone.</span>}</div>
+        <div className="agent-guided-step"><div className="agent-step-number">3</div><div><h3>Décrire le résultat vérifiable</h3><p>Précisez les ressources à créer ou modifier et la validation attendue.</p></div></div>
         <textarea aria-label="Objectif de l’agent" value={objective} onChange={(event) => setObjective(event.currentTarget.value)} placeholder="Exemple : créer une zone de départ forestière, un PNJ et un dialogue, puis valider les scripts…" />
-        <label>ModuleBlueprint JSON (facultatif)<textarea value={blueprintText} onChange={(event) => setBlueprintText(event.currentTarget.value)} placeholder='{"schemaVersion":1,"name":"…","areas":[…]}' spellCheck={false} /></label>
-        {provider.kind !== "manual" && <label><span><KeyRound size={12} /> Clé temporaire</span><input type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} placeholder="Jamais persistée" /></label>}
-        <div className="profile-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => void savePolicy()}><Save size={13} /> Enregistrer les réglages</button><button type="button" className="primary-button" disabled={busy || !objective.trim() || (provider.kind !== "manual" && !provider.model.trim())} onClick={() => void prepareRun()}><Workflow size={13} /> Préparer l’exécution</button></div>
+        <div className="profile-actions"><button type="button" className="secondary-button" disabled={busy} onClick={() => void savePolicy()}><Save size={13} /> Enregistrer le profil</button><button type="button" className="primary-button" disabled={busy || !objective.trim() || (provider.kind !== "manual" && !provider.model.trim())} onClick={() => void prepareRun()}><Workflow size={13} /> 4 · Créer l’exécution</button></div>
         {activity && !activeRunId && <div className="agent-working" role="status"><LoaderCircle className="agent-spinner" size={16} /><div><strong>{activity}</strong><span>Veuillez patienter.</span></div></div>}
         {message && <p className="profile-result" role="status">{message}</p>}
         {studio.runs.length > 0 && <div className="agent-runs"><strong>2 · Exécutions préparées</strong>{studio.runs.slice(0, 5).map((run) => {
@@ -289,6 +305,8 @@ export function AgentStudio({ jobId, workspace, onError }: {
 
       <details className="agent-advanced">
         <summary><SlidersHorizontal size={15} /> Réglages avancés : fournisseur, sécurité, budgets et fonctions accessibles</summary>
+
+      <div className="agent-blueprint-advanced"><label>ModuleBlueprint JSON (facultatif)<textarea value={blueprintText} onChange={(event) => setBlueprintText(event.currentTarget.value)} placeholder='{"schemaVersion":1,"name":"…","areas":[…]}' spellCheck={false} /></label><p>Ce contrat expert décrit un module complet. Une demande en langage naturel n’en a pas besoin.</p></div>
 
       <div className="agent-studio-grid">
         <div className="agent-settings-column">
@@ -309,7 +327,6 @@ export function AgentStudio({ jobId, workspace, onError }: {
             <label>Modèle<input value={provider.model} disabled={provider.kind === "manual"} onChange={(event) => { setProvider({ ...provider, model: event.currentTarget.value }); setProviderTest(undefined); }} placeholder="Ex. qwen2.5-coder:7b" spellCheck={false} /></label>
             <button type="button" className="provider-test-button" disabled={busy || provider.kind === "manual" || !provider.endpoint.trim() || !provider.model.trim()} onClick={() => void testProvider()}>{busy && activity.startsWith("Test") ? <LoaderCircle className="agent-spinner" size={13} /> : <PlugZap size={13} />} Tester la communication avec le modèle</button>
             <p className="agent-hint">{!provider.model.trim() && provider.kind !== "manual" ? "Indiquez le nom exact d’un modèle installé pour activer le test. " : ""}Cliquer sur ce bouton envoie seulement « Répondez uniquement par OK » au modèle, sans ressource NWN.</p>
-            {providerTest && <p className={`provider-test-result ${providerTest.ok ? "success" : "failure"}`} role="status">{providerTest.message}</p>}
             <label>Effort de raisonnement<select value={provider.reasoningEffort ?? ""} onChange={(event) => setProvider({ ...provider, reasoningEffort: event.currentTarget.value || undefined })}><option value="">Défaut du fournisseur</option><option value="low">Faible</option><option value="medium">Moyen</option><option value="high">Élevé</option><option value="xhigh">Très élevé</option></select></label>
             <label>Température ×1000<input type="number" min={0} max={2000} value={provider.temperatureMilli ?? ""} placeholder="Défaut" onChange={(event) => setProvider({ ...provider, temperatureMilli: event.currentTarget.value === "" ? undefined : Number(event.currentTarget.value) })} /></label>
             <div className="agent-inline-checks"><Check checked={provider.supportsTools} label="Outils" onChange={(value) => setProvider({ ...provider, supportsTools: value })} /><Check checked={provider.supportsParallelTools} label="Parallèle" onChange={(value) => setProvider({ ...provider, supportsParallelTools: value })} /><Check checked={provider.supportsStructuredOutput} label="JSON strict" onChange={(value) => setProvider({ ...provider, supportsStructuredOutput: value })} /></div>

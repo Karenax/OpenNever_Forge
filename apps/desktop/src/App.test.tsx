@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App, { isTileOccluder, JobProgress, WalkmeshWorkbench } from "./App";
-import { applyAiChangeSet, applyAuroraWorkspaceSync, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, editWorkspaceModuleDependencies, planAuroraWorkspaceSync, previewAiChangeSet, requestAiChangeSet, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
+import { applyAiChangeSet, applyAuroraWorkspaceSync, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, editWorkspaceModuleDependencies, moveAreaInstance, planAuroraWorkspaceSync, previewAiChangeSet, requestAiChangeSet, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
 import { PROJECT_PREFERENCES_STORAGE_KEY } from "./lib/projectPreferences";
 import { useUiStore } from "./store/uiStore";
 
@@ -58,6 +58,29 @@ vi.mock("./lib/tauri", () => ({
     readOnly: true,
     editingAvailable: true,
     databaseSchemaVersion: 6,
+  }),
+  getStandardPalette: vi.fn().mockResolvedValue({
+    schemaVersion: 1,
+    categories: [
+      { id: "creatures", label: "Créatures", resourceTypes: [2027] },
+      { id: "doors", label: "Portes", resourceTypes: [2042] },
+      { id: "encounters", label: "Rencontres", resourceTypes: [2040] },
+      { id: "items", label: "Objets", resourceTypes: [2025] },
+      { id: "placeables", label: "Plaçables", resourceTypes: [2044] },
+      { id: "sounds", label: "Sons", resourceTypes: [2035] },
+      { id: "stores", label: "Marchands", resourceTypes: [2051] },
+      { id: "triggers", label: "Déclencheurs", resourceTypes: [2032] },
+      { id: "waypoints", label: "Points de passage", resourceTypes: [2058] },
+    ],
+  }),
+  getBlueprintFieldOptions: vi.fn().mockResolvedValue({
+    fields: {
+      Gender: [
+        { value: 0, label: "Masculin", source: "règle Aurora Gender" },
+        { value: 1, label: "Féminin", source: "règle Aurora Gender" },
+      ],
+      FactionID: [{ value: 0, label: "PC", source: "factions du module" }],
+    },
   }),
   getJob: vi.fn().mockResolvedValue({
     id: "job-1",
@@ -589,10 +612,11 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Dialogues (1)" }));
     expect(await screen.findByRole("region", { name: "Explorateur de dialogues" })).toBeInTheDocument();
-    expect(await screen.findByText("cycle")).toBeInTheDocument();
-    expect(screen.getByText(/creature\.\#2027/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Graphe complet" }));
     expect(await screen.findByTestId("dialogue-flow")).toHaveTextContent("2 nodes · 2 edges");
+    expect(screen.getByText(/creature\.\#2027/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Arbre simplifié" }));
+    fireEvent.click(screen.getByRole("button", { name: "Déplier la branche" }));
+    expect(await screen.findByText("cycle")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "GFF brut" }));
     expect(await screen.findByText(/fileType/)).toBeInTheDocument();
   });
@@ -601,10 +625,11 @@ describe("OpenNever Forge shell", () => {
     renderApp();
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Journal et factions (2)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Journal et quêtes (1)" }));
     expect(await screen.findByText("Quête principale")).toBeInTheDocument();
-    expect(screen.getByText("état final")).toBeInTheDocument();
-    expect(screen.getByText("Commoner")).toBeInTheDocument();
+    expect(screen.getByText("État final")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Factions (1)" }));
+    expect((await screen.findAllByText("PC")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Zones (1)" }));
     expect((await screen.findAllByText("Zone de départ")).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("creature guard")).toBeInTheDocument();
@@ -613,6 +638,31 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Références (2)" }));
     expect(await screen.findByText("Rapport JSON stable")).toBeInTheDocument();
     expect(screen.getByText("contains · certain")).toBeInTheDocument();
+  });
+
+  it("moves an area instance only after an intentional pointer drag", async () => {
+    const movedWorkspace = await createEditWorkspace({ jobId: "fixture" });
+    vi.mocked(moveAreaInstance).mockResolvedValue(movedWorkspace);
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zones (1)" }));
+    const marker = await screen.findByLabelText("creature guard");
+    Object.assign(marker, { setPointerCapture: vi.fn() });
+    vi.spyOn(marker.parentElement as HTMLElement, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100, toJSON: () => ({}) });
+
+    fireEvent.pointerDown(marker, { pointerId: 1, clientX: 40, clientY: 50 });
+    fireEvent.pointerUp(marker, { pointerId: 1, clientX: 70, clientY: 30 });
+
+    await waitFor(() => expect(moveAreaInstance).toHaveBeenCalledWith({
+      jobId: "job-1",
+      workspaceId: "workspace-1",
+      area: "startarea",
+      instanceId: "startarea:Creature List:0",
+      before: { x: 4, y: 5, z: 0, bearing: 0 },
+      after: { x: 7, y: 7, z: 0, bearing: 0 },
+    }));
   });
 
   it("opens an edit workspace and builds a separate module", async () => {
@@ -756,7 +806,7 @@ describe("OpenNever Forge shell", () => {
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Journal et factions (2)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Factions (1)" }));
     fireEvent.change(await screen.findByPlaceholderText("Nouvelle faction"), { target: { value: "Merchants" } });
     fireEvent.click(screen.getByRole("button", { name: "+ Faction" }));
     await waitFor(() => expect(editFactionStructure).toHaveBeenCalledWith({
@@ -773,7 +823,8 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
     fireEvent.click(await screen.findByRole("button", { name: "Blueprints (1)" }));
-    fireEvent.click(await screen.findByRole("row", { name: /ambience/ }));
+    const blueprints=await screen.findByRole("region",{name:"Atelier des blueprints"});
+    fireEvent.click(await within(blueprints).findByRole("button", { name: /ambience/ }));
     fireEvent.change(await screen.findByLabelText("Son"), { target: { value: "as_test" } });
     fireEvent.click(screen.getByRole("button", { name: "+ Son" }));
     await waitFor(() => expect(editBlueprintStructure).toHaveBeenCalledWith({
@@ -817,8 +868,9 @@ describe("OpenNever Forge shell", () => {
     expect(controls.getByLabelText("Dossiers de sortie autorisés")).toHaveAccessibleDescription("Dossiers · requis pour créer ou construire un .mod · Barrière de sécurité : l’agent ne peut produire un module que dans ces dossiers. Séparez plusieurs dossiers par un point-virgule (;).");
     expect(controls.getByLabelText("Programme à lancer")).toHaveAccessibleDescription("Fichier .exe · requis pour lancer · Choisissez nwmain.exe pour le jeu ou nwserver.exe pour un serveur.");
     expect(controls.getByLabelText("Ressources sélectionnées (`resref:type`)")).toBeInTheDocument();
-    expect(controls.getByText("Comment lancer une commande ?")).toBeInTheDocument();
-    expect(controls.getByRole("button", { name: "Enregistrer les réglages" })).toBeInTheDocument();
+    expect(controls.getByText("Choisir le moteur IA")).toBeInTheDocument();
+    expect(controls.getByText("Contrôler le contexte")).toBeInTheDocument();
+    expect(controls.getByRole("button", { name: "Enregistrer le profil" })).toBeInTheDocument();
     expect(controls.getByRole("option", { name: "OpenAI compatible · Chat Completions" })).toBeInTheDocument();
     expect(controls.getByRole("option", { name: "Serveur compatible OpenAI · personnalisé" })).toBeInTheDocument();
     fireEvent.change(controls.getByLabelText("Protocole"), { target: { value: "open_ai_responses" } });
@@ -828,7 +880,7 @@ describe("OpenNever Forge shell", () => {
     expect(controls.getByLabelText("Niveau")).toHaveValue("supervised");
 
     vi.mocked(testAgentProvider).mockResolvedValue({ endpointOrigin: "http://127.0.0.1:11434", model: "gemma:12b", latencyMs: 842, reply: "OK" });
-    fireEvent.change(controls.getByLabelText("Modèle"), { target: { value: "gemma:12b" } });
+    fireEvent.change(controls.getAllByLabelText("Modèle")[1], { target: { value: "gemma:12b" } });
     const testButton = controls.getByRole("button", { name: "Tester la communication avec le modèle" });
     expect(testButton).toBeEnabled();
     fireEvent.click(testButton);

@@ -5,6 +5,24 @@ reçoit jamais un accès direct au MOD, au système de fichiers ou à un shell. 
 d’outils typés ; le processus Rust évalue la politique, vérifie les paramètres, crée les
 checkpoints, puis passe par le workspace transactionnel existant.
 
+## Parcours de l’interface
+
+L’interface principale est volontairement guidée :
+
+1. choisir le fournisseur et le nom exact du modèle ;
+2. tester la liaison avec une requête minimale ne contenant aucune ressource NWN ;
+3. contrôler l’atelier précédent et ajouter explicitement la ressource sélectionnée au périmètre ;
+4. décrire un résultat vérifiable puis créer l’exécution ;
+5. relire sa carte et cliquer **Lancer l’agent** pour envoyer l’objectif au modèle.
+
+La création d’une exécution appelle `create_agent_run` et persiste un état `planned`. Elle ne demande
+pas au modèle de produire un plan et n’effectue aucun appel réseau. Les libellés et la documentation
+ne doivent donc jamais présenter cette étape comme un travail déjà réalisé par l’IA.
+
+Les niveaux, budgets, chemins, portées textuelles, `ModuleBlueprint` et la matrice complète des
+capacités sont un mode expert replié. La proposition ponctuelle est séparée sous le même principe :
+elle reste disponible, mais ne concurrence plus visuellement le parcours agentique principal.
+
 ## Niveaux et matrice de capacités
 
 Les six niveaux (`observer`, `advisor`, `assisted`, `supervised`, `autonomous`, `operator`) sont des

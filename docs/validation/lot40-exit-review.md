@@ -1,5 +1,9 @@
 # Revue d’exécution du Lot 40
 
+> **Portée de cette preuve : technique et moteur uniquement.** La revue ne valide pas l'ergonomie ni
+> l'usage quotidien du logiciel. Depuis le 10 août 2026, la qualification produit dépend aussi des
+> portes de `docs/UX_REFONDATION.md`; leur échec bloque toute conclusion « remplaçant d'Aurora ».
+
 Date : 9 août 2026
 Version candidate : `0.1.0`
 Verdict courant : **`BLOQUÉ_EXTERNE`**

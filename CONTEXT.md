@@ -1,9 +1,9 @@
 # CONTEXTE GLOBAL — ÉDITEUR TIERS COMPLET POUR NEVERWINTER NIGHTS
 
 **Nom de travail :** NWN Editor
-**Version du contexte :** 0.1
-**Date :** 2 août 2026
-**Statut :** lancement du projet
+**Version du contexte :** 0.2
+**Date :** 10 août 2026
+**Statut :** refondation d’utilisabilité après qualification technique des Lots 0 à 40
 **Cible initiale :** Neverwinter Nights: Enhanced Edition sur Windows 10/11
 **But à long terme :** remplacer complètement l’Aurora Toolset pour la lecture, la création, la modification, la validation, la compilation et l’export de modules NWN.
 
@@ -31,6 +31,46 @@ La première phase est volontairement **strictement en lecture seule**. Elle doi
 - les liens entre toutes ces données.
 
 Le logiciel doit ouvrir le module original sans jamais le modifier. Tout traitement doit être effectué dans un cache ou un projet de travail séparé.
+
+### 1.1 Orientation produit obligatoire depuis le 10 août 2026
+
+La présence d’un parser, d’une commande Tauri ou d’un formulaire générique ne suffit plus à déclarer
+une fonction livrée. OpenNever Forge est un atelier destiné à un humain qui construit une campagne,
+pas un visualiseur de structures GFF. Toute fonction existante ou nouvelle doit donc être menée
+jusqu’à un **parcours humain exploitable**, comparable dans son objectif à Aurora Toolset et meilleur
+dans sa lisibilité, sa sûreté et sa navigation.
+
+Une fonction est exploitable uniquement si :
+
+- l’utilisateur comprend immédiatement ce qu’il peut faire et dans quel ordre ;
+- les données sont présentées dans un éditeur spécialisé utilisant toute la surface utile ;
+- les listes, graphes et cartes restent manipulables sur un module réel, pas seulement sur une fixture ;
+- les noms métier sont affichés avant les identifiants techniques ; les index numériques sont résolus
+  par le Resource Manager, le TLK et les tables 2DA effectivement chargées ;
+- la sélection, la modification, l’annulation, la validation et le résultat produit sont visibles dans
+  le même parcours ;
+- les fonctions avancées et les données brutes restent disponibles, mais ne constituent jamais
+  l’interface principale ;
+- un scénario d’acceptation à volume réel prouve la tâche complète, avec une vérification dans NWN
+  lorsque le moteur est concerné.
+
+Conséquences immédiates :
+
+1. Journal/quêtes et factions sont deux ateliers distincts.
+2. Dialogues, zones et blueprints disposent d’éditeurs centraux dédiés ; ils ne sont pas édités dans
+   un inspecteur étroit ou dans une liste brute.
+3. Un graphe de dialogue volumineux est chargé par voisinage, recherche et profondeur contrôlée ; il
+   n’est jamais réduit jusqu’à devenir illisible pour faire tenir tous les nœuds.
+4. La carte 2D fournit navigation, zoom, filtres, sélection et palette de blueprints résolus avant les
+   coordonnées numériques avancées.
+5. Agent Studio commence par un parcours guidé fournisseur → contexte → objectif → lancement. La
+   matrice de capacités, les budgets et les chemins restent des réglages experts repliés.
+6. L’aide interne décrit les boutons et résultats réellement visibles, avec des parcours séparés par
+   tâche. Elle ne doit pas promettre une fonction absente ou confondre préparation et exécution.
+
+La dette d’interface constatée après le Lot 40 suspend toute affirmation de remplacement d’Aurora et
+toute promotion publique. Les portes techniques de release restent nécessaires, mais ne suffisent
+plus : les portes d’utilisabilité décrites dans `docs/UX_REFONDATION.md` sont également bloquantes.
 
 ---
 

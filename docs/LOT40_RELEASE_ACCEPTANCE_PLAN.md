@@ -1,5 +1,10 @@
 # Lot 40 — qualification moteur et publication contrôlée
 
+> **Document historique de qualification technique.** Depuis le 10 août 2026, une porte produit
+> supplémentaire est obligatoire : les ateliers doivent satisfaire `docs/UX_REFONDATION.md`. Un
+> passage G0–G6 ne signifie donc plus que l'application est exploitable comme Aurora et n'autorise
+> pas sa promotion publique.
+
 Statut au 9 août 2026 : **exécuté jusqu’aux limites externes — `BLOQUÉ_EXTERNE`**
 Nature : lot de qualification et de distribution, sans nouvelle fonction métier
 

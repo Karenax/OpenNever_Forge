@@ -1,3 +1,6 @@
+use crate::blueprint_options::{
+    BlueprintFieldOptions, BlueprintFieldOptionsRequest, build_blueprint_field_options,
+};
 use crate::jobs::JobSnapshot;
 use crate::state::AppState;
 use aurora_2da::{TwoDaEditAction, TwoDaTable, apply_2da_edit, parse_2da, write_2da};
@@ -4963,6 +4966,16 @@ pub fn create_new_module(request: CreateNewModuleRequest) -> AppResult<ModuleBui
 #[tauri::command]
 pub fn get_standard_palette() -> PaletteManifest {
     PaletteManifest::standard()
+}
+
+#[tauri::command]
+pub fn get_blueprint_field_options(
+    state: State<'_, AppState>,
+    request: BlueprintFieldOptionsRequest,
+) -> AppResult<BlueprintFieldOptions> {
+    state.jobs.with_analysis(&request.job_id, |analysis| {
+        Ok(build_blueprint_field_options(analysis, &request.file_type))
+    })
 }
 
 #[tauri::command]

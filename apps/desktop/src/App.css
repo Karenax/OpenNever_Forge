@@ -2303,3 +2303,186 @@ button.resource-row {
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; }
 }
+
+/* Refondation UX du 10 août 2026 : les ateliers complexes utilisent toute la surface centrale. */
+.forge-canvas > .inventory-card,
+.forge-canvas > .blueprint-workspace {
+  width:100%;
+  max-width:none;
+  height:100%;
+  min-height:0;
+  margin:0;
+  border:0;
+  border-radius:0;
+}
+.inventory-heading h2 { margin:4px 0 0; font-size:18px; line-height:1.2; }
+.inventory-heading { min-height:64px; }
+.world-workspace { height:100%; min-height:0; overflow:auto; }
+
+/* Dialogues : navigateur, graphe borné et inspecteur réellement utilisables. */
+.dialogue-workspace { display:grid; grid-template-rows:auto minmax(0,1fr); }
+.dialogue-layout { grid-template-columns:290px minmax(0,1fr); min-height:0; height:100%; }
+.dialogue-list { min-height:0; overflow:auto; }
+.dialogue-list-item { min-height:76px; padding:12px 14px; }
+.dialogue-list-item small { font-size:10px; }
+.dialogue-list-item em { font-size:10px; }
+.dialogue-document { grid-template-rows:42px auto minmax(0,1fr); min-height:0; }
+.dialogue-editor-surface { display:grid; grid-template-columns:minmax(0,1fr) 370px; min-height:0; overflow:hidden; }
+.dialogue-content { min-height:0; overflow:auto; }
+.dialogue-inspection { display:flex; flex-direction:column; max-height:none; min-height:0; overflow:auto; border-top:0; border-left:1px solid var(--line-soft); }
+.dialogue-inspection>div { flex:0 0 auto; padding:14px; border-right:0; border-bottom:1px solid var(--line-soft); }
+.dialogue-inspection h3 { font-size:10px; }
+.dialogue-inspection p,.dialogue-inspection span,.dialogue-inspection button { font-size:10px; }
+.dialogue-flow-shell { display:grid; grid-template-rows:auto auto auto minmax(0,1fr); height:100%; min-height:0; background:#0a0f13; }
+.dialogue-flow-toolbar { display:flex; align-items:center; gap:9px; padding:8px 10px; border-bottom:1px solid var(--line-soft); background:#11171d; }
+.dialogue-flow-toolbar>label:first-child { display:flex; align-items:center; gap:7px; min-width:260px; flex:1; padding:7px 9px; border:1px solid #33414c; background:#0b1116; }
+.dialogue-flow-toolbar input { width:100%; border:0; outline:0; background:transparent; color:var(--text); }
+.dialogue-depth-control { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:10px; }
+.dialogue-depth-control select,.dialogue-flow-toolbar button { padding:6px 8px; border:1px solid #35434d; background:#172028; color:var(--text); }
+.dialogue-flow-toolbar button { display:flex; align-items:center; gap:5px; }
+.dialogue-flow-toolbar>span { color:#91a3b2; font-size:10px; white-space:nowrap; }
+.dialogue-flow-notice,.dialogue-flow-status { margin:0; padding:6px 10px; border-bottom:1px solid #3f3529; color:#d0aa74; background:#1a1510; font-size:10px; }
+.dialogue-flow-status { color:#9bc6ab; background:#101913; }
+.dialogue-flow { height:100%; min-height:520px; }
+.flow-dialogue-node>div { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.flow-dialogue-node b { color:#cab89e; font-size:9px; }
+.flow-dialogue-node small { overflow:hidden; color:#748696; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.dialogue-tree { min-width:0; padding:14px; }
+.dialogue-tree-node { display:grid; grid-template-columns:28px minmax(0,1fr); width:100%; padding:0; background:#151d24; }
+.dialogue-tree-toggle { display:grid; place-items:center; border:0; border-right:1px solid var(--line-soft); background:transparent; color:var(--accent); }
+.dialogue-tree-select { display:grid; grid-template-columns:82px minmax(0,1fr) auto; gap:10px; align-items:center; padding:9px 10px; border:0; background:transparent; color:#b8c7d3; text-align:left; }
+
+/* Journal et factions sont deux ateliers distincts. */
+.journal-workspace,.faction-workspace { display:grid; grid-template-columns:300px minmax(0,1fr); height:calc(100% - 65px); min-height:620px; border-top:1px solid var(--border); }
+.journal-browser,.faction-browser { min-width:0; min-height:0; overflow:auto; padding:12px; border-right:1px solid var(--border); background:#0d1217; }
+.journal-browser>h3,.faction-browser>h3 { margin:0 0 10px; color:#d7c5ac; font-size:14px; }
+.journal-browser-list,.faction-browser-list { display:grid; gap:5px; margin-top:10px; }
+.journal-browser-list button,.faction-browser-list button { display:grid; gap:4px; width:100%; padding:11px; border:1px solid transparent; background:#111922; color:var(--text); text-align:left; }
+.journal-browser-list button:hover,.journal-browser-list button.selected,.faction-browser-list button:hover,.faction-browser-list button.selected { border-color:#5b4934; background:#1b242c; box-shadow:inset 2px 0 var(--accent); }
+.journal-browser-list code,.journal-browser-list span,.faction-browser-list span { color:#8294a4; font-size:10px; }
+.journal-document,.faction-matrix { min-width:0; min-height:0; overflow:auto; padding:20px; background:#0b1014; }
+.journal-document>header,.faction-matrix>header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+.journal-document h3,.faction-matrix h3 { margin:5px 0; color:#eadbc3; font:500 24px Georgia,"Times New Roman",serif; text-transform:none; letter-spacing:normal; }
+.journal-steps { display:grid; gap:8px; margin-top:14px; }
+.journal-step-card { border:1px solid #2c3944; background:#111922; }
+.journal-step-card.final { border-left:3px solid #5cad7a; }
+.journal-step-card summary { display:grid; grid-template-columns:90px minmax(0,1fr) auto; gap:12px; padding:13px; cursor:pointer; }
+.journal-step-card summary span { line-height:1.45; }
+.journal-step-card summary em { color:#7ad29b; font-size:10px; }
+.journal-step-card .journal-entry-editor { margin:0 12px 12px; }
+.narrative-empty { display:grid; place-items:center; color:var(--muted); }
+.faction-table-wrap { max-height:none; margin-top:16px; }
+.faction-matrix table { min-width:100%; font-size:11px; }
+.faction-matrix th,.faction-matrix td { min-width:86px; padding:8px; }
+.faction-matrix thead th { position:sticky; top:0; z-index:2; background:#111922; white-space:normal; }
+.faction-field-editor,.reputation-editor { margin-top:14px; border:1px solid var(--border); background:#10171d; }
+.faction-field-editor>summary,.reputation-editor>summary { padding:11px; color:#d8c5a8; cursor:pointer; }
+.reputation-editor>.reputation-field-editor { border-top:1px solid var(--border); }
+
+/* Blueprints : le formulaire principal quitte le petit inspecteur global. */
+.blueprint-workspace { display:grid; grid-template-columns:310px minmax(0,1fr); background:#0b1014; }
+.blueprint-browser { display:grid; grid-template-rows:auto auto auto minmax(0,1fr) auto; min-height:0; padding:12px; border-right:1px solid var(--border); background:#0e1419; }
+.blueprint-browser header { display:grid; gap:3px; padding:4px 3px 12px; }
+.blueprint-browser h2 { margin:2px 0; font:500 22px Georgia,"Times New Roman",serif; }
+.blueprint-browser header>span:last-child { color:var(--muted); font-size:10px; }
+.blueprint-search { display:flex; align-items:center; gap:7px; padding:8px; border:1px solid var(--border); background:#090e12; }
+.blueprint-search input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:var(--text); }
+.blueprint-browser>select { margin:8px 0; padding:8px; border:1px solid var(--border); background:#10171d; color:var(--text); }
+.blueprint-list { min-height:0; overflow:auto; }
+.blueprint-list button { display:grid; grid-template-columns:auto 1fr; gap:4px 9px; width:100%; padding:10px; border:1px solid transparent; border-bottom-color:#222b33; background:transparent; color:var(--text); text-align:left; }
+.blueprint-list button>span { grid-row:1/3; align-self:center; min-width:62px; color:#c89a5d; font-size:9px; text-transform:uppercase; }
+.blueprint-list button small { color:#778997; }
+.blueprint-list button:hover,.blueprint-list button.selected { border-color:#5a4934; background:#182129; box-shadow:inset 2px 0 var(--accent); }
+.blueprint-document { min-width:0; min-height:0; overflow:hidden; }
+.blueprint-document-header { display:flex; align-items:center; justify-content:space-between; min-height:82px; padding:16px 22px; border-bottom:1px solid var(--border); }
+.blueprint-document-header h2 { margin:5px 0; font:500 27px Georgia,"Times New Roman",serif; }
+.blueprint-document-header>div>span:last-child { color:var(--muted); font-size:10px; }
+.blueprint-tabs { display:flex; height:42px; border-bottom:1px solid var(--border); background:#10161b; }
+.blueprint-tabs button { padding:0 18px; border:0; border-right:1px solid var(--border); background:transparent; color:var(--muted); }
+.blueprint-tabs button.active { color:var(--text); border-bottom:2px solid var(--accent); background:#172029; }
+.blueprint-editor-scroll { height:calc(100% - 124px); overflow:auto; padding:20px; }
+.blueprint-editor-scroll>.gff-field-editor { display:grid; grid-template-columns:repeat(2,minmax(280px,1fr)); gap:10px; max-width:1200px; margin:0 auto; }
+.blueprint-editor-scroll>.gff-field-editor>strong,.blueprint-editor-scroll>.gff-field-editor>.blueprint-structure-editor,.blueprint-editor-scroll>.gff-field-editor>small { grid-column:1/-1; }
+.blueprint-editor-scroll .gff-field-row { min-width:0; padding:10px; border:1px solid #293640; background:#10171d; }
+.blueprint-empty { display:grid; place-content:center; justify-items:center; gap:8px; height:100%; color:var(--muted); text-align:center; }
+.blueprint-empty h2,.blueprint-empty p { margin:0; }
+.blueprint-read-view>p { padding:10px 12px; border-left:2px solid var(--accent); background:#17140f; color:#c7b493; }
+.blueprint-read-view>div { display:grid; grid-template-columns:repeat(2,minmax(240px,1fr)); gap:8px; }
+.blueprint-read-view article { display:grid; grid-template-columns:150px minmax(0,1fr); gap:4px 12px; padding:12px; border:1px solid var(--border); background:#10171d; }
+.blueprint-read-view article span { color:var(--muted); }
+.blueprint-read-view article code { grid-column:2; color:#667987; font-size:9px; }
+.blueprint-provenance { display:grid; grid-template-columns:repeat(2,minmax(220px,1fr)); gap:12px; max-width:850px; }
+.blueprint-provenance code { grid-column:1/-1; padding:12px; overflow-wrap:anywhere; border:1px solid var(--border); background:#0a0f13; }
+.blueprint-raw { margin:0; color:#b6c7d4; font:11px/1.55 "Cascadia Code",Consolas,monospace; white-space:pre-wrap; }
+
+/* Carte 2D : liste, scène, barre d’outils et inspecteur ne se disputent plus la grille. */
+.area-workspace { grid-template-columns:250px minmax(0,1fr) 330px; min-height:700px; height:calc(100% - 65px); }
+.area-list { min-height:0; }
+.area-list>header { display:grid; gap:4px; padding:8px 5px 12px; }
+.area-list>header strong { font-size:14px; }
+.area-stage { display:grid; grid-template-rows:auto auto minmax(0,1fr); min-width:0; min-height:0; overflow:hidden; background:#090e13; }
+.area-toolbar { display:flex; align-items:center; gap:10px; min-height:52px; padding:8px 12px; border-bottom:1px solid var(--border); background:#11171d; }
+.area-toolbar>div { display:grid; margin-right:auto; }
+.area-toolbar>div span { color:var(--muted); font-size:10px; }
+.area-toolbar label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:10px; }
+.area-toolbar input { width:110px; accent-color:var(--accent); }
+.area-toolbar button { padding:7px 9px; border:1px solid var(--border); background:#182129; }
+.area-category-filters { display:flex; gap:5px; padding:6px 10px; overflow:auto; border-bottom:1px solid var(--border); background:#0d1318; }
+.area-category-filters button { display:flex; align-items:center; gap:5px; padding:5px 7px; border:1px solid #31404a; border-radius:999px; background:#151e25; color:#aebdc8; font-size:9px; white-space:nowrap; }
+.area-category-filters button.muted { opacity:.42; text-decoration:line-through; }
+.area-category-dot { width:7px; height:7px; border-radius:50%; background:#d78d43; }
+.area-map-frame { align-items:flex-start; justify-content:flex-start; min-height:0; padding:28px; }
+.area-map { flex:0 0 auto; max-height:none; min-height:420px; transition:width .15s ease; }
+.area-marker { display:grid; place-items:center; width:17px; height:17px; border-width:2px; color:#130d07; font-size:7px; font-weight:800; }
+.area-marker span { pointer-events:none; }
+.area-marker.draggable { cursor:grab; touch-action:none; }
+.area-marker.draggable:active { cursor:grabbing; }
+.area-marker.selected { z-index:5; transform:translate(-50%,50%) scale(1.25); }
+.area-detail { min-height:0; overflow:auto; padding:14px; }
+.area-empty { grid-column:2/-1; display:grid; place-items:center; color:var(--muted); }
+.area-palette { gap:9px; }
+.area-palette-heading { display:flex; align-items:center; justify-content:space-between; }
+.area-palette-heading button { border:0; background:transparent; color:var(--muted); }
+.area-palette-search { display:flex!important; flex-direction:row!important; align-items:center; gap:6px; padding:7px; border:1px solid var(--border); background:#0b1116; }
+.area-palette-search input { flex:1; border:0; background:transparent; }
+.area-palette-results { display:grid; gap:4px; max-height:230px; overflow:auto; }
+.area-palette-results button { display:flex; align-items:center; justify-content:space-between; padding:8px; border:1px solid #293640; background:#10171d; text-align:left; }
+.area-palette-results button.selected { border-color:var(--accent); background:#241c13; }
+.area-palette-results span { color:var(--muted); font-size:9px; }
+.area-placement-summary { display:grid; gap:8px; padding:10px; border:1px solid #58452f; background:#17130f; }
+.area-placement-summary details { border:1px solid var(--border); background:#0e1419; }
+.area-placement-summary summary { padding:7px; cursor:pointer; }
+.area-placement-summary details>div { padding:8px; }
+
+/* Agent Studio : un parcours principal, le mode ponctuel devient expert. */
+.agent-guided-workspace { display:grid; gap:12px; padding:14px; }
+.agent-guided-workspace>.agent-studio-card { width:min(1180px,100%); margin:0 auto; }
+.agent-single-change { width:min(1180px,100%); margin:0 auto; border:1px solid #3b342c; background:#0e1113; }
+.agent-single-change>summary { padding:12px 15px; color:#b8aa97; cursor:pointer; }
+.agent-single-change>.ai-assistant-card { max-width:none; margin:0; border:0; border-top:1px solid #3b342c; border-radius:0; }
+.agent-guided-step { display:flex; align-items:center; gap:10px; margin-top:4px; }
+.agent-guided-step h3,.agent-guided-step p { margin:0; }
+.agent-guided-step p { margin-top:3px; color:var(--muted); font-size:10px; }
+.agent-step-number { display:grid; place-items:center; width:29px; height:29px; border:1px solid #7c5a34; border-radius:50%; color:#f2c27b; background:#21180f; font-weight:800; }
+.agent-provider-quick { display:grid; grid-template-columns:1fr 1fr auto; gap:9px; align-items:end; padding:12px; border:1px solid #34414a; background:#0d141a; }
+.agent-provider-quick label { display:grid; gap:5px; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.06em; }
+.agent-provider-quick .provider-test-button { width:auto; margin:0; min-height:35px; }
+.agent-quick-key { max-width:520px; }
+.agent-context-summary { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; padding:11px 12px; border-left:2px solid #51839a; background:#101a20; color:#91a8b6; font-size:10px; }
+.agent-context-summary strong { color:#d9e4e9; }
+.agent-blueprint-advanced { padding:14px 18px; border-bottom:1px solid var(--border); background:#0c1116; }
+.agent-blueprint-advanced label { display:grid; gap:6px; color:var(--muted); font-size:10px; }
+.agent-blueprint-advanced textarea { min-height:100px; padding:9px; border:1px solid var(--border); background:#090e12; color:var(--text); }
+.agent-blueprint-advanced p { color:var(--muted); font-size:10px; }
+
+@media (max-width:1400px) {
+  .dialogue-editor-surface { grid-template-columns:minmax(0,1fr) 320px; }
+  .area-workspace { grid-template-columns:220px minmax(0,1fr) 290px; }
+  .blueprint-workspace { grid-template-columns:270px minmax(0,1fr); }
+}
+@media (max-width:1050px) {
+  .dialogue-editor-surface,.journal-workspace,.faction-workspace,.blueprint-workspace,.area-workspace { grid-template-columns:1fr; height:auto; overflow:auto; }
+  .dialogue-inspection,.area-detail { border-left:0; border-top:1px solid var(--border); }
+  .journal-browser,.faction-browser,.blueprint-browser,.area-list { max-height:310px; border-right:0; border-bottom:1px solid var(--border); }
+  .agent-provider-quick { grid-template-columns:1fr; }
+}
