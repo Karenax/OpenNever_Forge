@@ -767,6 +767,168 @@
     },
     {
       "evidence": {
+        "line": 42,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:annotateMapCreator",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 94,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:annotateWorkbench",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 142,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:countDiagnostics",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 26,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:replaceButtonLabel",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 14,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:replaceInlineLabel",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 10,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:setTextContent",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 191,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:clamp",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 162,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:densityLevel",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 158,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:domainForItem",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 170,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:filterNavigationCommands",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 206,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:loadBoolean",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 223,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:loadMapView",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 195,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:loadNumber",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 183,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:normalizeSearch",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 53,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:preferenceKeys",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 243,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:queryHosts",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 234,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:sameHosts",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
+        "line": 215,
+        "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:savePreference",
+      "target": "file:apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "evidence": {
         "line": 20,
         "path": "apps/desktop/src/lib/projectPreferences.ts"
       },
@@ -2465,6 +2627,60 @@
       "kind": "defined_in",
       "source": "component:apps/desktop/src/components/MapCreator.tsx:Metric",
       "target": "file:apps/desktop/src/components/MapCreator.tsx"
+    },
+    {
+      "evidence": {
+        "line": 60,
+        "path": "apps/desktop/src/components/UxEnhancements.navigation.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/components/UxEnhancements.navigation.tsx:CommandPalette",
+      "target": "file:apps/desktop/src/components/UxEnhancements.navigation.tsx"
+    },
+    {
+      "evidence": {
+        "line": 19,
+        "path": "apps/desktop/src/components/UxEnhancements.navigation.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/components/UxEnhancements.navigation.tsx:DomainNavigation",
+      "target": "file:apps/desktop/src/components/UxEnhancements.navigation.tsx"
+    },
+    {
+      "evidence": {
+        "line": 73,
+        "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/components/UxEnhancements.portals.tsx:DiagnosticsControls",
+      "target": "file:apps/desktop/src/components/UxEnhancements.portals.tsx"
+    },
+    {
+      "evidence": {
+        "line": 125,
+        "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/components/UxEnhancements.portals.tsx:MapStageControls",
+      "target": "file:apps/desktop/src/components/UxEnhancements.portals.tsx"
+    },
+    {
+      "evidence": {
+        "line": 9,
+        "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/components/UxEnhancements.portals.tsx:WorkspaceSplitters",
+      "target": "file:apps/desktop/src/components/UxEnhancements.portals.tsx"
+    },
+    {
+      "evidence": {
+        "line": 36,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/components/UxEnhancements.tsx:UxEnhancements",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
     },
     {
       "evidence": {
@@ -6077,6 +6293,96 @@
     },
     {
       "evidence": {
+        "line": 9,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.dom.ts",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 18,
+        "path": "apps/desktop/src/components/UxEnhancements.navigation.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.navigation.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 8,
+        "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.portals.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 7,
+        "path": "apps/desktop/src/components/UxEnhancements.test.ts"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.test.ts",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 10,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 11,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 12,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 31,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 34,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 35,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
         "line": 10,
         "path": "apps/desktop/src/lib/projectPreferences.test.ts"
       },
@@ -6816,6 +7122,15 @@
     {
       "evidence": {
         "line": 5,
+        "path": "apps/desktop/src/main.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/main.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 6,
         "path": "apps/desktop/src/main.tsx"
       },
       "kind": "imports",
@@ -11829,8 +12144,8 @@
   ],
   "metadata": {
     "schema_version": 1,
-    "source_digest": "sha256:31bb428e69e36c359b7bb01b53b33eb4e4f520dbe9f2a2490c189f23e9a66d2a",
-    "source_file_count": 90
+    "source_digest": "sha256:f50409efdca104eef9d54f65ac5c7593379a9079eb9c61401fef28f384bff111",
+    "source_file_count": 96
   },
   "nodes": [
     {
@@ -12504,6 +12819,150 @@
       "line": 31,
       "name": "configureNwscriptMonaco",
       "path": "apps/desktop/src/components/NwscriptEditor.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:annotateMapCreator",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 42,
+      "name": "annotateMapCreator",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:annotateWorkbench",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 94,
+      "name": "annotateWorkbench",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:countDiagnostics",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 142,
+      "name": "countDiagnostics",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:replaceButtonLabel",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 26,
+      "name": "replaceButtonLabel",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:replaceInlineLabel",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 14,
+      "name": "replaceInlineLabel",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:setTextContent",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 10,
+      "name": "setTextContent",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:clamp",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 191,
+      "name": "clamp",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:densityLevel",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 162,
+      "name": "densityLevel",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:domainForItem",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 158,
+      "name": "domainForItem",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:filterNavigationCommands",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 170,
+      "name": "filterNavigationCommands",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:loadBoolean",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 206,
+      "name": "loadBoolean",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:loadMapView",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 223,
+      "name": "loadMapView",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:loadNumber",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 195,
+      "name": "loadNumber",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:normalizeSearch",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 183,
+      "name": "normalizeSearch",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:preferenceKeys",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 53,
+      "name": "preferenceKeys",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:queryHosts",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 243,
+      "name": "queryHosts",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:sameHosts",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 234,
+      "name": "sameHosts",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.model.ts:savePreference",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 215,
+      "name": "savePreference",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
     },
     {
       "id": "client_operation:apps/desktop/src/lib/projectPreferences.ts:browserStorage",
@@ -14016,6 +14475,54 @@
       "line": 314,
       "name": "Metric",
       "path": "apps/desktop/src/components/MapCreator.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/components/UxEnhancements.navigation.tsx:CommandPalette",
+      "kind": "component",
+      "layer": "interface",
+      "line": 60,
+      "name": "CommandPalette",
+      "path": "apps/desktop/src/components/UxEnhancements.navigation.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/components/UxEnhancements.navigation.tsx:DomainNavigation",
+      "kind": "component",
+      "layer": "interface",
+      "line": 19,
+      "name": "DomainNavigation",
+      "path": "apps/desktop/src/components/UxEnhancements.navigation.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/components/UxEnhancements.portals.tsx:DiagnosticsControls",
+      "kind": "component",
+      "layer": "interface",
+      "line": 73,
+      "name": "DiagnosticsControls",
+      "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/components/UxEnhancements.portals.tsx:MapStageControls",
+      "kind": "component",
+      "layer": "interface",
+      "line": 125,
+      "name": "MapStageControls",
+      "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/components/UxEnhancements.portals.tsx:WorkspaceSplitters",
+      "kind": "component",
+      "layer": "interface",
+      "line": 9,
+      "name": "WorkspaceSplitters",
+      "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/components/UxEnhancements.tsx:UxEnhancements",
+      "kind": "component",
+      "layer": "interface",
+      "line": 36,
+      "name": "UxEnhancements",
+      "path": "apps/desktop/src/components/UxEnhancements.tsx"
     },
     {
       "id": "component:apps/desktop/src/lib/projectPreferences.ts:LAST_EXPLORER_ITEM_STORAGE_KEY",
@@ -17128,6 +17635,54 @@
       "line": 1,
       "name": "NwscriptEditor.tsx",
       "path": "apps/desktop/src/components/NwscriptEditor.tsx"
+    },
+    {
+      "id": "file:apps/desktop/src/components/UxEnhancements.dom.ts",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "UxEnhancements.dom.ts",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "file:apps/desktop/src/components/UxEnhancements.model.ts",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "UxEnhancements.model.ts",
+      "path": "apps/desktop/src/components/UxEnhancements.model.ts"
+    },
+    {
+      "id": "file:apps/desktop/src/components/UxEnhancements.navigation.tsx",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "UxEnhancements.navigation.tsx",
+      "path": "apps/desktop/src/components/UxEnhancements.navigation.tsx"
+    },
+    {
+      "id": "file:apps/desktop/src/components/UxEnhancements.portals.tsx",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "UxEnhancements.portals.tsx",
+      "path": "apps/desktop/src/components/UxEnhancements.portals.tsx"
+    },
+    {
+      "id": "file:apps/desktop/src/components/UxEnhancements.test.ts",
+      "kind": "test",
+      "layer": "tests",
+      "line": 1,
+      "name": "UxEnhancements.test.ts",
+      "path": "apps/desktop/src/components/UxEnhancements.test.ts"
+    },
+    {
+      "id": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "kind": "file",
+      "layer": "interface",
+      "line": 1,
+      "name": "UxEnhancements.tsx",
+      "path": "apps/desktop/src/components/UxEnhancements.tsx"
     },
     {
       "id": "file:apps/desktop/src/lib/monaco.ts",
