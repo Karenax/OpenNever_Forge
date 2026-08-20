@@ -164,5 +164,10 @@ l'application.
 
 ## Licence
 
-Apache-2.0. Les ressources Neverwinter Nights chargées localement restent la propriété de leurs
-ayants droit et ne font pas partie de ce dépôt.
+OpenNever Forge est distribué sous la **PolyForm Noncommercial License 1.0.0** pour les usages autorisés non commerciaux. Voir [`LICENSE`](LICENSE).
+
+Toute utilisation commerciale d’OpenNever Forge nécessite une licence commerciale séparée. Les modalités commerciales sont décrites dans [`COMMERCIAL-LICENSE.md`](COMMERCIAL-LICENSE.md).
+
+Les versions publiées avant ce changement de licence restent régies par la licence qui leur était applicable au moment de leur publication, notamment Apache License 2.0 lorsque celle-ci s’appliquait.
+
+Les ressources Neverwinter Nights chargées localement restent la propriété de leurs ayants droit et ne font pas partie de ce dépôt.
