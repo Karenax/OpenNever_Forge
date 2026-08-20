@@ -1,0 +1,299 @@
+/* OpenNever Forge — couche de consolidation UX isolée. */
+
+:root {
+  --surface-raised: var(--panel-raised, #181b1e);
+  --text-muted: var(--muted, #a79d90);
+  --accent-green: var(--green, #72bd8f);
+  --success: var(--green, #72bd8f);
+  --border-color: var(--border, #39342e);
+  --ux-focus: #f0c77b;
+  --ux-explorer-width: 270px;
+  --ux-inspector-width: 304px;
+  --ux-control-height: 36px;
+  --faint: #92897d;
+  --muted: #aca193;
+}
+
+/* Lisibilité et accessibilité. */
+.rpg-shell { font-size: 13px; }
+.rpg-shell :is(button,input,select,textarea) { font-size: 12px; }
+.rpg-shell :is(label,small,code,td,th,.property-row,.diagnostic-row) { font-size: 11px; line-height: 1.45; }
+.rpg-shell :is(
+  .tree-section-label,.rpg-kicker,.eyebrow,.format-badge,.source-path,
+  .fingerprint-section code,.raw-inspector,.resource-raw,.blueprint-raw,
+  .dialogue-raw,.script-metadata span,.script-metadata button,
+  .dialogue-inspection span,.dialogue-inspection button,
+  .map-plan-compatibility span,.map-plan-compatibility small,
+  .map-plan-warnings p,.map-context-error,.map-context-loading,
+  .map-ai-panel>p,.map-ai-panel>small,.map-density-list article small,
+  .map-plan-metrics small
+) { font-size: 11px !important; line-height: 1.45; }
+.rpg-shell :is(.primary-button,.secondary-button) { min-height: var(--ux-control-height); padding-inline: 14px; }
+.rpg-shell :is(
+  .path-control,.path-control input,.search-box,.resource-browser-search,
+  .blueprint-search,.dialogue-lines-toolbar>label,.workshop-local-search,
+  .map-brief-panel input,.map-brief-panel select,.map-atlas-panel select,
+  .agent-section input,.agent-section select
+) { min-height: var(--ux-control-height); }
+.rpg-shell .tree-item { min-height: 36px; font-size: 12px; }
+.rpg-shell :is(button,input,select,textarea,[tabindex]):focus-visible {
+  outline: 2px solid var(--ux-focus) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(240,199,123,.12) !important;
+}
+.rpg-shell :is(button,input,select,textarea):disabled { cursor: not-allowed; }
+.rpg-shell :is(
+  .property-row span,.property-section h2,.source-path,.fingerprint-section code,
+  .raw-inspector,.tree-item small,.explorer-footer,.workbench-context,
+  .map-preview-panel header p,.map-atlas-panel header p
+) { color: var(--muted); }
+.diagnostic-row.ux-permanent-information { display: none !important; }
+
+/* Navigation fonctionnelle unique. */
+.main-menu>button { display: none !important; }
+.ux-domain-navigation {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; min-width: 0;
+}
+.ux-domain-navigation button {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  gap: 7px; min-height: 36px; padding: 0 11px; color: #b9ae9f;
+  border: 1px solid transparent; border-radius: 5px; background: transparent;
+  font-size: 11px; font-weight: 700; letter-spacing: .045em;
+  text-transform: uppercase; white-space: nowrap; cursor: pointer;
+}
+.ux-domain-navigation button:hover {
+  color: #f1e4d2; border-color: rgba(255,255,255,.08); background: rgba(255,255,255,.035);
+}
+.ux-domain-navigation button.active {
+  color: var(--accent-bright); border-color: rgba(201,149,76,.34);
+  background: linear-gradient(180deg,rgba(201,149,76,.15),rgba(201,149,76,.045));
+}
+.ux-domain-navigation button.active::after {
+  content: ""; position: absolute; right: 13px; bottom: -11px; left: 13px;
+  height: 2px; background: var(--accent); box-shadow: 0 0 10px rgba(240,199,123,.65);
+}
+.ux-domain-navigation .ux-command-nav-button {
+  margin-left: 6px; color: #b9c9d2; border-color: #3b4851;
+  background: #11191f; letter-spacing: normal; text-transform: none;
+}
+.ux-domain-navigation .ux-command-nav-button span {
+  padding: 2px 5px; border: 1px solid #46535c; border-radius: 4px;
+  color: #8799a6; font: 10px "Cascadia Code",Consolas,monospace;
+}
+.tree-section-label { display: none !important; }
+.tree-root::before {
+  content: attr(data-ux-domain-label); display: block; margin: 7px 8px 9px;
+  color: #a77b47; font-size: 11px; font-weight: 800; letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.explorer-collapsed .tree-root::before { display: none; }
+
+/* Panneaux redimensionnables et persistants. */
+.workspace-grid {
+  position: relative;
+  grid-template-columns: var(--ux-explorer-width) minmax(500px,1fr) var(--ux-inspector-width) !important;
+}
+.workspace-grid.explorer-collapsed {
+  grid-template-columns: 58px minmax(500px,1fr) var(--ux-inspector-width) !important;
+}
+.workspace-grid.inspector-collapsed {
+  grid-template-columns: var(--ux-explorer-width) minmax(500px,1fr) 54px !important;
+}
+.workspace-grid.explorer-collapsed.inspector-collapsed {
+  grid-template-columns: 58px minmax(500px,1fr) 54px !important;
+}
+.ux-panel-splitter {
+  position: absolute; z-index: 8; top: 0; bottom: 0; width: 9px;
+  transform: translateX(-50%); cursor: col-resize; touch-action: none;
+}
+.ux-panel-splitter::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px;
+  background: transparent; transition: background .15s,box-shadow .15s;
+}
+.ux-panel-splitter:hover::after,.ux-panel-splitter:active::after,.ux-panel-splitter:focus-visible::after {
+  background: var(--accent); box-shadow: 0 0 8px rgba(240,199,123,.5);
+}
+.ux-panel-splitter-explorer { left: var(--ux-explorer-width); }
+.ux-panel-splitter-inspector { right: calc(var(--ux-inspector-width) - 9px); }
+.explorer-collapsed .ux-panel-splitter-explorer,
+.inspector-collapsed .ux-panel-splitter-inspector { display: none; }
+
+/* Palette Ctrl+K. */
+.ux-command-backdrop {
+  position: fixed; z-index: 10000; inset: 0; display: grid; place-items: start center;
+  padding-top: min(14vh,130px); background: rgba(3,5,7,.72); backdrop-filter: blur(7px);
+}
+.ux-command-dialog {
+  display: grid; grid-template-rows: auto minmax(0,1fr) auto;
+  width: min(720px,calc(100vw - 34px)); max-height: min(680px,calc(100vh - 100px));
+  overflow: hidden; border: 1px solid #695337; border-radius: 10px;
+  background: linear-gradient(155deg,#1a1c1e,#0c0f12 72%);
+  box-shadow: 0 34px 90px rgba(0,0,0,.58),inset 0 1px rgba(255,237,201,.06);
+  color: #eee6d7;
+}
+.ux-command-dialog>header {
+  display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center;
+  gap: 11px; padding: 14px 16px; border-bottom: 1px solid #39342e;
+  color: var(--accent-bright);
+}
+.ux-command-dialog header input {
+  width: 100%; min-height: 38px; border: 0; outline: 0; background: transparent;
+  color: #f3eadc; font-size: 15px;
+}
+.ux-command-dialog kbd {
+  padding: 3px 7px; border: 1px solid #4a4540; border-radius: 4px;
+  color: #938b81; background: #121518; font: 10px "Cascadia Code",Consolas,monospace;
+}
+.ux-command-results { min-height: 120px; overflow: auto; padding: 8px; }
+.ux-command-results>button {
+  display: grid; grid-template-columns: 30px minmax(0,1fr) auto; align-items: center;
+  gap: 10px; width: 100%; min-height: 58px; padding: 9px 11px; color: #cfc5b8;
+  border: 1px solid transparent; border-radius: 6px; background: transparent;
+  text-align: left; cursor: pointer;
+}
+.ux-command-results>button:hover,.ux-command-results>button:focus-visible {
+  color: #f2e7d7; border-color: #5d4931;
+  background: linear-gradient(90deg,rgba(172,108,49,.17),rgba(255,255,255,.02));
+}
+.ux-command-results>button>svg { color: var(--accent); }
+.ux-command-results>button>span { display: grid; gap: 3px; }
+.ux-command-results strong { font-size: 13px; }
+.ux-command-results small { color: #9c9387; font-size: 11px; }
+.ux-command-results em { color: #7f8f9b; font-size: 11px; font-style: normal; }
+.ux-command-empty { display: grid; justify-items: center; gap: 9px; padding: 34px; color: #8f877d; text-align: center; }
+.ux-command-dialog>footer {
+  display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px;
+  border-top: 1px solid #302d29; color: #837b72; font-size: 11px;
+}
+
+/* Diagnostics filtrables. */
+.diagnostic-tabs>button:nth-of-type(2),.diagnostic-tabs>button:nth-of-type(3),.diagnostic-tabs>span {
+  display: none !important;
+}
+.ux-diagnostic-controls {
+  display: flex; align-items: center; gap: 5px; margin-left: auto; padding: 5px 9px;
+}
+.ux-diagnostic-controls button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-width: 34px; min-height: 28px; padding: 0 7px; border: 1px solid #34383b;
+  border-radius: 5px; background: #14181b; color: #9d958a; cursor: pointer;
+}
+.ux-diagnostic-controls button.active { box-shadow: inset 0 0 0 1px currentColor; }
+.ux-diagnostic-controls button.error { color: #e58a81; }
+.ux-diagnostic-controls button.warning { color: #d9ad65; }
+.ux-diagnostic-controls button.info { color: #82c7a0; }
+.diagnostics[data-ux-filter="error"] .diagnostic-row:not(.error),
+.diagnostics[data-ux-filter="warning"] .diagnostic-row:not(.warning),
+.diagnostics[data-ux-filter="info"] .diagnostic-row:not(.info) { display: none !important; }
+.diagnostic-row {
+  min-height: 32px; grid-template-columns: 18px minmax(150px,205px) minmax(0,1fr); cursor: copy;
+}
+
+/* Créateur de cartes en étapes. */
+.map-creator-header { flex-wrap: wrap; align-items: center; }
+.map-creator-header>div:first-child { flex: 1 1 480px; }
+.ux-map-stage-controls {
+  order: 3; display: flex; flex: 1 0 100%; align-items: center;
+  justify-content: space-between; gap: 12px; margin-top: 13px; padding-top: 12px;
+  border-top: 1px solid #32414d;
+}
+.ux-map-stage-controls nav { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: auto; }
+.ux-map-stage-controls nav button {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 10px;
+  border: 1px solid #354653; border-radius: 5px; background: #111a22;
+  color: #a5b5c0; white-space: nowrap; cursor: pointer;
+}
+.ux-map-stage-controls nav button>span {
+  display: grid; place-items: center; width: 21px; height: 21px;
+  border: 1px solid #4b5b66; border-radius: 50%; color: #91a5b2; font-size: 10px;
+}
+.ux-map-stage-controls nav button.active {
+  color: #f1dfbd; border-color: #9a6d37; background: linear-gradient(180deg,#2c2217,#18140f);
+}
+.ux-map-stage-controls nav button.active>span {
+  color: #201407; border-color: var(--accent-bright); background: var(--accent-bright);
+}
+.ux-map-stage-controls nav button.atlas { margin-left: 4px; }
+.ux-map-expert-toggles { display: flex; align-items: center; gap: 10px; color: #8fa3af; }
+.ux-map-expert-toggles label {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 11px;
+}
+.ux-map-expert-toggles input { min-height: auto; accent-color: var(--accent); }
+.map-creator-page[data-ux-map-view] .map-creator-layout {
+  grid-template-columns: minmax(330px,420px) minmax(0,1fr);
+}
+.map-creator-page[data-ux-map-view] .map-atlas-panel { display: none; }
+.map-creator-page[data-ux-map-view="describe"] :is(.map-preview-panel,.map-atlas-panel) { display: none; }
+.map-creator-page[data-ux-map-view="describe"] .map-brief-panel {
+  grid-column: 1/-1; width: min(920px,100%); margin-inline: auto; border-right: 0;
+}
+.map-creator-page[data-ux-map-view="create"] :is(.map-brief-panel,.map-atlas-panel) { display: none; }
+.map-creator-page[data-ux-map-view="create"] .map-preview-panel { display: block; grid-column: 1/-1; }
+.map-creator-page[data-ux-map-view="atlas"] :is(.map-brief-panel,.map-preview-panel) { display: none; }
+.map-creator-page[data-ux-map-view="atlas"] .map-atlas-panel {
+  display: block; grid-column: 1/-1; border-left: 0;
+}
+.map-creator-page[data-ux-map-view="atlas"] .map-atlas-panel>* {
+  width: min(1050px,100%); margin-inline: auto;
+}
+.map-creator-page[data-ux-map-view="describe"] .map-brief-panel>[data-ux-stage]:not([data-ux-stage="describe"]),
+.map-creator-page[data-ux-map-view="generate"] .map-brief-panel>[data-ux-stage]:not([data-ux-stage="generate"]),
+.map-creator-page[data-ux-map-view="adjust"] .map-brief-panel>[data-ux-stage]:not([data-ux-stage="adjust"]) {
+  display: none !important;
+}
+.map-creator-page[data-ux-map-view="generate"] .map-preview-panel,
+.map-creator-page[data-ux-map-view="adjust"] .map-preview-panel { display: block; }
+.map-creator-page:not(.ux-map-connection-expert) :is(.ux-map-connection-field,.ux-map-technical-field) {
+  display: none !important;
+}
+.map-creator-page:not(.ux-map-density-expert) .ux-map-density-field { display: none !important; }
+.map-creator-page:not(.ux-map-density-expert) .map-density-list article header b { display: none; }
+.map-density-list article::after {
+  content: attr(data-ux-density-level); display: inline-flex; margin-top: 7px; padding: 3px 7px;
+  border: 1px solid color-mix(in srgb,var(--density-color) 48%,#34414a);
+  border-radius: 999px; color: color-mix(in srgb,var(--density-color) 82%,white);
+  background: color-mix(in srgb,var(--density-color) 10%,#101922);
+  font-size: 11px; font-weight: 700;
+}
+.map-density-list article>input[type="range"] { min-height: 30px; }
+.ux-hidden-duplicate-action { display: none !important; }
+.map-preview-panel { min-width: 0; }
+.map-preview-panel .map-atlas-graphic svg { max-height: min(68vh,760px); }
+.map-preview-empty { min-height: 430px; }
+.map-apply-bar { bottom: -16px; z-index: 8; min-height: 64px; }
+.map-apply-bar .primary-button { min-width: 160px; }
+.map-plan-metrics strong { font-size: 18px; }
+
+@media (max-width:1450px) {
+  .ux-domain-navigation button { padding-inline: 9px; }
+  .ux-domain-navigation .ux-command-nav-button span { display: none; }
+  .map-creator-page[data-ux-map-view] .map-creator-layout {
+    grid-template-columns: minmax(310px,370px) minmax(0,1fr);
+  }
+}
+@media (max-width:1280px) {
+  .ux-domain-navigation button span { display: none; }
+  .ux-domain-navigation button { width: 38px; padding: 0; }
+  .workspace-grid {
+    grid-template-columns: min(var(--ux-explorer-width),230px) minmax(470px,1fr)
+      min(var(--ux-inspector-width),270px) !important;
+  }
+  .ux-map-stage-controls { align-items: flex-start; flex-direction: column; }
+  .map-creator-page[data-ux-map-view] .map-creator-layout {
+    grid-template-columns: minmax(300px,340px) minmax(0,1fr);
+  }
+}
+@media (max-width:1050px) {
+  .ux-panel-splitter { display: none; }
+  .map-creator-page[data-ux-map-view] .map-creator-layout { display: block; overflow: auto; }
+  .map-creator-page[data-ux-map-view] :is(.map-brief-panel,.map-preview-panel,.map-atlas-panel) {
+    overflow: visible;
+  }
+  .ux-map-expert-toggles { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .ux-command-backdrop,.ux-command-dialog,.ux-panel-splitter::after {
+    animation: none !important; transition: none !important;
+  }
+}
