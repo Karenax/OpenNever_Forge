@@ -2,6 +2,7 @@ use crate::blueprint_options::{
     BlueprintFieldOptions, BlueprintFieldOptionsRequest, build_blueprint_field_options,
 };
 use crate::jobs::JobSnapshot;
+use crate::session::{SessionPaths, restore_analysis_session, store_analysis_session};
 use crate::state::AppState;
 use aurora_2da::{TwoDaEditAction, TwoDaTable, apply_2da_edit, parse_2da, write_2da};
 use aurora_agent::{
@@ -16,21 +17,26 @@ use aurora_agent::{
 use aurora_core::{AppError, AppResult, ResourceKey, decode_nwn_text};
 use aurora_dialogue::adapt_dialogue;
 use aurora_edit::{
-    AiApplyReport, AiChangeSet, AiChangeSetPreview, AreaStructureAction, AuroraSyncAction,
-    AuroraSyncAppliedFile, AuroraSyncDirection, AuroraSyncManifest, AuroraSyncPlan,
-    AuroraSyncReport, AuroraSyncState, AuroraSyncWorkspaceFile, BlueprintStructureAction,
-    DevelopmentCleanupReport, DevelopmentDeployment, DialogueStructureAction, EditCommand,
-    EditWorkspace, FactionStructureAction, GitWorkspaceStatus, InstancePlacement,
-    JournalStructureAction, ModuleBuildProfile, ModuleBuildReport, ModuleManifestDefinition,
-    NewModuleDefinition, NwnLaunchMode, NwnLaunchProfile, NwnLaunchReport, PaletteManifest,
-    ReproducibleBuildVerification, ResourceContentDigest, TileState, Transform, WalkmeshDocument,
-    WalkmeshDraft, WalkmeshKind, WalkmeshOperation, WalkmeshValidation, WorkspaceExportManifest,
-    WorkspaceSnapshot, add_area_instance, ai_change_set_sha256, apply_walkmesh_operation,
-    baseline_from_plan, compare_aurora_sync, create_area_resources, create_dialogue_resource,
-    create_empty_module, edit_area_instance, edit_area_structure, edit_area_tile,
+    AiApplyReport, AiChangeSet, AiChangeSetPreview, AreaAudioPatch, AreaEnvironmentPatch,
+    AreaStructureAction, AuroraSyncAction, AuroraSyncAppliedFile, AuroraSyncDirection,
+    AuroraSyncManifest, AuroraSyncPlan, AuroraSyncReport, AuroraSyncState, AuroraSyncWorkspaceFile,
+    BlueprintStructureAction, DevelopmentCleanupReport, DevelopmentDeployment,
+    DialogueStructureAction, EditCommand, EditWorkspace, FactionStructureAction,
+    GitWorkspaceStatus, InstancePlacement, JournalStructureAction, MAP_MAX_BLUEPRINTS_PER_RULE,
+    MAP_MAX_DENSITY_RULES, MAP_MAX_HEIGHT, MAP_MAX_PLACEMENTS, MAP_MAX_TILES, MAP_MAX_WIDTH,
+    MapCompatibilityReport, MapGenerationPlan, MapGenerationSpec, ModuleBuildProfile,
+    ModuleBuildReport, ModuleManifestDefinition, NewModuleDefinition, NwnLaunchMode,
+    NwnLaunchProfile, NwnLaunchReport, PaletteManifest, ReproducibleBuildVerification,
+    ResourceContentDigest, TileState, Transform, WalkmeshDocument, WalkmeshDraft, WalkmeshKind,
+    WalkmeshOperation, WalkmeshValidation, WorkspaceExportManifest, WorkspaceSnapshot,
+    add_area_instance, ai_change_set_sha256, apply_walkmesh_operation, baseline_from_plan,
+    compare_aurora_sync, create_area_resources, create_dialogue_resource, create_empty_module,
+    create_generated_map_resources, edit_area_audio, edit_area_environment, edit_area_instance,
+    edit_area_instance_by_id, edit_area_structure, edit_area_tile, edit_area_tile_at,
     edit_blueprint_structure, edit_dialogue_structure, edit_faction_structure, edit_gff_field,
-    edit_journal_structure, edit_module_dependencies, edit_module_manifest, inspect_git_repository,
-    inspect_walkmesh, read_aurora_workspace_file, remove_area_instance,
+    edit_journal_structure, edit_module_dependencies, edit_module_manifest,
+    generate_map_plan_with_compatibility, inspect_area_audio, inspect_area_environment,
+    inspect_git_repository, inspect_walkmesh, read_aurora_workspace_file, remove_area_instance,
     resource_key_from_aurora_path, scan_aurora_workspace, serialize_walkmesh_ascii,
     validate_build_profile, validate_walkmesh_for_kind, verify_sync_action,
     write_aurora_workspace_file,
@@ -46,7 +52,9 @@ use aurora_project::{
     build_asset_preview, cached_model_preview, compare_dependency_reports,
 };
 use aurora_tlk::{TalkTable, TlkEditAction, apply_tlk_edit, parse_tlk, write_tlk};
-use aurora_world::{AreaMap, adapt_area, adapt_narrative};
+use aurora_world::{
+    AreaMap, adapt_area, adapt_narrative, parse_set_tile_models, render_area_atlas_svg,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -76,6 +84,13 @@ pub struct ModuleAnalysisRequest {
     pub module_path: String,
     pub game_install_path: Option<String>,
     pub user_data_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoredModuleSession {
+    pub job: JobSnapshot,
+    pub workspace: Option<WorkspaceSnapshot>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -798,6 +813,94 @@ struct AgentAreaInstanceArguments {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct AgentMapContextArguments {
+    tileset: Option<String>,
+    query: String,
+    limit: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapAreaArguments {
+    area: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapPreviewArguments {
+    spec: MapGenerationSpec,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapApplyArguments {
+    spec: MapGenerationSpec,
+    expected_plan_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapEnvironmentArguments {
+    area: String,
+    expected_sha256: String,
+    patch: AreaEnvironmentPatch,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapAudioArguments {
+    area: String,
+    expected_sha256: String,
+    patch: AreaAudioPatch,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapTileArguments {
+    area: String,
+    x: u32,
+    y: u32,
+    expected_sha256: String,
+    before: TileState,
+    after: TileState,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapInstanceAddArguments {
+    area: String,
+    expected_sha256: String,
+    placement: InstancePlacement,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapInstanceMoveArguments {
+    area: String,
+    instance_id: String,
+    expected_sha256: String,
+    before: Transform,
+    after: Transform,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapInstanceRemoveArguments {
+    area: String,
+    instance_id: String,
+    expected_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentMapStructureArguments {
+    area: String,
+    expected_sha256: String,
+    action: AreaStructureAction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AgentWalkmeshEditArguments {
     resref: String,
     kind: WalkmeshKind,
@@ -845,6 +948,376 @@ pub struct DeleteAreaRequest {
 pub struct CreateAreaResult {
     pub workspace: WorkspaceSnapshot,
     pub area: AreaMap,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewMapGenerationRequest {
+    pub job_id: String,
+    pub spec: MapGenerationSpec,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetMapAuthoringContextRequest {
+    pub job_id: String,
+    pub tileset: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MapKnownLimits {
+    pub max_width: u32,
+    pub max_height: u32,
+    pub max_tiles: usize,
+    pub max_resref_length: usize,
+    pub max_density_rules: usize,
+    pub max_blueprints_per_rule: usize,
+    pub max_placements: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MapTilesetContext {
+    pub resref: String,
+    pub sha256: String,
+    pub tile_count: usize,
+    pub tile_ids: Vec<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MapAuthoringContext {
+    pub limits: MapKnownLimits,
+    pub available_tilesets: Vec<String>,
+    pub selected_tileset: Option<MapTilesetContext>,
+    pub blueprint_counts: BTreeMap<String, usize>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftMapWithAiRequest {
+    pub job_id: String,
+    pub current_spec: MapGenerationSpec,
+    pub provider: ProviderProfile,
+    pub api_key: Option<String>,
+    #[serde(default)]
+    pub include_blueprint_resrefs: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiMapDraftResult {
+    pub endpoint_origin: String,
+    pub model: String,
+    pub plan: MapGenerationPlan,
+    pub shared_blueprint_count: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplyMapGenerationRequest {
+    pub job_id: String,
+    pub workspace_id: String,
+    pub spec: MapGenerationSpec,
+    pub expected_plan_sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplyMapGenerationResult {
+    pub workspace: WorkspaceSnapshot,
+    pub area: AreaMap,
+    pub plan: MapGenerationPlan,
+}
+
+fn map_known_limits() -> MapKnownLimits {
+    MapKnownLimits {
+        max_width: MAP_MAX_WIDTH,
+        max_height: MAP_MAX_HEIGHT,
+        max_tiles: MAP_MAX_TILES,
+        max_resref_length: 16,
+        max_density_rules: MAP_MAX_DENSITY_RULES,
+        max_blueprints_per_rule: MAP_MAX_BLUEPRINTS_PER_RULE,
+        max_placements: MAP_MAX_PLACEMENTS,
+    }
+}
+
+fn build_map_authoring_context(
+    state: &AppState,
+    job_id: &str,
+    tileset: &str,
+) -> AppResult<MapAuthoringContext> {
+    state.jobs.with_analysis(job_id, |analysis| {
+        let mut available_tilesets = analysis
+            .resource_catalog
+            .entries
+            .iter()
+            .filter(|entry| entry.key.resource_type == 2013)
+            .map(|entry| entry.key.resref.clone())
+            .collect::<Vec<_>>();
+        available_tilesets.sort();
+        available_tilesets.dedup();
+        let selected_key = ResourceKey::new(tileset, 2013);
+        let selected_tileset = if analysis.resource_catalog.get(&selected_key).is_some() {
+            Some(load_map_tileset_context(analysis, tileset)?)
+        } else {
+            None
+        };
+        let mut blueprint_counts = BTreeMap::new();
+        for category in map_blueprint_categories() {
+            let resource_type = map_template_resource_type(category).expect("known map category");
+            let count = analysis
+                .resource_catalog
+                .entries
+                .iter()
+                .filter(|entry| entry.key.resource_type == resource_type)
+                .count();
+            blueprint_counts.insert(category.to_owned(), count);
+        }
+        Ok(MapAuthoringContext {
+            limits: map_known_limits(),
+            available_tilesets,
+            selected_tileset,
+            blueprint_counts,
+        })
+    })
+}
+
+fn load_map_tileset_context(
+    analysis: &aurora_project::ModuleAnalysis,
+    tileset: &str,
+) -> AppResult<MapTilesetContext> {
+    let key = ResourceKey::new(tileset, 2013);
+    let resolved = analysis.resource_catalog.get(&key).ok_or_else(|| {
+        map_generation_error(
+            "EDIT_MAP_TILESET_NOT_RESOLVED",
+            "Le SET du tileset choisi est introuvable dans le module, ses HAK ou l’installation NWN.",
+            key.to_string(),
+        )
+    })?;
+    let cancelled = AtomicBool::new(false);
+    let bytes = ResourceManager::read(&resolved.selected, &cancelled)?;
+    let models = parse_set_tile_models(&bytes);
+    if models.is_empty() {
+        return Err(map_generation_error(
+            "EDIT_MAP_TILESET_INVALID",
+            "Le SET choisi ne contient aucune tuile lisible.",
+            key.to_string(),
+        ));
+    }
+    let tile_ids = models.keys().copied().collect::<Vec<_>>();
+    Ok(MapTilesetContext {
+        resref: tileset.to_owned(),
+        sha256: hex::encode(Sha256::digest(&bytes)),
+        tile_count: tile_ids.len(),
+        tile_ids,
+    })
+}
+
+fn generate_verified_map_plan(
+    state: &AppState,
+    job_id: &str,
+    spec: &MapGenerationSpec,
+) -> AppResult<MapGenerationPlan> {
+    state.jobs.with_analysis(job_id, |analysis| {
+        let tileset = load_map_tileset_context(analysis, &spec.tileset)?;
+        let mut selected_tile_ids = vec![spec.base_tile_id];
+        selected_tile_ids.extend(spec.variant_tile_ids.iter().copied());
+        selected_tile_ids.sort_unstable();
+        selected_tile_ids.dedup();
+        let available = tileset.tile_ids.iter().copied().collect::<BTreeSet<_>>();
+        let missing = selected_tile_ids
+            .iter()
+            .filter(|tile_id| !available.contains(tile_id))
+            .copied()
+            .collect::<Vec<_>>();
+        if !missing.is_empty() {
+            return Err(map_generation_error(
+                "EDIT_MAP_TILE_NOT_RESOLVED",
+                "Une ou plusieurs tuiles n’existent pas dans le SET choisi.",
+                format!("{} missing tile ids: {missing:?}", spec.tileset),
+            ));
+        }
+        generate_map_plan_with_compatibility(
+            spec,
+            MapCompatibilityReport {
+                tileset_resolved: true,
+                tileset_sha256: Some(tileset.sha256),
+                resolved_tile_count: tileset.tile_count,
+                selected_tile_ids,
+                tile_ids_verified: true,
+                edge_compatibility_verified: false,
+            },
+        )
+    })
+}
+
+fn map_blueprint_resrefs(
+    state: &AppState,
+    job_id: &str,
+) -> AppResult<BTreeMap<String, Vec<String>>> {
+    state.jobs.with_analysis(job_id, |analysis| {
+        let mut result = BTreeMap::new();
+        for category in map_blueprint_categories() {
+            let resource_type = map_template_resource_type(category).expect("known map category");
+            let mut resrefs = analysis
+                .resource_catalog
+                .entries
+                .iter()
+                .filter(|entry| entry.key.resource_type == resource_type)
+                .map(|entry| entry.key.resref.clone())
+                .collect::<Vec<_>>();
+            resrefs.sort();
+            resrefs.dedup();
+            resrefs.truncate(MAP_MAX_BLUEPRINTS_PER_RULE);
+            result.insert(category.to_owned(), resrefs);
+        }
+        Ok(result)
+    })
+}
+
+fn validate_map_blueprints(
+    state: &AppState,
+    job_id: &str,
+    spec: &MapGenerationSpec,
+) -> AppResult<()> {
+    state.jobs.with_analysis(job_id, |analysis| {
+        for rule in &spec.densities {
+            let resource_type = map_template_resource_type(&rule.category).ok_or_else(|| {
+                map_generation_error(
+                    "EDIT_MAP_CATEGORY_UNSUPPORTED",
+                    "Une catégorie de placement n’est pas prise en charge.",
+                    rule.category.clone(),
+                )
+            })?;
+            for resref in &rule.template_resrefs {
+                let key = ResourceKey::new(resref, resource_type);
+                if analysis.resource_catalog.get(&key).is_none() {
+                    return Err(map_generation_error(
+                        "EDIT_MAP_BLUEPRINT_NOT_RESOLVED",
+                        "Un blueprint proposé par l’IA est introuvable.",
+                        key.to_string(),
+                    ));
+                }
+            }
+        }
+        Ok(())
+    })
+}
+
+fn map_blueprint_categories() -> [&'static str; 9] {
+    [
+        "creature",
+        "door",
+        "encounter",
+        "item",
+        "placeable",
+        "sound",
+        "store",
+        "trigger",
+        "waypoint",
+    ]
+}
+
+fn validate_map_ai_provider(request: &DraftMapWithAiRequest) -> AppResult<()> {
+    if request
+        .api_key
+        .as_ref()
+        .is_some_and(|key| key.len() > 16 * 1024)
+    {
+        return Err(map_generation_error(
+            "EDIT_MAP_AI_KEY_TOO_LARGE",
+            "La clé temporaire dépasse la limite autorisée.",
+            "ephemeral map AI key exceeds 16 KiB",
+        ));
+    }
+    if request.provider.kind == ProviderKind::Manual
+        || request.provider.model.trim().is_empty()
+        || request.provider.model.len() > 256
+        || request.provider.endpoint.len() > 2_048
+        || !request.provider.supports_tools
+    {
+        return Err(map_generation_error(
+            "EDIT_MAP_AI_PROVIDER_INVALID",
+            "Le fournisseur IA doit avoir un endpoint, un modèle et prendre en charge les outils structurés.",
+            "invalid map AI provider profile",
+        ));
+    }
+    Ok(())
+}
+
+fn map_ai_system_prompt() -> &'static str {
+    "Tu es le planificateur de cartes de OpenNever Forge. Réponds par exactement un appel de l'outil map.generate et aucun autre outil. Respecte strictement le schéma. La carte doit rester compatible avec Neverwinter Nights : dimensions maximales 32x32, ResRef ASCII minuscules de 16 caractères maximum, graine entière 32 bits et uniquement les identifiants de tuiles fournis par selectedTileset. Conserve exactement le tileset courant. N'invente jamais un blueprint : utilise seulement les ResRef explicitement fournis, ou laisse templateResrefs vide. N'ajoute des variantTileIds que si le brief les demande clairement ; leurs raccords visuels ne sont pas validés, donc préfère une liste vide. Utilise les densités et espacements pour traduire l'intention du brief. Ne demande et ne reproduis aucun chemin local, script, dialogue, texture, GFF ou donnée binaire."
+}
+
+fn map_generation_error(
+    code: impl Into<String>,
+    user_message: impl Into<String>,
+    technical_message: impl Into<String>,
+) -> Box<AppError> {
+    Box::new(
+        AppError::new(
+            code,
+            user_message,
+            technical_message,
+            aurora_core::ErrorSeverity::Error,
+        )
+        .with_import_stage("map_generation"),
+    )
+}
+
+fn verify_map_resource_sha256(bytes: &[u8], expected: &str) -> AppResult<()> {
+    let actual = hex::encode(Sha256::digest(bytes));
+    if expected.len() != 64 || !expected.eq_ignore_ascii_case(&actual) {
+        return Err(map_generation_error(
+            "EDIT_MAP_RESOURCE_CHANGED",
+            "La carte a changÃ© depuis son inspection. Inspectez-la de nouveau avant de poursuivre.",
+            format!("expected {expected:?}, current {actual}"),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_agent_map_placement(
+    state: &AppState,
+    run: &AgentRun,
+    placement: &InstancePlacement,
+) -> AppResult<()> {
+    let resource_type = map_template_resource_type(&placement.category).ok_or_else(|| {
+        map_generation_error(
+            "EDIT_MAP_CATEGORY_UNSUPPORTED",
+            "La catÃ©gorie de placement n'est pas prise en charge.",
+            placement.category.clone(),
+        )
+    })?;
+    if placement.tag.is_empty()
+        || placement.tag.len() > 64
+        || placement
+            .tag
+            .chars()
+            .any(|character| character.is_control())
+        || !placement.x.is_finite()
+        || !placement.y.is_finite()
+        || !placement.z.is_finite()
+        || !placement.bearing.is_finite()
+    {
+        return Err(map_generation_error(
+            "EDIT_MAP_PLACEMENT_INVALID",
+            "Le placement contient un tag ou des coordonnÃ©es invalides.",
+            placement.tag.clone(),
+        ));
+    }
+    let key = ResourceKey::new(&placement.template_resref, resource_type);
+    if workspace_or_resolved_resource_bytes(state, &run.job_id, &run.workspace_id, &key)?.is_none()
+    {
+        return Err(map_generation_error(
+            "EDIT_MAP_BLUEPRINT_NOT_RESOLVED",
+            "Le blueprint demandÃ© par le placement est introuvable.",
+            key.to_string(),
+        ));
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -3811,6 +4284,19 @@ fn agent_tool_is_implemented(id: &str) -> bool {
             | "script.compile"
             | "area.create"
             | "area.instance.add"
+            | "map.generate"
+            | "map.context"
+            | "map.inspect"
+            | "map.atlas"
+            | "map.preview"
+            | "map.apply"
+            | "map.environment.edit"
+            | "map.audio.edit"
+            | "map.tile.edit"
+            | "map.instance.add"
+            | "map.instance.move"
+            | "map.instance.remove"
+            | "map.structure.edit"
             | "dialogue.create"
             | "dialogue.edit"
             | "journal.edit"
@@ -4248,6 +4734,352 @@ fn execute_agent_tool(
                     Ok((snapshot, instance_id))
                 })?;
             Ok(serde_json::json!({ "instanceId": instance_id, "workspace": workspace }))
+        }
+        "map.generate" => {
+            let spec: MapGenerationSpec = decode_agent_arguments(call, "map.generate")?;
+            let result = apply_map_generation_in_workspace(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                spec,
+                None,
+            )?;
+            Ok(serde_json::json!({
+                "planSha256": result.plan.plan_sha256,
+                "area": result.area.resref,
+                "metrics": result.plan.metrics,
+                "warnings": result.plan.warnings,
+                "workspaceCursor": result.workspace.cursor,
+            }))
+        }
+        "map.context" => {
+            let arguments: AgentMapContextArguments = decode_agent_arguments(call, "map.context")?;
+            let selected = state.jobs.with_analysis(&run.job_id, |analysis| {
+                let mut tilesets = analysis
+                    .resource_catalog
+                    .entries
+                    .iter()
+                    .filter(|entry| entry.key.resource_type == 2013)
+                    .map(|entry| entry.key.resref.clone())
+                    .collect::<Vec<_>>();
+                tilesets.sort();
+                tilesets.dedup();
+                Ok(arguments
+                    .tileset
+                    .clone()
+                    .or_else(|| tilesets.first().cloned()))
+            })?;
+            let context = build_map_authoring_context(
+                state,
+                &run.job_id,
+                selected.as_deref().unwrap_or_default(),
+            )?;
+            let query = arguments.query.trim().to_ascii_lowercase();
+            let limit = arguments.limit.clamp(1, 500);
+            let mut blueprints = map_blueprint_resrefs(state, &run.job_id)?;
+            for values in blueprints.values_mut() {
+                values.retain(|value| query.is_empty() || value.contains(&query));
+                values.truncate(limit);
+            }
+            let areas = state.jobs.with_analysis(&run.job_id, |analysis| {
+                Ok(analysis
+                    .world_index
+                    .areas
+                    .iter()
+                    .map(|area| area.resref.clone())
+                    .collect::<Vec<_>>())
+            })?;
+            Ok(serde_json::json!({
+                "limits": context.limits,
+                "availableTilesets": context.available_tilesets,
+                "selectedTileset": context.selected_tileset,
+                "blueprints": blueprints,
+                "existingAreas": areas,
+                "editing": {
+                    "tileCoordinates": "x and y are zero-based",
+                    "worldUnitsPerTile": 10,
+                    "instanceCategories": map_blueprint_categories(),
+                    "visualEdgeCompatibilityVerified": false,
+                }
+            }))
+        }
+        "map.inspect" => {
+            let arguments: AgentMapAreaArguments = decode_agent_arguments(call, "map.inspect")?;
+            let are_key = ResourceKey::new(&arguments.area, 2012);
+            let git_key = ResourceKey::new(&arguments.area, 2023);
+            let gic_key = ResourceKey::new(&arguments.area, 2046);
+            let are = workspace_or_resolved_resource_bytes(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &are_key,
+            )?
+            .ok_or_else(|| {
+                agent_error(
+                    "AGENT_MAP_AREA_MISSING",
+                    "La zone est introuvable.",
+                    are_key.to_string(),
+                )
+            })?;
+            let git = workspace_or_resolved_resource_bytes(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &git_key,
+            )?;
+            let gic = workspace_or_resolved_resource_bytes(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &gic_key,
+            )?;
+            let are_document = parse_gff(&are, &format!("agent::{}", are_key.file_name()))?;
+            let git_document = git
+                .as_deref()
+                .map(|bytes| parse_gff(bytes, &format!("agent::{}", git_key.file_name())))
+                .transpose()?;
+            let gic_document = gic
+                .as_deref()
+                .map(|bytes| parse_gff(bytes, &format!("agent::{}", gic_key.file_name())))
+                .transpose()?;
+            let area = adapt_area(
+                &arguments.area,
+                &are_document,
+                git_document.as_ref(),
+                gic_document.as_ref(),
+            );
+            let environment =
+                inspect_area_environment(&are, &format!("agent::{}", are_key.file_name()))?;
+            let audio = git
+                .as_deref()
+                .map(|bytes| inspect_area_audio(bytes, &format!("agent::{}", git_key.file_name())))
+                .transpose()?;
+            Ok(serde_json::json!({
+                "area": area,
+                "environment": environment,
+                "audio": audio,
+                "resourceSha256": {
+                    "are": hex::encode(Sha256::digest(&are)),
+                    "git": git.as_deref().map(|bytes| hex::encode(Sha256::digest(bytes))),
+                    "gic": gic.as_deref().map(|bytes| hex::encode(Sha256::digest(bytes))),
+                }
+            }))
+        }
+        "map.atlas" => {
+            let arguments: AgentMapAreaArguments = decode_agent_arguments(call, "map.atlas")?;
+            let are_key = ResourceKey::new(&arguments.area, 2012);
+            let git_key = ResourceKey::new(&arguments.area, 2023);
+            let gic_key = ResourceKey::new(&arguments.area, 2046);
+            let are = workspace_or_resolved_resource_bytes(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &are_key,
+            )?
+            .ok_or_else(|| {
+                agent_error(
+                    "AGENT_MAP_AREA_MISSING",
+                    "La zone est introuvable.",
+                    are_key.to_string(),
+                )
+            })?;
+            let git = workspace_or_resolved_resource_bytes(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &git_key,
+            )?;
+            let gic = workspace_or_resolved_resource_bytes(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                &gic_key,
+            )?;
+            let are_document = parse_gff(&are, &format!("agent::{}", are_key.file_name()))?;
+            let git_document = git
+                .as_deref()
+                .map(|bytes| parse_gff(bytes, &format!("agent::{}", git_key.file_name())))
+                .transpose()?;
+            let gic_document = gic
+                .as_deref()
+                .map(|bytes| parse_gff(bytes, &format!("agent::{}", gic_key.file_name())))
+                .transpose()?;
+            let area = adapt_area(
+                &arguments.area,
+                &are_document,
+                git_document.as_ref(),
+                gic_document.as_ref(),
+            );
+            let svg = render_area_atlas_svg(&area);
+            Ok(serde_json::json!({
+                "area": arguments.area,
+                "mimeType":"image/svg+xml",
+                "sha256":hex::encode(Sha256::digest(svg.as_bytes())),
+                "svg":svg,
+            }))
+        }
+        "map.preview" => {
+            let arguments: AgentMapPreviewArguments = decode_agent_arguments(call, "map.preview")?;
+            validate_map_blueprints(state, &run.job_id, &arguments.spec)?;
+            serde_json::to_value(generate_verified_map_plan(
+                state,
+                &run.job_id,
+                &arguments.spec,
+            )?)
+            .map_err(|error| {
+                agent_error(
+                    "AGENT_TOOL_RESULT_INVALID",
+                    "Le plan de carte ne peut pas Ãªtre retournÃ©.",
+                    error.to_string(),
+                )
+            })
+        }
+        "map.apply" => {
+            let arguments: AgentMapApplyArguments = decode_agent_arguments(call, "map.apply")?;
+            let result = apply_map_generation_in_workspace(
+                state,
+                &run.job_id,
+                &run.workspace_id,
+                arguments.spec,
+                Some(&arguments.expected_plan_sha256),
+            )?;
+            Ok(serde_json::json!({
+                "planSha256": result.plan.plan_sha256,
+                "area": result.area,
+                "workspace": result.workspace,
+            }))
+        }
+        "map.environment.edit" => {
+            let arguments: AgentMapEnvironmentArguments =
+                decode_agent_arguments(call, "map.environment.edit")?;
+            let expected = arguments.expected_sha256;
+            let patch = arguments.patch;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new(&arguments.area, 2012),
+                serde_json::to_string(&patch).unwrap_or_else(|_| "map_environment".to_owned()),
+                move |bytes, source| {
+                    verify_map_resource_sha256(bytes, &expected)?;
+                    edit_area_environment(bytes, source, &patch)
+                },
+            )
+        }
+        "map.audio.edit" => {
+            let arguments: AgentMapAudioArguments = decode_agent_arguments(call, "map.audio.edit")?;
+            let expected = arguments.expected_sha256;
+            let patch = arguments.patch;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new(&arguments.area, 2023),
+                serde_json::to_string(&patch).unwrap_or_else(|_| "map_audio".to_owned()),
+                move |bytes, source| {
+                    verify_map_resource_sha256(bytes, &expected)?;
+                    edit_area_audio(bytes, source, &patch)
+                },
+            )
+        }
+        "map.tile.edit" => {
+            let arguments: AgentMapTileArguments = decode_agent_arguments(call, "map.tile.edit")?;
+            let expected = arguments.expected_sha256;
+            let before = arguments.before;
+            let after = arguments.after;
+            let x = arguments.x;
+            let y = arguments.y;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new(&arguments.area, 2012),
+                format!("map_tile:{x},{y}"),
+                move |bytes, source| {
+                    verify_map_resource_sha256(bytes, &expected)?;
+                    edit_area_tile_at(bytes, source, x, y, before, after)
+                },
+            )
+        }
+        "map.instance.add" => {
+            let arguments: AgentMapInstanceAddArguments =
+                decode_agent_arguments(call, "map.instance.add")?;
+            let resource = ResourceKey::new(&arguments.area, 2023);
+            validate_agent_map_placement(state, run, &arguments.placement)?;
+            let expected = arguments.expected_sha256;
+            let area = arguments.area;
+            let placement = arguments.placement;
+            apply_agent_resource_transform(
+                state,
+                run,
+                resource,
+                format!("map_instance_add:{}", placement.tag),
+                move |bytes, source| {
+                    verify_map_resource_sha256(bytes, &expected)?;
+                    add_area_instance(bytes, source, &area, &placement).map(|(output, _)| output)
+                },
+            )
+        }
+        "map.instance.move" => {
+            let arguments: AgentMapInstanceMoveArguments =
+                decode_agent_arguments(call, "map.instance.move")?;
+            let expected = arguments.expected_sha256;
+            let area = arguments.area;
+            let instance_id = arguments.instance_id;
+            let before = arguments.before;
+            let after = arguments.after;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new(&area, 2023),
+                format!("map_instance_move:{instance_id}"),
+                move |bytes, source| {
+                    verify_map_resource_sha256(bytes, &expected)?;
+                    edit_area_instance_by_id(bytes, source, &area, &instance_id, before, after)
+                },
+            )
+        }
+        "map.instance.remove" => {
+            let arguments: AgentMapInstanceRemoveArguments =
+                decode_agent_arguments(call, "map.instance.remove")?;
+            let expected = arguments.expected_sha256;
+            let area = arguments.area;
+            let instance_id = arguments.instance_id;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new(&area, 2023),
+                format!("map_instance_remove:{instance_id}"),
+                move |bytes, source| {
+                    verify_map_resource_sha256(bytes, &expected)?;
+                    remove_area_instance(bytes, source, &area, &instance_id)
+                },
+            )
+        }
+        "map.structure.edit" => {
+            let arguments: AgentMapStructureArguments =
+                decode_agent_arguments(call, "map.structure.edit")?;
+            let item_template = if let AreaStructureAction::AddInventoryItem { resref, .. } =
+                &arguments.action
+            {
+                let key = ResourceKey::new(resref, 2025);
+                workspace_or_resolved_resource_bytes(state, &run.job_id, &run.workspace_id, &key)?
+                    .map(|bytes| parse_gff(&bytes, &format!("agent::{}", key.file_name())))
+                    .transpose()?
+            } else {
+                None
+            };
+            let expected = arguments.expected_sha256;
+            let area = arguments.area;
+            let action = arguments.action;
+            apply_agent_resource_transform(
+                state,
+                run,
+                ResourceKey::new(&area, 2023),
+                serde_json::to_string(&action).unwrap_or_else(|_| "map_structure".to_owned()),
+                move |bytes, source| {
+                    verify_map_resource_sha256(bytes, &expected)?;
+                    edit_area_structure(bytes, source, &area, &action, item_template.as_ref())
+                        .map(|(output, _)| output)
+                },
+            )
         }
         "dialogue.create" => {
             let dialogue: aurora_agent::DialogueBlueprint =
@@ -5039,6 +5871,305 @@ pub fn create_workspace_area(
 }
 
 #[tauri::command]
+pub fn preview_map_generation(
+    state: State<'_, AppState>,
+    request: PreviewMapGenerationRequest,
+) -> AppResult<MapGenerationPlan> {
+    generate_verified_map_plan(&state, &request.job_id, &request.spec)
+}
+
+#[tauri::command]
+pub fn get_map_authoring_context(
+    state: State<'_, AppState>,
+    request: GetMapAuthoringContextRequest,
+) -> AppResult<MapAuthoringContext> {
+    build_map_authoring_context(&state, &request.job_id, &request.tileset)
+}
+
+#[tauri::command]
+pub async fn draft_map_with_ai(
+    state: State<'_, AppState>,
+    request: DraftMapWithAiRequest,
+) -> AppResult<AiMapDraftResult> {
+    validate_map_ai_provider(&request)?;
+    let endpoint = validated_ai_endpoint(&request.provider.endpoint)?;
+    let context =
+        build_map_authoring_context(&state, &request.job_id, &request.current_spec.tileset)?;
+    if context.selected_tileset.is_none() {
+        return Err(map_generation_error(
+            "EDIT_MAP_TILESET_NOT_RESOLVED",
+            "Le SET du tileset choisi doit être résolu avant l’appel IA.",
+            request.current_spec.tileset.clone(),
+        ));
+    }
+    let blueprints = if request.include_blueprint_resrefs {
+        map_blueprint_resrefs(&state, &request.job_id)?
+    } else {
+        BTreeMap::new()
+    };
+    let shared_blueprint_count = blueprints.values().map(Vec::len).sum();
+    let mut shared_spec = request.current_spec.clone();
+    if !request.include_blueprint_resrefs {
+        for rule in &mut shared_spec.densities {
+            rule.template_resrefs.clear();
+        }
+    }
+    let task_context = serde_json::to_string(&serde_json::json!({
+        "objective": "Proposer le contrat complet d'une carte NWN à partir du brief courant.",
+        "currentSpec": shared_spec,
+        "knownLimits": context.limits,
+        "selectedTileset": context.selected_tileset,
+        "availableBlueprintResrefs": blueprints,
+        "privacy": "Aucun octet NWN, chemin local, script, dialogue, texture ou contenu GFF n'est transmis.",
+    }))
+    .map_err(|error| {
+        map_generation_error(
+            "EDIT_MAP_AI_CONTEXT_FAILED",
+            "Le contexte minimal de la carte n’a pas pu être préparé.",
+            error.to_string(),
+        )
+    })?;
+    let registry = CapabilityRegistry::standard();
+    let tool = registry.get("map.generate").cloned().ok_or_else(|| {
+        map_generation_error(
+            "EDIT_MAP_AI_TOOL_MISSING",
+            "Le contrat de génération de carte est indisponible.",
+            "map.generate is missing from the capability registry",
+        )
+    })?;
+    let body = build_provider_request(
+        &request.provider,
+        ProviderRequestContext {
+            system_prompt: map_ai_system_prompt(),
+            task_context: &task_context,
+            tools: &[tool],
+            allow_parallel: false,
+            max_output_tokens: 16_384,
+            previous_response_id: None,
+            tool_outputs: &[],
+            replay_items: &[],
+        },
+    );
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(90))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|error| {
+            map_generation_error(
+                "EDIT_MAP_AI_CLIENT_FAILED",
+                "Le client IA de la carte n’a pas pu être initialisé.",
+                error.to_string(),
+            )
+        })?;
+    let mut builder = client.post(endpoint.clone()).json(&body);
+    if let Some(api_key) = request.api_key.as_deref().filter(|value| !value.is_empty()) {
+        builder = builder.bearer_auth(api_key);
+    }
+    let mut response = builder.send().await.map_err(|error| {
+        map_generation_error(
+            "EDIT_MAP_AI_UNREACHABLE",
+            "Impossible de joindre le fournisseur IA de la carte.",
+            error.without_url().to_string(),
+        )
+    })?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(map_generation_error(
+            "EDIT_MAP_AI_HTTP_ERROR",
+            format!("Le fournisseur IA a refusé la demande avec HTTP {status}."),
+            status.to_string(),
+        ));
+    }
+    const MAX_MAP_AI_RESPONSE_BYTES: usize = 1024 * 1024;
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|error| {
+        map_generation_error(
+            "EDIT_MAP_AI_RESPONSE_READ_FAILED",
+            "La réponse IA de la carte n’a pas pu être lue.",
+            error.without_url().to_string(),
+        )
+    })? {
+        if bytes.len().saturating_add(chunk.len()) > MAX_MAP_AI_RESPONSE_BYTES {
+            return Err(map_generation_error(
+                "EDIT_MAP_AI_RESPONSE_TOO_LARGE",
+                "La réponse IA dépasse la limite de 1 Mio.",
+                "map AI response exceeds 1 MiB",
+            ));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    let step = decode_provider_response(request.provider.kind, &bytes)?;
+    if step.tool_calls.len() != 1 || step.tool_calls[0].capability_id != "map.generate" {
+        return Err(map_generation_error(
+            "EDIT_MAP_AI_TOOL_CALL_INVALID",
+            "L’IA doit proposer exactement un contrat map.generate.",
+            format!("received {} tool calls", step.tool_calls.len()),
+        ));
+    }
+    let spec: MapGenerationSpec = serde_json::from_value(step.tool_calls[0].arguments.clone())
+        .map_err(|error| {
+            map_generation_error(
+                "EDIT_MAP_AI_SPEC_INVALID",
+                "Le contrat de carte proposé par l’IA est invalide.",
+                error.to_string(),
+            )
+        })?;
+    if spec.tileset != request.current_spec.tileset {
+        return Err(map_generation_error(
+            "EDIT_MAP_AI_TILESET_CHANGED",
+            "L’IA a changé de tileset sans disposer de son SET vérifié.",
+            format!(
+                "expected tileset {}, received {}",
+                request.current_spec.tileset, spec.tileset
+            ),
+        ));
+    }
+    validate_map_blueprints(&state, &request.job_id, &spec)?;
+    let plan = generate_verified_map_plan(&state, &request.job_id, &spec)?;
+    Ok(AiMapDraftResult {
+        endpoint_origin: endpoint.origin().ascii_serialization(),
+        model: request.provider.model,
+        plan,
+        shared_blueprint_count,
+    })
+}
+
+#[tauri::command]
+pub fn apply_map_generation(
+    state: State<'_, AppState>,
+    request: ApplyMapGenerationRequest,
+) -> AppResult<ApplyMapGenerationResult> {
+    apply_map_generation_in_workspace(
+        &state,
+        &request.job_id,
+        &request.workspace_id,
+        request.spec,
+        Some(&request.expected_plan_sha256),
+    )
+}
+
+fn apply_map_generation_in_workspace(
+    state: &AppState,
+    job_id: &str,
+    workspace_id: &str,
+    spec: MapGenerationSpec,
+    expected_plan_sha256: Option<&str>,
+) -> AppResult<ApplyMapGenerationResult> {
+    let plan = generate_verified_map_plan(state, job_id, &spec)?;
+    if expected_plan_sha256.is_some_and(|expected| expected != plan.plan_sha256) {
+        return Err(Box::new(
+            AppError::new(
+                "EDIT_MAP_PLAN_CHANGED",
+                "Le plan de carte a changé depuis sa prévisualisation.",
+                format!(
+                    "expected {:?}, regenerated {}",
+                    expected_plan_sha256, plan.plan_sha256
+                ),
+                aurora_core::ErrorSeverity::Warning,
+            )
+            .with_import_stage("map_generation"),
+        ));
+    }
+    let resources = create_generated_map_resources(&plan)?;
+    let staged_templates = with_edit_workspace(state, workspace_id, |workspace| {
+        Ok(workspace
+            .snapshot()?
+            .modified_resources
+            .into_iter()
+            .map(|resource| resource.resource)
+            .collect::<BTreeSet<_>>())
+    })?;
+    state.jobs.with_analysis(job_id, |analysis| {
+        for resource in &resources {
+            if analysis.resource_catalog.get(&resource.key).is_some() {
+                return Err(Box::new(
+                    AppError::new(
+                        "EDIT_AREA_ALREADY_EXISTS",
+                        "Une ressource de cette carte existe déjà.",
+                        resource.key.to_string(),
+                        aurora_core::ErrorSeverity::Error,
+                    )
+                    .with_resource(resource.key.to_string())
+                    .with_import_stage("map_generation"),
+                ));
+            }
+        }
+        for placement in &plan.placements {
+            let resource_type =
+                map_template_resource_type(&placement.category).ok_or_else(|| {
+                    Box::new(
+                        AppError::new(
+                            "EDIT_MAP_CATEGORY_UNSUPPORTED",
+                            "Une catégorie de placement n’est pas prise en charge.",
+                            placement.category.clone(),
+                            aurora_core::ErrorSeverity::Error,
+                        )
+                        .with_import_stage("map_generation"),
+                    )
+                })?;
+            let key = ResourceKey::new(&placement.template_resref, resource_type);
+            if analysis.resource_catalog.get(&key).is_none() && !staged_templates.contains(&key) {
+                return Err(Box::new(
+                    AppError::new(
+                        "EDIT_MAP_BLUEPRINT_NOT_RESOLVED",
+                        "Un blueprint demandé par la carte est introuvable.",
+                        key.to_string(),
+                        aurora_core::ErrorSeverity::Error,
+                    )
+                    .with_resource(key.to_string())
+                    .with_import_stage("map_generation"),
+                ));
+            }
+        }
+        Ok(())
+    })?;
+    let are = resources
+        .iter()
+        .find(|resource| resource.key.resource_type == 2012)
+        .ok_or_else(|| generated_area_resource_missing("ARE"))?;
+    let git = resources
+        .iter()
+        .find(|resource| resource.key.resource_type == 2023)
+        .ok_or_else(|| generated_area_resource_missing("GIT"))?;
+    let gic = resources
+        .iter()
+        .find(|resource| resource.key.resource_type == 2046)
+        .ok_or_else(|| generated_area_resource_missing("GIC"))?;
+    let are_document = parse_gff(&are.bytes, &format!("workspace::{}", are.key.file_name()))?;
+    let git_document = parse_gff(&git.bytes, &format!("workspace::{}", git.key.file_name()))?;
+    let gic_document = parse_gff(&gic.bytes, &format!("workspace::{}", gic.key.file_name()))?;
+    let area = adapt_area(
+        &plan.spec.resref,
+        &are_document,
+        Some(&git_document),
+        Some(&gic_document),
+    );
+    let workspace = with_edit_workspace(state, workspace_id, |workspace| {
+        workspace.create_resources_atomic(&resources)
+    })?;
+    Ok(ApplyMapGenerationResult {
+        workspace,
+        area,
+        plan,
+    })
+}
+
+fn map_template_resource_type(category: &str) -> Option<u16> {
+    match category {
+        "creature" => Some(2027),
+        "door" => Some(2042),
+        "encounter" => Some(2040),
+        "item" => Some(2025),
+        "placeable" => Some(2044),
+        "sound" => Some(2035),
+        "store" => Some(2051),
+        "trigger" => Some(2032),
+        "waypoint" => Some(2058),
+        _ => None,
+    }
+}
+
+#[tauri::command]
 pub fn list_workspace_created_areas(
     state: State<'_, AppState>,
     request: ListWorkspaceAreasRequest,
@@ -5563,6 +6694,83 @@ fn with_edit_workspace<T>(
     operation(workspace)
 }
 
+fn restore_persisted_edit_workspace(
+    state: &AppState,
+    analysis: &aurora_project::ModuleAnalysis,
+) -> AppResult<Option<WorkspaceSnapshot>> {
+    let root = state.edit_workspace_root.join(
+        analysis
+            .fingerprint
+            .sha256
+            .chars()
+            .take(16)
+            .collect::<String>(),
+    );
+    if !root.join("workspace.json").is_file() {
+        return Ok(None);
+    }
+    let workspace = EditWorkspace::open(&root)?;
+    let snapshot = workspace.snapshot()?;
+    if !snapshot.source_intact
+        || !snapshot
+            .source
+            .sha256
+            .eq_ignore_ascii_case(&analysis.fingerprint.sha256)
+    {
+        return Err(Box::new(
+            AppError::new(
+                "EDIT_SOURCE_CHANGED",
+                "La source a changé depuis la dernière session.",
+                "The persisted edit workspace no longer matches the cached analysis.",
+                aurora_core::ErrorSeverity::Error,
+            )
+            .with_source(snapshot.source.path.clone())
+            .with_import_stage("restore_session"),
+        ));
+    }
+    state
+        .edit_workspaces
+        .lock()
+        .expect("edit workspace registry poisoned")
+        .insert(workspace.id().to_owned(), workspace);
+    Ok(Some(snapshot))
+}
+
+#[tauri::command]
+pub fn restore_module_session(
+    state: State<'_, AppState>,
+    request: ModuleAnalysisRequest,
+) -> AppResult<Option<RestoredModuleSession>> {
+    let module_path = PathBuf::from(&request.module_path);
+    if !module_path.is_file()
+        || !module_path
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| value.eq_ignore_ascii_case("mod"))
+    {
+        return Ok(None);
+    }
+    let paths = SessionPaths::new(
+        module_path.display().to_string(),
+        request
+            .game_install_path
+            .filter(|value| !value.trim().is_empty())
+            .map(PathBuf::from),
+        request
+            .user_data_path
+            .filter(|value| !value.trim().is_empty())
+            .map(PathBuf::from),
+    );
+    let Some(analysis) = restore_analysis_session(&state.analysis_session_root, &paths)? else {
+        return Ok(None);
+    };
+    let workspace = restore_persisted_edit_workspace(&state, &analysis)?;
+    let job = state
+        .jobs
+        .restore_completed_analysis(module_path.display().to_string(), analysis);
+    Ok(Some(RestoredModuleSession { job, workspace }))
+}
+
 #[tauri::command]
 pub fn start_module_analysis(
     app: AppHandle,
@@ -5591,6 +6799,12 @@ pub fn start_module_analysis(
     let database_path = PathBuf::from(&state.database.path);
     let catalog_cache_path = state.asset_cache_root.join("resource-catalog-v1.json");
     let module_source_path = module_path.display().to_string();
+    let session_paths = SessionPaths::new(
+        module_source_path.clone(),
+        roots.game_install_path.clone(),
+        roots.user_data_path.clone(),
+    );
+    let analysis_session_root = state.analysis_session_root.clone();
     let previous_dependency_report = load_dependency_baseline(&database_path, &module_source_path)?
         .map(|json| {
             serde_json::from_str::<ModuleDependencyReport>(&json).map_err(|error| {
@@ -5661,6 +6875,11 @@ pub fn start_module_analysis(
                     world_index: &analysis.world_index,
                 },
             )?;
+            if let Err(error) =
+                store_analysis_session(&analysis_session_root, &session_paths, &analysis)
+            {
+                tracing::warn!(%error, "analysis completed but its resumable session cache was not saved");
+            }
             Ok(analysis)
         });
 

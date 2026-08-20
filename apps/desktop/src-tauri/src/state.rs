@@ -11,6 +11,7 @@ pub struct AppState {
     pub database: DatabaseInfo,
     pub jobs: Arc<JobRegistry>,
     pub asset_cache_root: PathBuf,
+    pub analysis_session_root: PathBuf,
     pub edit_workspace_root: PathBuf,
     pub edit_workspaces: Mutex<HashMap<String, EditWorkspace>>,
     pub agent_cancellations: Mutex<HashMap<String, Arc<AtomicBool>>>,
@@ -19,11 +20,14 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(database: DatabaseInfo, asset_cache_root: PathBuf, log_guard: WorkerGuard) -> Self {
-        let edit_workspace_root = database_path_parent(&database).join("workspaces");
+        let data_root = database_path_parent(&database);
+        let edit_workspace_root = data_root.join("workspaces");
+        let analysis_session_root = data_root.join("analysis-sessions-v1");
         Self {
             database,
             jobs: Arc::new(JobRegistry::default()),
             asset_cache_root,
+            analysis_session_root,
             edit_workspace_root,
             edit_workspaces: Mutex::new(HashMap::new()),
             agent_cancellations: Mutex::new(HashMap::new()),

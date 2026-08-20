@@ -31,6 +31,10 @@ pas être ajoutés au dépôt Git.
 
 1. Choisir le `.mod`, la racine du jeu et le dossier utilisateur NWN.
 2. Lancer **Analyser la copie** et attendre la fin de l’inventaire.
+   Après cette première analyse, OpenNever sauvegarde localement le résultat complet. Aux ouvertures
+   suivantes, il restaure automatiquement l’analyse, la dernière page et le curseur du workspace tant
+   que le MOD, ses dépendances, le catalogue du jeu, `development` et `override` n’ont pas changé.
+   **Réanalyser maintenant** reste disponible pour forcer explicitement une actualisation.
 3. Examiner les dépendances manquantes ou modifiées.
 4. Créer l’espace d’édition.
 5. Modifier les ressources. Chaque opération est prévisualisée, validée et ajoutée à l’historique
@@ -115,6 +119,32 @@ ni au système de fichiers, ni aux commandes du système, ni à l’archive sour
 utiliser un adaptateur externe sans réseau, ouvrir **Prévisualiser une proposition JSON locale** et
 coller un `AiChangeSet` conforme. Après toute modification NSS, compiler le NCS avant build,
 déploiement ou sauvegarde Toolset.
+
+## Créer une carte directement
+
+Dans **Construire → Créateur de cartes**, saisissez le brief, le ResRef et le tileset. OpenNever
+résout le SET réel et affiche son nombre de tuiles et son empreinte. Les zones sont limitées à
+32×32 tuiles et les ResRef à 16 caractères afin de rester dans le contrat compatible commun à
+l’interface, au moteur Rust et aux outils IA.
+
+Pour un PC peu puissant, ouvrez **Générer directement avec une IA**, choisissez une API distante,
+entrez son endpoint, le nom exact du modèle et une clé temporaire. Ollama et les API compatibles
+locales restent disponibles. La clé n’est pas enregistrée et le champ est effacé après l’appel. Le partage des seuls noms ResRef de
+blueprints peut être désactivé ; aucun contenu de module, script, GFF, texture ou chemin local n’est
+envoyé. La proposition est toujours revalidée localement, puis doit être prévisualisée avant le
+bouton **Créer ARE/GIT/GIC**.
+
+Les identifiants de tuiles sont vérifiés dans le SET, mais les raccords visuels entre tuiles
+alternatives ne sont pas encore prouvés. Laissez la liste de variantes vide pour le mode homogène
+recommandé, puis testez la carte produite dans NWN avant de la qualifier de jouable.
+
+Un client IA externe peut désormais piloter le même parcours avec `opennever-mcp.exe`. Configurez
+dans Agent Studio les dossiers **installation NWN:EE** et **données utilisateur NWN:EE**, puis
+accordez explicitement les capacités cartographiques souhaitées. Le parcours recommandé est
+`map.context` → `map.preview` → `map.apply` → `map.inspect`. L'IA peut ensuite modifier les tuiles,
+hauteurs, scripts de zone, météo, éclairage, audio, neuf catégories d'instances, polygones,
+apparitions, transitions et inventaires. Chaque édition exige le SHA-256 ARE ou GIT renvoyé par la
+dernière inspection ; un état périmé est refusé sans écriture.
 
 ## Agent Studio
 

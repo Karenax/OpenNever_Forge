@@ -2,6 +2,7 @@ mod blueprint_options;
 mod commands;
 mod jobs;
 mod logging;
+mod session;
 mod state;
 
 use aurora_index::initialize_database;
@@ -31,6 +32,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_app_status,
+            commands::restore_module_session,
             commands::start_module_analysis,
             commands::get_job,
             commands::cancel_job,
@@ -102,6 +104,10 @@ pub fn run() {
             commands::get_standard_palette,
             commands::get_blueprint_field_options,
             commands::create_workspace_area,
+            commands::get_map_authoring_context,
+            commands::preview_map_generation,
+            commands::draft_map_with_ai,
+            commands::apply_map_generation,
             commands::list_workspace_created_areas,
             commands::delete_workspace_area,
             commands::add_workspace_area_instance,

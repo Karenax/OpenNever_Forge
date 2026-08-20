@@ -45,11 +45,12 @@ const defaultProvider: ProviderProfile = {
   outputCostMicroUsdPerMillionTokens: 0,
 };
 
-export function AgentStudio({ jobId, workspace, selectedResource, activeView, onError }: {
+export function AgentStudio({ jobId, workspace, selectedResource, activeView, initialObjective, onError }: {
   jobId: string;
   workspace: WorkspaceSnapshot;
   selectedResource?: ResourceKey;
   activeView?: string;
+  initialObjective?: string;
   onError: (error: unknown) => void;
 }) {
   const [studio, setStudio] = useState<AgentStudioState>();
@@ -76,6 +77,10 @@ export function AgentStudio({ jobId, workspace, selectedResource, activeView, on
       .catch(onError);
     return () => { alive = false; };
   }, [workspace.workspaceId, onError]);
+
+  useEffect(() => {
+    if (initialObjective?.trim()) setObjective(initialObjective);
+  }, [initialObjective]);
 
   const categories = useMemo(() => ["Toutes", ...new Set(studio?.registry.capabilities.map((item) => item.category) ?? [])], [studio]);
   const capabilities = useMemo(() => studio?.registry.capabilities.filter((item) => category === "Toutes" || item.category === category) ?? [], [studio, category]);
@@ -378,6 +383,7 @@ export function AgentStudio({ jobId, workspace, selectedResource, activeView, on
               </div>
               <RuntimePathField id="agent-compiler-path" label="Compilateur de scripts NWScript" kind="Fichier .exe · requis pour compiler" help="Chemin complet vers nwn_script_comp.exe (ou un compilateur compatible)." placeholder="C:\…\nwn_script_comp.exe" value={policy.toolRuntime.compilerPath} onChange={(value) => patchRuntime("compilerPath", value)} />
               <RuntimePathField id="agent-game-install-path" label="Dossier d’installation de NWN:EE" kind="Dossier · requis pour compiler" help="Racine du jeu contenant notamment les dossiers bin, data et lang." placeholder="C:\…\Neverwinter Nights" value={policy.toolRuntime.gameInstallPath} onChange={(value) => patchRuntime("gameInstallPath", value)} />
+              <RuntimePathField id="agent-user-data-path" label="Dossier utilisateur de NWN:EE" kind="Dossier · requis pour les HAK/TLK utilisateur" help="Racine des données utilisateur contenant notamment hak, tlk, override et development. Le MCP l’utilise pour résoudre les tilesets et blueprints personnalisés." placeholder="C:\Users\…\Documents\Neverwinter Nights" value={policy.toolRuntime.userDataPath} onChange={(value) => patchRuntime("userDataPath", value)} />
               <RuntimePathField id="agent-include-paths" label="Dossiers d’includes supplémentaires" kind="Dossiers · facultatif" help="Emplacements de scripts .nss partagés. Séparez plusieurs dossiers par un point-virgule (;)." placeholder="C:\Mes scripts\includes; D:\NWN\includes" value={policy.toolRuntime.includePaths.join("; ")} onChange={(value) => patchRuntime("includePaths", value.split(";").map((item) => item.trim()).filter(Boolean))} />
             </section>
 

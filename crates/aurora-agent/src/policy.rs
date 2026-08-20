@@ -136,6 +136,8 @@ fn default_provider_hosts() -> Vec<String> {
 pub struct ToolRuntimePolicy {
     pub compiler_path: String,
     pub game_install_path: String,
+    #[serde(default)]
+    pub user_data_path: String,
     pub include_paths: Vec<String>,
     pub development_path: String,
     pub toolset_temp_path: String,
@@ -334,6 +336,7 @@ pub fn validate_agent_policy(policy: &AgentPolicy) -> Result<(), String> {
     let runtime_paths = [
         policy.tool_runtime.compiler_path.as_str(),
         policy.tool_runtime.game_install_path.as_str(),
+        policy.tool_runtime.user_data_path.as_str(),
         policy.tool_runtime.development_path.as_str(),
         policy.tool_runtime.toolset_temp_path.as_str(),
         policy.tool_runtime.nwn_executable_path.as_str(),

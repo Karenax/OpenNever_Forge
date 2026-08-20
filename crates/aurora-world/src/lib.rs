@@ -91,6 +91,7 @@ pub struct AreaTile {
     pub y: u32,
     pub tile_id: u32,
     pub orientation: u32,
+    pub height: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -411,6 +412,7 @@ pub fn adapt_area(
             y: (index as u32).checked_div(width).unwrap_or(0),
             tile_id: unsigned(tile, &["Tile_ID", "TileID"]).unwrap_or(0),
             orientation: unsigned(tile, &["Tile_Orientation", "Orientation"]).unwrap_or(0),
+            height: signed(tile, &["Tile_Height", "Height"]).unwrap_or(0),
         })
         .collect::<Vec<_>>();
     let mut instances = Vec::new();
@@ -525,6 +527,75 @@ pub fn adapt_area(
         git_source: git.map(|value| value.source.clone()),
         gic_source: gic.map(|value| value.source.clone()),
     }
+}
+
+pub fn render_area_atlas_svg(area: &AreaMap) -> String {
+    const CELL: u32 = 48;
+    const HEADER: u32 = 56;
+    let width = area.width.max(1).saturating_mul(CELL);
+    let map_height = area.height.max(1).saturating_mul(CELL);
+    let height = map_height.saturating_add(HEADER);
+    let title = area.name.text.as_deref().unwrap_or(&area.resref);
+    let mut svg = format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\" role=\"img\" aria-label=\"{}\"><rect width=\"100%\" height=\"100%\" fill=\"#0b1220\"/><text x=\"12\" y=\"22\" fill=\"#e8eef8\" font-family=\"sans-serif\" font-size=\"16\" font-weight=\"700\">{}</text><text x=\"12\" y=\"42\" fill=\"#9fb0c7\" font-family=\"monospace\" font-size=\"11\">{} · {}×{} · {}</text>",
+        escape_xml(title),
+        escape_xml(title),
+        escape_xml(&area.resref),
+        area.width,
+        area.height,
+        escape_xml(area.tileset.as_deref().unwrap_or("tileset inconnu")),
+    );
+    for tile in &area.tiles {
+        let x = tile.x.saturating_mul(CELL);
+        let y = HEADER.saturating_add(tile.y.saturating_mul(CELL));
+        let shade = 34 + (tile.tile_id.wrapping_mul(37) % 72);
+        svg.push_str(&format!(
+            "<g><rect x=\"{x}\" y=\"{y}\" width=\"{CELL}\" height=\"{CELL}\" fill=\"hsl({},28%,{shade}%)\" stroke=\"#52637a\" stroke-width=\"1\"/><text x=\"{}\" y=\"{}\" fill=\"#f2f6fb\" font-family=\"monospace\" font-size=\"10\">#{}</text><text x=\"{}\" y=\"{}\" fill=\"#c7d2e2\" font-family=\"monospace\" font-size=\"9\">r{} h{}</text></g>",
+            tile.tile_id.wrapping_mul(53) % 360,
+            x + 4,
+            y + 14,
+            tile.tile_id,
+            x + 4,
+            y + 29,
+            tile.orientation,
+            tile.height,
+        ));
+    }
+    for instance in &area.instances {
+        let x = (instance.x.max(0.0) / 10.0 * CELL as f32).round();
+        let y = HEADER as f32 + (instance.y.max(0.0) / 10.0 * CELL as f32).round();
+        let color = match instance.category.as_str() {
+            "creature" => "#f59e0b",
+            "door" => "#a78bfa",
+            "encounter" => "#ef4444",
+            "placeable" => "#22c55e",
+            "sound" => "#38bdf8",
+            "store" => "#f472b6",
+            "trigger" => "#fb7185",
+            "waypoint" => "#facc15",
+            _ => "#e2e8f0",
+        };
+        let label = instance
+            .tag
+            .as_deref()
+            .or(instance.template_resref.as_deref())
+            .unwrap_or(&instance.category);
+        svg.push_str(&format!(
+            "<g><circle cx=\"{x}\" cy=\"{y}\" r=\"6\" fill=\"{color}\" stroke=\"#07101d\" stroke-width=\"2\"><title>{}</title></circle></g>",
+            escape_xml(label),
+        ));
+    }
+    svg.push_str("</svg>");
+    svg
+}
+
+fn escape_xml(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
 }
 
 fn area_inventory(instance: &GenericStruct, list_label: &str) -> Vec<AreaInventoryItem> {
@@ -1315,8 +1386,13 @@ mod tests {
         );
         let area = adapt_area("town", &are, Some(&git), None);
         assert_eq!(area.tiles[0].tile_id, 12);
+        assert_eq!(area.tiles[0].height, 0);
         assert_eq!(area.instances[0].x, 4.0);
         assert_eq!(area.instances[0].category, "creature");
+        let svg = render_area_atlas_svg(&area);
+        assert!(svg.starts_with("<svg"));
+        assert!(svg.contains("#12"));
+        assert!(svg.contains("guard"));
     }
 
     #[test]

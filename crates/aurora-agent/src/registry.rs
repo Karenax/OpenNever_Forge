@@ -99,6 +99,87 @@ impl CapabilityRegistry {
                 "additionalProperties":false
             })
         };
+        let map_generation_spec = || {
+            json!({
+                "type":"object",
+                "properties":{
+                    "schemaVersion":{"type":"integer","const":1},
+                    "brief":{"type":"string","maxLength":65536},
+                    "resref":{"type":"string","maxLength":16},
+                    "name":{"type":"string","maxLength":1024},
+                    "tileset":{"type":"string","maxLength":16},
+                    "width":{"type":"integer","minimum":1,"maximum":32},
+                    "height":{"type":"integer","minimum":1,"maximum":32},
+                    "seed":{"type":"integer","minimum":0,"maximum":4294967295_u64},
+                    "baseTileId":{"type":"integer","minimum":0},
+                    "variantTileIds":{"type":"array","maxItems":128,"items":{"type":"integer","minimum":0}},
+                    "borderMargin":{"type":"integer","minimum":0,"maximum":31},
+                    "reservedPercent":{"type":"integer","minimum":0,"maximum":90},
+                    "densities":{"type":"array","maxItems":16,"items":{
+                        "type":"object",
+                        "properties":{
+                            "category":{"type":"string","enum":["creature","door","encounter","item","placeable","sound","store","trigger","waypoint"]},
+                            "perHundredTiles":{"type":"integer","minimum":0,"maximum":100},
+                            "minSpacingTiles":{"type":"integer","minimum":0,"maximum":64},
+                            "templateResrefs":{"type":"array","maxItems":128,"items":{"type":"string","maxLength":16}}
+                        },
+                        "required":["category","perHundredTiles","minSpacingTiles","templateResrefs"],
+                        "additionalProperties":false
+                    }}
+                },
+                "required":["schemaVersion","brief","resref","name","tileset","width","height","seed","baseTileId","variantTileIds","borderMargin","reservedPercent","densities"],
+                "additionalProperties":false
+            })
+        };
+        let transform = || {
+            json!({
+                "type":"object",
+                "properties":{
+                    "x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},
+                    "bearing":{"type":"number"}
+                },
+                "required":["x","y","z","bearing"],
+                "additionalProperties":false
+            })
+        };
+        let tile_state = || {
+            json!({
+                "type":"object",
+                "properties":{
+                    "tileId":{"type":"integer","minimum":0},
+                    "orientation":{"type":"integer","minimum":0,"maximum":3},
+                    "height":{"type":"integer","minimum":-32,"maximum":32}
+                },
+                "required":["tileId","orientation","height"],
+                "additionalProperties":false
+            })
+        };
+        let instance_placement = || {
+            json!({
+                "type":"object",
+                "properties":{
+                    "category":{"type":"string","enum":["creature","door","encounter","item","placeable","sound","store","trigger","waypoint"]},
+                    "templateResref":{"type":"string","maxLength":16},
+                    "tag":{"type":"string","maxLength":64},
+                    "x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},
+                    "bearing":{"type":"number"},
+                    "linkedTo":{"type":["string","null"],"maxLength":64}
+                },
+                "required":["category","templateResref","tag","x","y","z","bearing","linkedTo"],
+                "additionalProperties":false
+            })
+        };
+        let area_structure_action = || {
+            json!({
+                "oneOf":[
+                    {"type":"object","properties":{"kind":{"const":"set_geometry"},"instanceId":{"type":"string"},"points":{"type":"array","maxItems":256,"items":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"}},"required":["x","y","z"],"additionalProperties":false}}},"required":["kind","instanceId","points"],"additionalProperties":false},
+                    {"type":"object","properties":{"kind":{"const":"set_spawn_points"},"instanceId":{"type":"string"},"points":{"type":"array","maxItems":256,"items":{"type":"object","properties":{"x":{"type":"number"},"y":{"type":"number"},"z":{"type":"number"},"orientation":{"type":"number"}},"required":["x","y","z","orientation"],"additionalProperties":false}}},"required":["kind","instanceId","points"],"additionalProperties":false},
+                    {"type":"object","properties":{"kind":{"const":"set_transition"},"instanceId":{"type":"string"},"destination":{"type":"string","maxLength":64},"flags":{"type":"integer","minimum":0,"maximum":255},"loadScreenId":{"type":"integer","minimum":0,"maximum":65535}},"required":["kind","instanceId","destination","flags","loadScreenId"],"additionalProperties":false},
+                    {"type":"object","properties":{"kind":{"const":"add_inventory_item"},"instanceId":{"type":"string"},"resref":{"type":"string","maxLength":16},"stackSize":{"type":"integer","minimum":1,"maximum":65535},"x":{"type":"integer","minimum":0,"maximum":65535},"y":{"type":"integer","minimum":0,"maximum":65535},"infinite":{"type":"boolean"},"categoryIndex":{"type":["integer","null"],"minimum":0,"maximum":4}},"required":["kind","instanceId","resref","stackSize","x","y","infinite","categoryIndex"],"additionalProperties":false},
+                    {"type":"object","properties":{"kind":{"const":"remove_inventory_item"},"instanceId":{"type":"string"},"itemIndex":{"type":"integer","minimum":0},"categoryIndex":{"type":["integer","null"],"minimum":0,"maximum":4}},"required":["kind","instanceId","itemIndex","categoryIndex"],"additionalProperties":false}
+                ]
+            })
+        };
 
         add(
             "module.inspect",
@@ -230,6 +311,149 @@ impl CapabilityRegistry {
             CapabilitySideEffect::ReversibleWorkspace,
             true,
             json!({"type":"object","properties":{"area":{"type":"string"},"placement":{"type":"object"}},"required":["area","placement"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.generate",
+            "Générer une carte déterministe",
+            "Transforme un brief borné en tuiles et placements reproductibles, puis crée ARE/GIT/GIC dans le workspace.",
+            "Construction",
+            CapabilityRisk::High,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            map_generation_spec(),
+            object_result(),
+        );
+        add(
+            "map.context",
+            "DÃ©couvrir le contexte cartographique",
+            "RÃ©sout les tilesets, identifiants de tuiles, zones et blueprints disponibles sans transmettre les octets NWN.",
+            "Cartes",
+            CapabilityRisk::Low,
+            CapabilitySideEffect::None,
+            true,
+            json!({"type":"object","properties":{"tileset":{"type":["string","null"],"maxLength":16},"query":{"type":"string","maxLength":128},"limit":{"type":"integer","minimum":1,"maximum":500}},"required":["tileset","query","limit"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.inspect",
+            "Inspecter une carte",
+            "Retourne la grille, les instances, volumes, transitions, inventaires et empreintes ARE/GIT/GIC d'une zone.",
+            "Cartes",
+            CapabilityRisk::Low,
+            CapabilitySideEffect::None,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16}},"required":["area"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.atlas",
+            "GÃ©nÃ©rer l'atlas d'une carte",
+            "Produit un SVG local dÃ©terministe avec grille, tuiles, hauteurs, orientations et instances, sans texture propriÃ©taire.",
+            "Cartes",
+            CapabilityRisk::Low,
+            CapabilitySideEffect::None,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16}},"required":["area"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.preview",
+            "PrÃ©visualiser une carte dÃ©terministe",
+            "Valide le SET, les blueprints et le plan d'une carte sans modifier le workspace.",
+            "Cartes",
+            CapabilityRisk::Low,
+            CapabilitySideEffect::None,
+            true,
+            json!({"type":"object","properties":{"spec":map_generation_spec()},"required":["spec"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.apply",
+            "Appliquer un plan de carte",
+            "Recalcule un plan prÃ©visualisÃ© et crÃ©e atomiquement ARE/GIT/GIC si son empreinte est inchangÃ©e.",
+            "Cartes",
+            CapabilityRisk::High,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"spec":map_generation_spec(),"expectedPlanSha256":{"type":"string","minLength":64,"maxLength":64}},"required":["spec","expectedPlanSha256"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.environment.edit",
+            "Modifier l'environnement d'une carte",
+            "Modifie les scripts de zone, mÃ©tÃ©o, Ã©clairage, brouillard, repos, JcJ et Ã©cran de chargement avec empreinte ARE prÃ©alable.",
+            "Cartes",
+            CapabilityRisk::Moderate,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16},"expectedSha256":{"type":"string","minLength":64,"maxLength":64},"patch":{"type":"object","properties":{"tag":{"type":["string","null"],"maxLength":64},"comments":{"type":["string","null"],"maxLength":16384},"dayNightCycle":{"type":["boolean","null"]},"isNight":{"type":["boolean","null"]},"noRest":{"type":["boolean","null"]},"playerVsPlayer":{"type":["integer","null"],"minimum":0,"maximum":2},"chanceRain":{"type":["integer","null"],"minimum":0,"maximum":100},"chanceSnow":{"type":["integer","null"],"minimum":0,"maximum":100},"chanceLightning":{"type":["integer","null"],"minimum":0,"maximum":100},"windPower":{"type":["integer","null"],"minimum":0,"maximum":2},"fogClipDistance":{"type":["number","null"],"minimum":1,"maximum":1000},"skyBox":{"type":["integer","null"],"minimum":0,"maximum":255},"loadScreenId":{"type":["integer","null"],"minimum":0,"maximum":65535},"lightingScheme":{"type":["integer","null"],"minimum":0,"maximum":255},"shadowOpacity":{"type":["integer","null"],"minimum":0,"maximum":100},"sunAmbientColor":{"type":["integer","null"],"minimum":0,"maximum":4294967295_u64},"sunDiffuseColor":{"type":["integer","null"],"minimum":0,"maximum":4294967295_u64},"sunFogColor":{"type":["integer","null"],"minimum":0,"maximum":4294967295_u64},"sunFogAmount":{"type":["integer","null"],"minimum":0,"maximum":255},"sunShadows":{"type":["boolean","null"]},"moonAmbientColor":{"type":["integer","null"],"minimum":0,"maximum":4294967295_u64},"moonDiffuseColor":{"type":["integer","null"],"minimum":0,"maximum":4294967295_u64},"moonFogColor":{"type":["integer","null"],"minimum":0,"maximum":4294967295_u64},"moonFogAmount":{"type":["integer","null"],"minimum":0,"maximum":255},"moonShadows":{"type":["boolean","null"]},"onEnter":{"type":["string","null"],"maxLength":16},"onExit":{"type":["string","null"],"maxLength":16},"onHeartbeat":{"type":["string","null"],"maxLength":16},"onUserDefined":{"type":["string","null"],"maxLength":16}},"additionalProperties":false}},"required":["area","expectedSha256","patch"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.audio.edit",
+            "Modifier l'ambiance audio d'une carte",
+            "Modifie musiques, sons ambiants, volumes et environnement audio avec empreinte GIT prÃ©alable.",
+            "Cartes",
+            CapabilityRisk::Moderate,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16},"expectedSha256":{"type":"string","minLength":64,"maxLength":64},"patch":{"type":"object","properties":{"ambientSoundDay":{"type":["integer","null"],"minimum":0},"ambientSoundNight":{"type":["integer","null"],"minimum":0},"ambientSoundDayVolume":{"type":["integer","null"],"minimum":0,"maximum":127},"ambientSoundNightVolume":{"type":["integer","null"],"minimum":0,"maximum":127},"environmentAudio":{"type":["integer","null"],"minimum":0},"musicBattle":{"type":["integer","null"],"minimum":0},"musicDay":{"type":["integer","null"],"minimum":0},"musicNight":{"type":["integer","null"],"minimum":0},"musicDelay":{"type":["integer","null"],"minimum":0}},"additionalProperties":false}},"required":["area","expectedSha256","patch"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.tile.edit",
+            "Modifier une tuile de carte",
+            "Modifie l'identifiant, l'orientation et la hauteur d'une tuile avec coordonnÃ©es et prÃ©condition exactes.",
+            "Cartes",
+            CapabilityRisk::Moderate,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16},"x":{"type":"integer","minimum":0,"maximum":31},"y":{"type":"integer","minimum":0,"maximum":31},"expectedSha256":{"type":"string","minLength":64,"maxLength":64},"before":tile_state(),"after":tile_state()},"required":["area","x","y","expectedSha256","before","after"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.instance.add",
+            "Ajouter une instance Ã  une carte",
+            "Ajoute une crÃ©ature, porte, rencontre, objet, plaÃ§able, son, marchand, trigger ou waypoint rÃ©solu.",
+            "Cartes",
+            CapabilityRisk::Moderate,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16},"expectedSha256":{"type":"string","minLength":64,"maxLength":64},"placement":instance_placement()},"required":["area","expectedSha256","placement"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.instance.move",
+            "DÃ©placer une instance de carte",
+            "DÃ©place ou rÃ©oriente une instance avec transform prÃ©cÃ©dent exact.",
+            "Cartes",
+            CapabilityRisk::Moderate,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16},"instanceId":{"type":"string","maxLength":256},"expectedSha256":{"type":"string","minLength":64,"maxLength":64},"before":transform(),"after":transform()},"required":["area","instanceId","expectedSha256","before","after"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.instance.remove",
+            "Supprimer une instance de carte",
+            "Supprime une instance dÃ©signÃ©e par son identifiant d'inspection et une empreinte GIT exacte.",
+            "Cartes",
+            CapabilityRisk::Moderate,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16},"instanceId":{"type":"string","maxLength":256},"expectedSha256":{"type":"string","minLength":64,"maxLength":64}},"required":["area","instanceId","expectedSha256"],"additionalProperties":false}),
+            object_result(),
+        );
+        add(
+            "map.structure.edit",
+            "Modifier la structure d'une instance",
+            "Modifie polygones de triggers/rencontres, points d'apparition, transitions et inventaires intÃ©grÃ©s.",
+            "Cartes",
+            CapabilityRisk::Moderate,
+            CapabilitySideEffect::ReversibleWorkspace,
+            true,
+            json!({"type":"object","properties":{"area":{"type":"string","maxLength":16},"expectedSha256":{"type":"string","minLength":64,"maxLength":64},"action":area_structure_action()},"required":["area","expectedSha256","action"],"additionalProperties":false}),
             object_result(),
         );
         add(

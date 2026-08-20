@@ -6,6 +6,10 @@ Tous les changements notables du projet sont consignés ici.
 
 ### Added
 
+- Création cartographique MCP complète : catalogue local MOD/HAK/NWN, aperçu et application
+  déterministes, inspection avec empreintes, édition de l'environnement, de l'audio, des tuiles,
+  instances, triggers, rencontres, transitions et inventaires dans l'overlay réversible.
+
 - Lot 36 : CI Windows étendue au build Tauri/MCP et aux artefacts, audit frontend bloquant,
   contrôles RustSec/cargo-deny et politique explicite de licences et de sources Cargo.
 - Lot 37 : cache JSON versionné du catalogue KEY/BIF/override avec signature des sources,

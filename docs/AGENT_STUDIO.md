@@ -99,9 +99,16 @@ la matrice ou la politique de contexte. Les mutations prises en charge passent p
 de commandes et restent dans l’overlay ; le MOD source n’est jamais ouvert en écriture.
 
 Le serveur expose aussi les ressources MCP `opennever://workspace/snapshot`,
-`opennever://agent/policy` et `opennever://agent/capabilities`. Une opération exigeant une
+`opennever://agent/policy`, `opennever://agent/capabilities` et
+`opennever://map/authoring-contract`. Une opération exigeant une
 approbation humaine est refusée côté MCP tant qu’aucun mécanisme d’approbation externe sûr n’est
 présent.
+
+Le paramétrage expert comporte deux racines distinctes : **installation NWN:EE** pour KEY/BIF et
+contenu de base, puis **données utilisateur NWN:EE** pour `hak`, `tlk`, `override` et
+`development`. `map.context` construit un catalogue local mis en cache à partir du MOD immuable,
+des HAK déclarés et de ces racines. Aucun octet NWN n'est renvoyé au client : seulement des ResRef,
+identifiants de tuiles, empreintes, comptes et diagnostics bornés.
 
 Le serveur négocie MCP `2025-11-25` et conserve la compatibilité `2025-06-18`. Il exige la séquence
 `initialize` puis `notifications/initialized`, limite chaque message entrant à 4 Mio et applique
@@ -114,6 +121,36 @@ locaux sont expurgés des ressources et sorties structurées tant que leur parta
 - les sorties de build sont bornées aux racines configurées et canonicalisées ;
 - les actions Toolset utilisent une comparaison et des empreintes avant synchronisation ;
 - l’agent ne sauvegarde pas lui-même un module dans Aurora Toolset : après compilation NCS et
-  synchronisation, la sauvegarde explicite dans Aurora reste nécessaire ;
+synchronisation, la sauvegarde explicite dans Aurora reste nécessaire ;
 - le registre et les exécuteurs Tauri sont contrôlés par un test d’exhaustivité ; MCP n’expose que
   son sous-ensemble local sûr et refuse les fonctions nécessitant une approbation interactive.
+
+## Création déterministe de cartes
+
+La capacité `map.generate` reçoit un `MapGenerationSpec` borné : brief, ResRef, tileset, dimensions,
+graine, tuiles autorisées, marge, réserve libre et règles de densité par catégorie. Le modèle peut
+choisir ce contrat et rechercher les blueprints, mais le plan de tuiles et de placements est calculé
+par le cœur Rust. L’application recalcule son empreinte avant de créer ARE/GIT/GIC dans une seule
+transaction réversible. Le parcours humain, l’atlas SVG/PNG et les limites restantes sont détaillés
+dans `docs/MAP_CREATOR_PLAN.md`.
+
+Le MCP propose le cycle complet suivant :
+
+1. `map.context` résout tilesets, tuiles, zones et blueprints disponibles ;
+2. `map.preview` calcule un plan reproductible sans avancer le curseur du workspace ;
+3. `map.apply` exige le SHA-256 exact de ce plan et crée ARE/GIT/GIC atomiquement ;
+4. `map.inspect` renvoie la grille avec hauteur, toutes les instances, volumes, transitions,
+   inventaires, environnement, audio et SHA-256 courants ;
+5. `map.atlas` produit un SVG de repérage déterministe sans texture propriétaire ;
+6. `map.environment.edit`, `map.audio.edit` et `map.tile.edit` modifient les propriétés ARE/GIT ;
+7. `map.instance.add`, `map.instance.move` et `map.instance.remove` gèrent les neuf catégories
+   spatiales ;
+8. `map.structure.edit` gère polygones de triggers/rencontres, points d'apparition, transitions et
+   inventaires de plaçables/marchands ;
+9. une nouvelle inspection fournit les empreintes préalables au lot suivant.
+
+`map.generate` reste disponible pour une création directe en un appel, mais `map.preview` puis
+`map.apply` est le parcours recommandé. Les écritures cartographiques sont réversibles et suivent
+la politique. Comme le MCP ne dispose pas de boîte de dialogue d'approbation, le profil doit
+accorder explicitement `ApprovalMode::Never` aux seules capacités de carte que l'utilisateur veut
+autoriser ; sinon l'appel est refusé.

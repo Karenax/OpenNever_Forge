@@ -79,6 +79,17 @@ impl JobRegistry {
             .map(|entry| entry.snapshot.transport_clone())
     }
 
+    pub fn restore_completed_analysis(
+        &self,
+        source_path: String,
+        analysis: ModuleAnalysis,
+    ) -> JobSnapshot {
+        let (job, _) = self.create_analysis_job(source_path);
+        self.set_running(&job.id);
+        self.complete(&job.id, analysis)
+            .expect("restored analysis job exists")
+    }
+
     pub fn with_analysis<T>(
         &self,
         id: &str,

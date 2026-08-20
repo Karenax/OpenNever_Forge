@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App, { isTileOccluder, JobProgress, WalkmeshWorkbench } from "./App";
-import { applyAiChangeSet, applyAuroraWorkspaceSync, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, editAreaStructure, editBlueprintStructure, editFactionStructure, editWorkspaceModuleDependencies, moveAreaInstance, planAuroraWorkspaceSync, previewAiChangeSet, requestAiChangeSet, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
-import { PROJECT_PREFERENCES_STORAGE_KEY } from "./lib/projectPreferences";
+import { applyAiChangeSet, applyAuroraWorkspaceSync, applyMapGeneration, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, draftMapWithAi, editAreaStructure, editBlueprintStructure, editDialogueField, editDialogueStructure, editFactionStructure, editWorkspaceModuleDependencies, moveAreaInstance, planAuroraWorkspaceSync, previewAiChangeSet, previewMapGeneration, requestAiChangeSet, restoreModuleSession, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
+import { LAST_EXPLORER_ITEM_STORAGE_KEY, PROJECT_PREFERENCES_STORAGE_KEY } from "./lib/projectPreferences";
 import { useUiStore } from "./store/uiStore";
 
 vi.mock("@monaco-editor/react", () => ({ default: ({ value }: { value: string }) => <pre data-testid="monaco-readonly">{value}</pre> }));
@@ -17,7 +17,7 @@ vi.mock("./lib/tauri", () => ({
       level: "advisor",
       context: { allowNetwork: false, includeModuleMetadata: false, includeResourceContents: false, includeDiagnostics: true, includeArchitectureGraph: false, includeLocalPaths: false, retainConversation: true, retentionDays: 30, allowInsecureLocalHttp: true, allowedProviderHosts: ["api.openai.com", "localhost", "127.0.0.1", "::1"] },
       limits: { maxTurns: 12, maxToolCalls: 48, maxParallelCalls: 4, maxRetries: 2, maxPromptBytes: 32768, maxContextResources: 16, maxContextResourceBytes: 262144, maxResponseBytes: 2097152, maxOutputTokens: 8192, maxDurationSeconds: 900, maxCostMicroUsd: 5000000 },
-      toolRuntime: { compilerPath: "", gameInstallPath: "", includePaths: [], developmentPath: "", toolsetTempPath: "", allowedOutputRoots: [], nwnExecutablePath: "", nwnWorkingDirectory: "", nwnArguments: [] },
+      toolRuntime: { compilerPath: "", gameInstallPath: "", userDataPath: "", includePaths: [], developmentPath: "", toolsetTempPath: "", allowedOutputRoots: [], nwnExecutablePath: "", nwnWorkingDirectory: "", nwnArguments: [] },
       capabilityOverrides: { "*": { access: "preview", approval: "always", scope: "workspace", maxCalls: 48 } },
       scopeGrants: { selectedResources: [], areas: [] },
       allowDevelopmentDeploy: false,
@@ -33,7 +33,7 @@ vi.mock("./lib/tauri", () => ({
         level: "supervised",
         context: { allowNetwork: false, includeModuleMetadata: true, includeResourceContents: true, includeDiagnostics: true, includeArchitectureGraph: false, includeLocalPaths: false, retainConversation: true, retentionDays: 30, allowInsecureLocalHttp: true, allowedProviderHosts: ["api.openai.com", "localhost", "127.0.0.1", "::1"] },
         limits: { maxTurns: 24, maxToolCalls: 128, maxParallelCalls: 4, maxRetries: 2, maxPromptBytes: 32768, maxContextResources: 16, maxContextResourceBytes: 262144, maxResponseBytes: 2097152, maxOutputTokens: 8192, maxDurationSeconds: 900, maxCostMicroUsd: 5000000 },
-        toolRuntime: { compilerPath: "", gameInstallPath: "", includePaths: [], developmentPath: "", toolsetTempPath: "", allowedOutputRoots: [], nwnExecutablePath: "", nwnWorkingDirectory: "", nwnArguments: [] },
+        toolRuntime: { compilerPath: "", gameInstallPath: "", userDataPath: "", includePaths: [], developmentPath: "", toolsetTempPath: "", allowedOutputRoots: [], nwnExecutablePath: "", nwnWorkingDirectory: "", nwnArguments: [] },
         capabilityOverrides: { "*": { access: "execute", approval: "above_risk", scope: "workspace", maxCalls: 128 } },
         scopeGrants: { selectedResources: [], areas: [] },
         allowDevelopmentDeploy: false,
@@ -59,6 +59,7 @@ vi.mock("./lib/tauri", () => ({
     editingAvailable: true,
     databaseSchemaVersion: 6,
   }),
+  restoreModuleSession: vi.fn().mockResolvedValue(null),
   getStandardPalette: vi.fn().mockResolvedValue({
     schemaVersion: 1,
     categories: [
@@ -290,7 +291,18 @@ vi.mock("./lib/tauri", () => ({
     key: { resref: "forge_dialogue", resourceType: 2029 }, source: "C:/module.mod::forge_dialogue.dlg",
     nodes: [{ id: "entry:0", kind: "entry", index: 0, text: null, displayText: "Bonjour", speaker: "NPC", comment: "Accueil", animation: 1, animationLoop: true, sound: "hello", quest: null, actionScript: "start" }, { id: "reply:0", kind: "reply", index: 0, text: null, displayText: "Au revoir", speaker: null, comment: null, animation: null, animationLoop: null, sound: null, quest: null, actionScript: null }],
     links: [{ id: "entry:0:reply:0:0", source: "entry:0", target: "reply:0", conditionScript: "check", actionScript: null, comment: null, isChild: false, broken: false }, { id: "reply:0:entry:0:0", source: "reply:0", target: "entry:0", conditionScript: null, actionScript: null, comment: null, isChild: true, broken: false }],
-    roots: ["entry:0"], sharedNodes: ["entry:0"], unreachableNodes: [], cycles: [["entry:0", "reply:0", "entry:0"]], diagnostics: [{ code: "DLG_CYCLE_DETECTED", message: "Cycle", nodeId: "entry:0", linkId: null }], references: [{ resource: { resref: "creature", resourceType: 2027 }, fieldPath: "root.Conversation", source: "C:/module.mod" }], tree: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: false, children: [{ nodeId: "reply:0", kind: "reply", displayText: "Au revoir", repeated: false, cycle: false, children: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: true, children: [] }] }] }], raw: { fileType: "DLG ", fileVersion: "V3.2" },
+    roots: ["entry:0"], sharedNodes: ["entry:0"], unreachableNodes: [], cycles: [["entry:0", "reply:0", "entry:0"]], diagnostics: [{ code: "DLG_CYCLE_DETECTED", message: "Cycle", nodeId: "entry:0", linkId: null }], references: [{ resource: { resref: "creature", resourceType: 2027 }, fieldPath: "root.Conversation", source: "C:/module.mod" }], tree: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: false, children: [{ nodeId: "reply:0", kind: "reply", displayText: "Au revoir", repeated: false, cycle: false, children: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: true, children: [] }] }] }], raw: { fileType: "DLG ", fileVersion: "V3.2", source: "forge_dialogue.dlg", structCount: 7, fieldCount: 12, root: { index: 0, structType: 4294967295, fields: [
+      { label: "EntryList", fieldType: 15, value: { kind: "list", value: [{ index: 1, structType: 0, fields: [
+        { label: "Text", fieldType: 12, value: { kind: "localized_string", value: { stringRef: null, values: [{ languageId: 0, text: "Bonjour" }] } } },
+        { label: "Speaker", fieldType: 10, value: { kind: "string", value: "NPC" } },
+        { label: "RepliesList", fieldType: 15, value: { kind: "list", value: [{ index: 2, structType: 0, fields: [{ label: "Index", fieldType: 4, value: { kind: "dword", value: 0 } }, { label: "Active", fieldType: 11, value: { kind: "res_ref", value: "check" } }] }] } },
+      ] }] } },
+      { label: "ReplyList", fieldType: 15, value: { kind: "list", value: [{ index: 3, structType: 0, fields: [
+        { label: "Text", fieldType: 12, value: { kind: "localized_string", value: { stringRef: null, values: [{ languageId: 0, text: "Au revoir" }] } } },
+        { label: "EntriesList", fieldType: 15, value: { kind: "list", value: [{ index: 4, structType: 0, fields: [{ label: "Index", fieldType: 4, value: { kind: "dword", value: 0 } }] }] } },
+      ] }] } },
+      { label: "StartingList", fieldType: 15, value: { kind: "list", value: [] } },
+    ] } },
   }),
   editDialogueField: vi.fn(),
   editDialogueStructure: vi.fn(),
@@ -327,7 +339,7 @@ vi.mock("./lib/tauri", () => ({
       reputations: [{ sourceId: 0, targetId: 0, value: 100 }],
       relations: [], diagnostics: [],
     },
-    areas: [{ resref: "startarea", name: { stringRef: null, text: "Zone de départ" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 12, orientation: 1 }], instances: [{ id: "startarea:Creature List:0", category: "creature", tag: "guard", templateResref: "guard", x: 4, y: 5, z: 0, bearing: 0, appearance: null, transitionDestination: null, transitionFlags: null, loadScreenId: null, geometry: [], spawnPoints: [], inventory: [], sourcePath: "startarea.git::Creature List[0]" }, { id: "startarea:TriggerList:0", category: "trigger", tag: "exit", templateResref: "newtransition", x: 2, y: 2, z: 0, bearing: 0, appearance: null, transitionDestination: "wp_exit", transitionFlags: 2, loadScreenId: 7, geometry: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }], spawnPoints: [], inventory: [], sourcePath: "startarea.git::TriggerList[0]" }], diagnostics: [], areSource: "startarea.are", gitSource: "startarea.git", gicSource: null }],
+    areas: [{ resref: "startarea", name: { stringRef: null, text: "Zone de départ" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 12, orientation: 1, height: 0 }], instances: [{ id: "startarea:Creature List:0", category: "creature", tag: "guard", templateResref: "guard", x: 4, y: 5, z: 0, bearing: 0, appearance: null, transitionDestination: null, transitionFlags: null, loadScreenId: null, geometry: [], spawnPoints: [], inventory: [], sourcePath: "startarea.git::Creature List[0]" }, { id: "startarea:TriggerList:0", category: "trigger", tag: "exit", templateResref: "newtransition", x: 2, y: 2, z: 0, bearing: 0, appearance: null, transitionDestination: "wp_exit", transitionFlags: 2, loadScreenId: 7, geometry: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }], spawnPoints: [], inventory: [], sourcePath: "startarea.git::TriggerList[0]" }], diagnostics: [], areSource: "startarea.are", gitSource: "startarea.git", gicSource: null }],
     assets: { assets: [{ key: { resref: "guard", resourceType: 2002 }, source: "guard.mdl", format: "mdl_ascii", support: "preview", width: null, height: null, modelNodes: ["trimesh"], animations: ["walk"], textures: ["guard_diff"], referencedModels: [], supermodel: null, meshCount: 1, triangleCount: 12, skinCount: 0, walkmeshCount: 0, glbPreview: true, sha256: "ABC", diagnostics: [] }] },
     scenes: [{ area: "startarea", width: 1, height: 1, tileset: "tno01", objects: [{ id: "tile:0:0", kind: "tile", label: "Tuile 12", x: 5, y: 0, z: 5, rotation: 0, marker: true, sourcePath: "startarea.are" }, { id: "guard", kind: "creature", label: "guard", x: 4, y: 0, z: 5, rotation: 0, marker: false, sourcePath: "startarea.git" }], overlays: [], missingAssets: 0, memoryBudgetBytes: 268435456, diagnostics: [] }],
     graphNodes: [{ id: "area:startarea", kind: "area", label: "Zone de départ", resource: "startarea.are" }, { id: "instance:guard", kind: "creature", label: "guard", resource: "guard" }, { id: "journal:main_quest", kind: "journal", label: "Quête principale", resource: null }],
@@ -362,7 +374,11 @@ vi.mock("./lib/tauri", () => ({
   applyAiChangeSet: vi.fn().mockResolvedValue({ proposalSha256: "A".repeat(64), appliedCommands: 1, workspace: { schemaVersion: 3, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "start", resourceType: 2009 }, sourceSha256: "OLD", outputSha256: "NEW", sizeBytes: 24, relativePath: "resources/start.nss" }], deletedResources: [], journalEvents: 5, values: {}, migrationHistory: [] } }),
   deployWorkspaceDevelopment: vi.fn().mockResolvedValue({ workspaceId: "workspace-1", developmentPath: "C:/NWN/development", files: [{ name: "module.ifo", sha256: "NEW", sizeBytes: 128 }] }),
   cleanWorkspaceDevelopment: vi.fn(),
-  createWorkspaceArea: vi.fn().mockResolvedValue({ workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "newarea", resourceType: 2012 }, sourceSha256: null, outputSha256: "ARE", sizeBytes: 128, relativePath: "resources/newarea.are" }, { resource: { resref: "newarea", resourceType: 2023 }, sourceSha256: null, outputSha256: "GIT", sizeBytes: 128, relativePath: "resources/newarea.git" }, { resource: { resref: "newarea", resourceType: 2046 }, sourceSha256: null, outputSha256: "GIC", sizeBytes: 128, relativePath: "resources/newarea.gic" }], deletedResources: [], journalEvents: 5, values: {} }, area: { resref: "newarea", name: { stringRef: null, text: "Nouvelle zone" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 0, orientation: 0 }], instances: [], diagnostics: [], areSource: "workspace::newarea.are", gitSource: "workspace::newarea.git", gicSource: "workspace::newarea.gic" } }),
+  createWorkspaceArea: vi.fn().mockResolvedValue({ workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: "newarea", resourceType: 2012 }, sourceSha256: null, outputSha256: "ARE", sizeBytes: 128, relativePath: "resources/newarea.are" }, { resource: { resref: "newarea", resourceType: 2023 }, sourceSha256: null, outputSha256: "GIT", sizeBytes: 128, relativePath: "resources/newarea.git" }, { resource: { resref: "newarea", resourceType: 2046 }, sourceSha256: null, outputSha256: "GIC", sizeBytes: 128, relativePath: "resources/newarea.gic" }], deletedResources: [], journalEvents: 5, values: {} }, area: { resref: "newarea", name: { stringRef: null, text: "Nouvelle zone" }, width: 1, height: 1, tileset: "tno01", tiles: [{ x: 0, y: 0, tileId: 0, orientation: 0, height: 0 }], instances: [], diagnostics: [], areSource: "workspace::newarea.are", gitSource: "workspace::newarea.git", gicSource: "workspace::newarea.gic" } }),
+  getMapAuthoringContext: vi.fn().mockResolvedValue({ limits: { maxWidth: 32, maxHeight: 32, maxTiles: 1024, maxResrefLength: 16, maxDensityRules: 16, maxBlueprintsPerRule: 128, maxPlacements: 2048 }, availableTilesets: ["tno01"], selectedTileset: { resref: "tno01", sha256: "C".repeat(64), tileCount: 128, tileIds: Array.from({length:128},(_,index)=>index) }, blueprintCounts: { placeable: 2, creature: 1 } }),
+  previewMapGeneration: vi.fn().mockImplementation(async ({ spec }) => ({ planSha256: "B".repeat(64), spec, tiles: Array.from({length:spec.width*spec.height},(_,index)=>({x:index%spec.width,y:Math.floor(index/spec.width),tileId:spec.baseTileId,orientation:index%4})), placements: [{category:"placeable",templateResref:"plc_table",tag:"plc_1",x:15,y:15,z:0,bearing:0,linkedTo:null}], metrics: {totalTiles:spec.width*spec.height,buildableTiles:80,reservedTiles:20,placementCount:1,occupiedPercent:1}, compatibility: { tilesetResolved: true, tilesetSha256: "C".repeat(64), resolvedTileCount: 128, selectedTileIds: [spec.baseTileId], tileIdsVerified: true, edgeCompatibilityVerified: false }, warnings: [] })),
+  draftMapWithAi: vi.fn().mockImplementation(async ({ currentSpec }) => ({ endpointOrigin: "https://api.openai.com", model: "remote-map-model", sharedBlueprintCount: 3, plan: { planSha256: "D".repeat(64), spec: { ...currentSpec, name: "Carte proposée par IA" }, tiles: Array.from({length:currentSpec.width*currentSpec.height},(_,index)=>({x:index%currentSpec.width,y:Math.floor(index/currentSpec.width),tileId:currentSpec.baseTileId,orientation:0})), placements: [], metrics: {totalTiles:currentSpec.width*currentSpec.height,buildableTiles:80,reservedTiles:20,placementCount:0,occupiedPercent:0}, compatibility: { tilesetResolved: true, tilesetSha256: "C".repeat(64), resolvedTileCount: 128, selectedTileIds: [currentSpec.baseTileId], tileIdsVerified: true, edgeCompatibilityVerified: false }, warnings: [] } })),
+  applyMapGeneration: vi.fn().mockImplementation(async ({ spec }) => ({ workspace: { schemaVersion: 3, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: spec.resref, resourceType: 2012 }, sourceSha256: null, outputSha256: "MAP", sizeBytes: 512, relativePath: `resources/${spec.resref}.are` }], deletedResources: [], journalEvents: 5, values: {} }, plan: { planSha256: "B".repeat(64), spec, tiles: [], placements: [], metrics: {totalTiles:120,buildableTiles:80,reservedTiles:20,placementCount:1,occupiedPercent:1}, warnings: [] }, area: { resref: spec.resref, name: { stringRef: null, text: spec.name }, width: spec.width, height: spec.height, tileset: spec.tileset, tiles: Array.from({length:spec.width*spec.height},(_,index)=>({x:index%spec.width,y:Math.floor(index/spec.width),tileId:spec.baseTileId,orientation:index%4})), instances: [{id:`${spec.resref}:Placeable List:0`,category:"placeable",tag:"plc_1",templateResref:"plc_table",x:15,y:15,z:0,bearing:0,appearance:null,transitionDestination:null,transitionFlags:null,loadScreenId:null,geometry:[],spawnPoints:[],inventory:[],sourcePath:`workspace::${spec.resref}.git`}], diagnostics: [], areSource:`workspace::${spec.resref}.are`,gitSource:`workspace::${spec.resref}.git`,gicSource:`workspace::${spec.resref}.gic`} })),
   listWorkspaceCreatedAreas: vi.fn().mockResolvedValue([]),
   deleteWorkspaceArea: vi.fn(),
   addWorkspaceAreaInstance: vi.fn(),
@@ -566,6 +582,67 @@ describe("OpenNever Forge shell", () => {
     );
   });
 
+  it("resumes the cached analysis and workspace without starting a new analysis", async () => {
+    localStorage.setItem(
+      PROJECT_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        project: {
+          modulePath: "C:/campaign/remembered.mod",
+          gameInstallPath: "C:/Games/Neverwinter Nights",
+          userDataPath: "C:/Users/Creator/Documents/Neverwinter Nights",
+        },
+      }),
+    );
+    vi.mocked(restoreModuleSession).mockResolvedValueOnce({
+      job: {
+        id: "restored-job",
+        kind: "module_analysis",
+        state: "completed",
+        sourcePath: "C:/campaign/remembered.mod",
+        progress: { bytesRead: 512, totalBytes: 512, percent: 100, phase: "persisting" },
+      },
+      workspace: {
+        schemaVersion: 3,
+        workspaceId: "workspace-1",
+        root: "C:/cache/workspace-1",
+        source: { path: "C:/campaign/remembered.mod", sha256: "ABC123", sizeBytes: 512 },
+        sourceIntact: true,
+        commandCount: 1,
+        cursor: 1,
+        canUndo: true,
+        canRedo: false,
+        modifiedResources: [],
+        deletedResources: [],
+        journalEvents: 3,
+        values: {},
+      },
+    });
+
+    renderApp();
+
+    await waitFor(() => expect(restoreModuleSession).toHaveBeenCalledWith({
+      modulePath: "C:/campaign/remembered.mod",
+      gameInstallPath: "C:/Games/Neverwinter Nights",
+      userDataPath: "C:/Users/Creator/Documents/Neverwinter Nights",
+    }));
+    expect(await screen.findByText("Session restaurée · travail repris automatiquement")).toBeInTheDocument();
+    expect(screen.getByText("Révision 1/1")).toBeInTheDocument();
+    expect(startModuleAnalysis).not.toHaveBeenCalled();
+  });
+
+  it("remembers the last open workbench page", async () => {
+    const first = renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "Guide et manuel" }));
+    await waitFor(() => expect(localStorage.getItem(LAST_EXPLORER_ITEM_STORAGE_KEY)).toBe("help"));
+    first.unmount();
+    useUiStore.setState({ activeExplorerItem: "module" });
+
+    renderApp();
+
+    expect(await screen.findByRole("heading", { name: "Aide et manuel" })).toBeInTheDocument();
+  });
+
   it("renders and filters the resolved resource catalog returned by Rust", async () => {
     renderApp();
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), {
@@ -579,7 +656,8 @@ describe("OpenNever Forge shell", () => {
     expect(screen.getByText("Introuvable")).toBeInTheDocument();
     expect(screen.getByText(/SHA-256 1234567890ABCDEF/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Ressources (3)" }));
-    expect(await screen.findByRole("table", { name: "Ressources résolues" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Atelier des ressources" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Ressources résolues" })).toBeInTheDocument();
     expect(screen.getByText("3 ressource(s) dans cette catégorie.")).toBeInTheDocument();
     expect((await screen.findAllByText("module")).length).toBeGreaterThan(0);
     expect(await screen.findByText("start")).toBeInTheDocument();
@@ -587,7 +665,7 @@ describe("OpenNever Forge shell", () => {
     expect(screen.getByText("HAK_NOT_FOUND")).toBeInTheDocument();
     expect(screen.getByText("DEPENDENCY_CONTENT_CHANGED")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Filtrer les ressources"), {
+    fireEvent.change(screen.getByLabelText("Rechercher une ressource"), {
       target: { value: "module" },
     });
     expect((await screen.findAllByText("module")).length).toBeGreaterThan(0);
@@ -600,44 +678,127 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Scripts (1)" }));
     expect(await screen.findByRole("region", { name: "Explorateur NWScript" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Scripts NWScript" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Rechercher un script")).toBeInTheDocument();
     expect(await screen.findByTestId("monaco-readonly")).toHaveTextContent("void main()");
     expect(screen.getByText(/module\.\#2014/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Bytecode NCS" }));
     expect(await screen.findByText("NCS V1.0")).toBeInTheDocument();
   });
 
-  it("shows a cyclic dialogue as a bounded tree, full graph and raw GFF", async () => {
+  it("shows dialogue lines first and keeps the full graph and raw GFF as advanced views", async () => {
     renderApp();
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Dialogues (1)" }));
     expect(await screen.findByRole("region", { name: "Explorateur de dialogues" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Lignes" })).toHaveClass("active");
+    expect(screen.getByRole("article", { name: "Ligne entry:0" })).toHaveTextContent("Bonjour");
+    expect(screen.getByRole("article", { name: "Ligne entry:0" })).toHaveTextContent("Déclencheur · check");
+    fireEvent.change(screen.getByLabelText("Rechercher dans les lignes"), { target: { value: "au revoir" } });
+    expect(screen.queryByRole("article", { name: "Ligne entry:0" })).not.toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Ligne reply:0" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Graphe (avancé)" }));
     expect(await screen.findByTestId("dialogue-flow")).toHaveTextContent("2 nodes · 2 edges");
     expect(screen.getByText(/creature\.\#2027/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Arbre simplifié" }));
-    fireEvent.click(screen.getByRole("button", { name: "Déplier la branche" }));
-    expect(await screen.findByText("cycle")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "GFF brut" }));
+    fireEvent.click(screen.getByRole("button", { name: "GFF (avancé)" }));
     expect(await screen.findByText(/fileType/)).toBeInTheDocument();
+  });
+
+  it("edits dialogue text and associates trigger scripts directly from a line", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Dialogues (1)" }));
+
+    const line = await screen.findByRole("article", { name: "Ligne entry:0" });
+    const text = within(line).getByRole("textbox", { name: "Langue/genre 0" });
+    fireEvent.change(text, { target: { value: "Bienvenue, voyageur." } });
+    const textEditor = text.closest(".localized-dialogue-field");
+    expect(textEditor).not.toBeNull();
+    fireEvent.click(within(textEditor as HTMLElement).getByRole("button", { name: "Appliquer" }));
+    await waitFor(() => expect(editDialogueField).toHaveBeenCalledWith(expect.objectContaining({
+      jobId: "job-1",
+      workspaceId: "workspace-1",
+      resref: "forge_dialogue",
+      path: "/EntryList/0/Text",
+      after: { kind: "localized_string", value: { stringRef: null, values: [{ languageId: 0, text: "Bienvenue, voyageur." }] } },
+    })));
+
+    const trigger = within(line).getByRole("textbox", { name: "Déclencheur de entry:0:reply:0:0" });
+    fireEvent.change(trigger, { target: { value: "has_key" } });
+    const triggerEditor = trigger.closest(".dialogue-trigger-editor");
+    expect(triggerEditor).not.toBeNull();
+    fireEvent.click(within(triggerEditor as HTMLElement).getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(editDialogueStructure).toHaveBeenCalledWith(expect.objectContaining({
+      action: {
+        kind: "set_link_scripts",
+        source: { kind: "entry", index: 0 },
+        position: 0,
+        conditionScript: "has_key",
+        actionScript: null,
+      },
+    })));
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Réplique PNJ" }));
+    await waitFor(() => expect(editDialogueStructure).toHaveBeenCalledWith(expect.objectContaining({ action: { kind: "add_node", nodeKind: "entry" } })));
+    fireEvent.click(within(line).getByRole("button", { name: "Supprimer la ligne" }));
+    await waitFor(() => expect(editDialogueStructure).toHaveBeenCalledWith(expect.objectContaining({ action: { kind: "remove_node", node: { kind: "entry", index: 0 } } })));
   });
 
   it("navigates the narrative, 2D map, assets and targeted global graph", async () => {
     renderApp();
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    expect(await screen.findByRole("heading", { name: "Forge Test" }, { timeout: 10_000 })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: "Journal et quêtes (1)" }));
     expect(await screen.findByText("Quête principale")).toBeInTheDocument();
     expect(screen.getByText("État final")).toBeInTheDocument();
+    expect(screen.getByLabelText("Rechercher dans Journal et quêtes")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Factions (1)" }));
     expect((await screen.findAllByText("PC")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Zones (1)" }));
     expect((await screen.findAllByText("Zone de départ")).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("creature guard")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Assets (1)" }));
+    expect(await screen.findByRole("navigation", { name: "Filtres des assets" })).toBeInTheDocument();
     expect(await screen.findByText("mdl_ascii · preview")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Références (2)" }));
-    expect(await screen.findByText("Rapport JSON stable")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Graphe global et validation" })).toBeInTheDocument();
+    expect(screen.getByText("Relations directes · 1")).toBeInTheDocument();
     expect(screen.getByText("contains · certain")).toBeInTheDocument();
+  });
+
+  it("previews and atomically creates a deterministic map, then prepares its Agent brief", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    expect(await screen.findByRole("heading", { name: "Préparer, valider et tester" })).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Menu principal" })).getByRole("button", { name: "Construire" }));
+
+    expect(await screen.findByRole("heading", { name: "Vibecoder une carte complète" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Densité Plaçables")).toBeInTheDocument();
+    expect(screen.getByLabelText("Zone de l’atlas")).toBeInTheDocument();
+    expect(await screen.findByText(/SET tno01 résolu/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Modèle IA de carte"), { target: { value: "remote-map-model" } });
+    fireEvent.click(screen.getByRole("button", { name: "Générer le plan avec l’IA" }));
+    await waitFor(() => expect(draftMapWithAi).toHaveBeenCalledWith(expect.objectContaining({ jobId: "job-1", includeBlueprintResrefs: true })));
+    expect(await screen.findByText(/Plan IA reçu de remote-map-model/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Blueprints Plaçables"), { target: { value: "plc_table" } });
+    fireEvent.click(screen.getByRole("button", { name: "Prévisualiser" }));
+    await waitFor(() => expect(previewMapGeneration).toHaveBeenCalledWith({ jobId: "job-1", spec: expect.objectContaining({ resref: "vibe_map", seed: 20260811 }) }));
+    expect(await screen.findByText(/Plan BBBBBBBBBBBB prêt/)).toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: /Carte de repérage Carte proposée par IA/ }).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Créer ARE/GIT/GIC" }));
+    await waitFor(() => expect(applyMapGeneration).toHaveBeenCalledWith(expect.objectContaining({ workspaceId: "workspace-1", expectedPlanSha256: "B".repeat(64) })));
+    expect(await screen.findByText(/créée et relue depuis l’overlay/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Confier le brief à l’Agent" }));
+    expect(await screen.findByRole("heading", { name: "Agent Studio" })).toBeInTheDocument();
+    expect((screen.getByLabelText("Objectif de l’agent") as HTMLTextAreaElement).value).toContain("map.generate");
   });
 
   it("moves an area instance only after an intentional pointer drag", async () => {

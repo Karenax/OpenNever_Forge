@@ -98,6 +98,7 @@ import {
   moveAreaInstance,
   removeWorkspaceAreaInstance,
   redoEditCommand,
+  restoreModuleSession,
   selectModuleOutput,
   selectHakOutput,
   setAreaTile,
@@ -112,7 +113,6 @@ import {
   type ResourceInspection,
   type DialogueGraph,
   type DialogueIndexSummary,
-  type DialogueTreeNode,
   type DialogueNodeRef,
   type DialogueStructureAction,
   type AreaStructureAction,
@@ -152,7 +152,9 @@ import { HelpCenter } from "./components/HelpCenter";
 import { JobProgress } from "./components/JobProgress";
 import { EditableBlueprintOptionField, formatBlueprintOption } from "./components/BlueprintOptionField";
 import {
+  loadLastExplorerItem,
   loadProjectPreferences,
+  saveLastExplorerItem,
   saveProjectPreferences,
 } from "./lib/projectPreferences";
 import { useUiStore } from "./store/uiStore";
@@ -162,6 +164,7 @@ export { JobProgress };
 
 const DialogueFlow = lazy(() => import("./components/DialogueFlow"));
 const NwscriptEditor = lazy(() => import("./components/NwscriptEditor"));
+const MapCreator = lazy(() => import("./components/MapCreator").then((module) => ({ default: module.MapCreator })));
 
 type ProjectField = "modulePath" | "gameInstallPath" | "userDataPath";
 
@@ -185,6 +188,7 @@ const explorerGroupDefinitions = [
   { id: "assets", label: "Assets", icon: SquareStack, section: "Contenu" },
   { id: "tables", label: "2DA et TLK", icon: Database, section: "Contenu" },
   { id: "graph", label: "Références", icon: GitBranch, section: "Contrôle" },
+  { id: "map_creator", label: "Créateur de cartes", icon: Map, section: "Construire" },
   { id: "build", label: "Construire et tester", icon: Hammer, section: "Contrôle" },
   { id: "agent", label: "Agent Studio", icon: Bot, section: "Forge arcanique" },
   { id: "help", label: "Guide et manuel", icon: CircleHelp, section: "Forge arcanique" },
@@ -208,6 +212,9 @@ function App() {
   const [project, setProject] = useState(loadProjectPreferences);
   const [jobId, setJobId] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [sessionRestoreState, setSessionRestoreState] = useState<
+    "idle" | "restoring" | "restored" | "unavailable"
+  >(project.modulePath ? "restoring" : "idle");
   const [resourceFilter, setResourceFilter] = useState("");
   const [selectedResource, setSelectedResource] = useState<ResolvedResource>();
   const [inspection, setInspection] = useState<ResourceInspection>();
@@ -218,6 +225,9 @@ function App() {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [lastContentView,setLastContentView]=useState("module");
+  const [agentObjectiveDraft,setAgentObjectiveDraft]=useState("");
+  const sessionRestoreStarted = useRef(false);
+  const explorerPersistenceReady = useRef(false);
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([
     {
       id: "source-readonly",
@@ -266,7 +276,7 @@ function App() {
       explorerGroupDefinitions.map((item) => ({
         ...item,
         count:
-          ["build", "agent", "help"].includes(item.id)
+          ["build", "map_creator", "agent", "help"].includes(item.id)
             ? undefined
             : item.id === "dialogues"
             ? dialogueIndexSummary?.dialogues ?? 0
@@ -303,13 +313,72 @@ function App() {
   }, [project]);
 
   useEffect(() => {
-    if (["dialogues", "areas", "journal", "factions", "blueprints", "agent"].includes(activeExplorerItem)) {
+    const lastExplorerItem = loadLastExplorerItem();
+    if (explorerGroupDefinitions.some((item) => item.id === lastExplorerItem)) {
+      setActiveExplorerItem(lastExplorerItem);
+    }
+  }, [setActiveExplorerItem]);
+
+  useEffect(() => {
+    if (!explorerPersistenceReady.current) {
+      explorerPersistenceReady.current = true;
+      return;
+    }
+    saveLastExplorerItem(activeExplorerItem);
+  }, [activeExplorerItem]);
+
+  useEffect(() => {
+    if (sessionRestoreStarted.current) return;
+    sessionRestoreStarted.current = true;
+    if (!project.modulePath) {
+      setSessionRestoreState("idle");
+      return;
+    }
+    setSessionRestoreState("restoring");
+    void restoreModuleSession({
+      modulePath: project.modulePath,
+      gameInstallPath: project.gameInstallPath || null,
+      userDataPath: project.userDataPath || null,
+    })
+      .then((restored) => {
+        if (!restored) {
+          setSessionRestoreState("unavailable");
+          return;
+        }
+        setJobId(restored.job.id);
+        setEditWorkspace(restored.workspace ?? undefined);
+        setSessionRestoreState("restored");
+        setDiagnostics((current) => [
+          ...current.filter((item) => item.id !== "SESSION_RESTORED"),
+          {
+            id: "SESSION_RESTORED",
+            level: "info",
+            code: "SESSION_RESTORED",
+            message: restored.workspace
+              ? `Session reprise à la révision ${restored.workspace.cursor}/${restored.workspace.commandCount}.`
+              : "Analyse restaurée depuis le cache local ; aucune réanalyse n’a été lancée.",
+          },
+        ]);
+      })
+      .catch((error) => {
+        setSessionRestoreState("unavailable");
+        pushError(error);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (["dialogues", "areas", "journal", "factions", "blueprints", "map_creator", "agent"].includes(activeExplorerItem)) {
       setInspectorOpen(false);
     }
     if(!["agent","help"].includes(activeExplorerItem))setLastContentView(activeExplorerItem);
   }, [activeExplorerItem]);
 
   function updateField(field: ProjectField, value: string) {
+    if (project[field] !== value && (jobId || editWorkspace)) {
+      setJobId(undefined);
+      setEditWorkspace(undefined);
+      setSessionRestoreState("unavailable");
+    }
     setProject((current) => ({ ...current, [field]: value }));
   }
 
@@ -338,6 +407,8 @@ function App() {
 
   async function analyzeModule() {
     setBusy(true);
+    setSessionRestoreState("idle");
+    setEditWorkspace(undefined);
     try {
       const created = await startModuleAnalysis({
         modulePath: project.modulePath,
@@ -560,7 +631,7 @@ function App() {
           <button type="button" className={["areas", "scene"].includes(activeExplorerItem) ? "active" : ""} onClick={() => setActiveExplorerItem("areas")}>
             <Map size={14} /> Monde
           </button>
-          <button type="button" className={activeExplorerItem === "build" ? "active" : ""} onClick={() => setActiveExplorerItem("build")}>
+          <button type="button" className={["build","map_creator"].includes(activeExplorerItem) ? "active" : ""} onClick={() => setActiveExplorerItem("map_creator")}>
             <Hammer size={14} /> Construire
           </button>
           <button type="button" className={activeExplorerItem === "agent" ? "active" : ""} onClick={() => setActiveExplorerItem("agent")}>
@@ -699,7 +770,18 @@ function App() {
 
               <div className="form-actions">
                 <span>
-                  <ShieldCheck size={14} /> Source protégée · chemins sauvegardés automatiquement
+                  {sessionRestoreState === "restoring" ? (
+                    <LoaderCircle size={14} className="spin" />
+                  ) : sessionRestoreState === "restored" ? (
+                    <History size={14} />
+                  ) : (
+                    <ShieldCheck size={14} />
+                  )}
+                  {sessionRestoreState === "restoring"
+                    ? "Reprise de la dernière session…"
+                    : sessionRestoreState === "restored"
+                      ? "Session restaurée · travail repris automatiquement"
+                      : "Source protégée · chemins sauvegardés automatiquement"}
                 </span>
                 {job && !terminalStates.has(job.state) ? (
                   <button type="button" className="secondary-button" onClick={stopJob}>
@@ -709,17 +791,23 @@ function App() {
                   <button
                     type="button"
                     className="primary-button"
-                    disabled={!project.modulePath || busy}
+                    disabled={!project.modulePath || busy || sessionRestoreState === "restoring"}
                     onClick={analyzeModule}
                   >
                     <Hash size={16} />
-                    {busy ? "Démarrage…" : "Analyser la copie"}
+                    {busy
+                      ? "Démarrage…"
+                      : job?.state === "completed"
+                        ? "Réanalyser maintenant"
+                        : "Analyser la copie"}
                   </button>
                 )}
               </div>
             </div>
 
-            {!jobId && <NewModuleCreator onCreated={(path) => updateField("modulePath", path)} />}
+            {!jobId && sessionRestoreState !== "restoring" && (
+              <NewModuleCreator onCreated={(path) => updateField("modulePath", path)} />
+            )}
 
               </div>
 
@@ -890,6 +978,22 @@ function App() {
               </section>
             )}
 
+            {activeExplorerItem === "map_creator" && job?.state === "completed" && jobId && (
+              <Suspense fallback={<div className="locked-workspace">Chargement du créateur de cartes…</div>}>
+                <MapCreator
+                  jobId={jobId}
+                  workspace={editWorkspace}
+                  onWorkspace={setEditWorkspace}
+                  onCreateWorkspace={openEditWorkspace}
+                  onOpenAgent={(objective) => { setAgentObjectiveDraft(objective); setActiveExplorerItem("agent"); }}
+                />
+              </Suspense>
+            )}
+
+            {activeExplorerItem === "map_creator" && job?.state !== "completed" && (
+              <div className="locked-workspace"><Map size={40}/><h2>Le créateur attend un module</h2><p>Ouvrez ou créez une campagne, puis terminez son analyse avant de préparer une carte déterministe.</p><button type="button" className="primary-button" onClick={() => setActiveExplorerItem("module")}><LayoutDashboard size={15}/> Revenir à la campagne</button></div>
+            )}
+
             {activeExplorerItem === "agent" && (
               <section className="agent-sanctum workspace-page" aria-label="Forge arcanique">
                 <header className="workspace-page-header">
@@ -897,7 +1001,7 @@ function App() {
                 </header>
                 {editWorkspace && jobId ? (
                   <div className="agent-guided-workspace scroll-panel">
-                    <AgentStudio jobId={jobId} workspace={editWorkspace} selectedResource={selectedResource?.key} activeView={lastContentView} onError={pushError} />
+                    <AgentStudio jobId={jobId} workspace={editWorkspace} selectedResource={selectedResource?.key} activeView={lastContentView} initialObjective={agentObjectiveDraft} onError={pushError} />
                     <details className="agent-single-change">
                       <summary>Mode expert · proposition ponctuelle sur une ressource</summary>
                       <AiAssistantPanel jobId={jobId} workspace={editWorkspace} selectedResource={selectedResource?.key} onWorkspaceChange={setEditWorkspace} onError={pushError} />
@@ -939,13 +1043,37 @@ function App() {
             )}
 
             {resourceCatalogSummary && jobId && ["resources", "tables"].includes(activeExplorerItem) && (
-              <CatalogView
+              <ResourceWorkspace
                 jobId={jobId}
                 summary={resourceCatalogSummary}
                 activeGroup={activeExplorerItem}
                 filter={resourceFilter}
                 selected={selectedResource}
+                inspection={inspection}
+                inspectionBusy={inspectionBusy}
+                editWorkspace={editWorkspace}
                 onSelect={selectResource}
+                onCommitGff={editSelectedGff}
+                onStructure={editSelectedBlueprintStructure}
+                onCreateWorkspace={openEditWorkspace}
+                onOpenScripts={(resref) => { setResourceFilter(resref); setActiveExplorerItem("scripts"); }}
+                onOpenDialogues={(resref) => { setResourceFilter(resref); setActiveExplorerItem("dialogues"); }}
+                onCommitTwoDa={async (action) => {
+                  if (!editWorkspace || !selectedResource) return;
+                  try {
+                    const result = await editWorkspaceTwoDa({ jobId, workspaceId: editWorkspace.workspaceId, resource: selectedResource.key, action });
+                    setEditWorkspace(result.workspace);
+                    setInspection({ kind: "two_da", value: result.document });
+                  } catch (error) { pushError(error); throw error; }
+                }}
+                onCommitTlk={async (action) => {
+                  if (!editWorkspace || !selectedResource) return;
+                  try {
+                    const result = await editWorkspaceTlk({ jobId, workspaceId: editWorkspace.workspaceId, resource: selectedResource.key, action });
+                    setEditWorkspace(result.workspace);
+                    setInspection({ kind: "tlk", value: result.document });
+                  } catch (error) { pushError(error); throw error; }
+                }}
               />
             )}
 
@@ -1025,7 +1153,7 @@ function App() {
                 </button>
               )}
               {inspectionBusy && <small>Lecture bornée en cours…</small>}
-              {inspection && (
+              {inspection && !["resources", "tables", "blueprints"].includes(activeExplorerItem) && (
                 <>
                   {inspection.kind === "gff" && editWorkspace && activeExplorerItem !== "blueprints" && (
                     <GffFieldEditor document={inspection.value} onCommit={editSelectedGff} onStructure={editSelectedBlueprintStructure} />
@@ -1320,23 +1448,27 @@ function DependencyEditor({ initialHakFiles, initialCustomTlk, onCommit }: {
 
 function TwoDaEditor({ table, onCommit }: { table: TwoDaTable; onCommit: (action: TwoDaEditAction) => Promise<void> }) {
   const [label, setLabel] = useState("");
-  const visibleRows = table.rows.slice(0, 100);
+  const [query,setQuery]=useState("");
+  const [page,setPage]=useState(0);const pageSize=50;
+  const matchingRows=table.rows.map((row,rowIndex)=>({row,rowIndex})).filter(({row})=>!query.trim()||[row.label,...row.cells.map(value=>value??"")].some(value=>value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())));
+  const pages=Math.max(1,Math.ceil(matchingRows.length/pageSize));const safePage=Math.min(page,pages-1);const visibleRows=matchingRows.slice(safePage*pageSize,(safePage+1)*pageSize);
+  useEffect(()=>setPage(0),[query]);
   return (
     <div className="table-editor">
-      <div className="table-editor-heading"><strong>Éditeur 2DA</strong><span>{table.rows.length} ligne(s) · {table.columns.length} colonne(s)</span></div>
+      <div className="table-editor-heading"><div><strong>Table 2DA</strong><span>{table.rows.length} ligne(s) · {table.columns.length} colonne(s)</span></div><label><Search size={13}/><input aria-label="Rechercher dans la table 2DA" value={query} onChange={event=>setQuery(event.currentTarget.value)} placeholder="Rechercher une ligne ou une valeur…"/></label></div>
       <div className="table-editor-grid" style={{ gridTemplateColumns: `72px repeat(${Math.max(1, table.columns.length)}, minmax(110px, 1fr)) 34px` }}>
         <b>Label</b>{table.columns.map((column) => <b key={column}>{column}</b>)}<b />
-        {visibleRows.map((row, rowIndex) => (
+        {visibleRows.map(({row,rowIndex}) => (
           <div className="table-editor-row" style={{ display: "contents" }} key={`${row.label}-${rowIndex}`}>
             <code>{row.label}</code>
             {table.columns.map((column, columnIndex) => (
               <TwoDaCellEditor key={column} value={row.cells[columnIndex] ?? null} onCommit={(value) => onCommit({ kind: "set_cell", rowIndex, columnIndex, value })} />
             ))}
-            <button type="button" title="Supprimer la ligne" onClick={() => void onCommit({ kind: "remove_row", rowIndex })}>×</button>
+            <button type="button" aria-label={`Supprimer la ligne ${row.label}`} title="Supprimer la ligne" onClick={() => void onCommit({ kind: "remove_row", rowIndex })}>×</button>
           </div>
         ))}
       </div>
-      {table.rows.length > visibleRows.length && <small>Affichage borné aux 100 premières lignes ; la ressource complète reste conservée.</small>}
+      <div className="catalog-pagination compact"><button type="button" disabled={safePage===0} onClick={()=>setPage(value=>Math.max(0,value-1))}>Précédent</button><span>{matchingRows.length} résultat(s) · {safePage+1}/{pages}</span><button type="button" disabled={safePage+1>=pages} onClick={()=>setPage(value=>value+1)}>Suivant</button></div>
       <div className="table-editor-add"><input value={label} onChange={(event) => setLabel(event.currentTarget.value)} placeholder="Nouveau label" /><button type="button" disabled={!label.trim()} onClick={() => { void onCommit({ kind: "add_row", label: label.trim() }); setLabel(""); }}>+ Ligne</button></div>
     </div>
   );
@@ -1350,11 +1482,15 @@ function TwoDaCellEditor({ value, onCommit }: { value: string | null; onCommit: 
 
 function TlkEditor({ table, onCommit }: { table: TalkTable; onCommit: (action: TlkEditAction) => Promise<void> }) {
   const [newText, setNewText] = useState("");
+  const [query,setQuery]=useState("");const [page,setPage]=useState(0);const pageSize=50;
+  const matches=table.entries.filter(entry=>!query.trim()||[String(entry.index),entry.text??"",entry.soundResref??""].some(value=>value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())));
+  const pages=Math.max(1,Math.ceil(matches.length/pageSize));const safePage=Math.min(page,pages-1);const entries=matches.slice(safePage*pageSize,(safePage+1)*pageSize);
+  useEffect(()=>setPage(0),[query]);
   return (
     <div className="table-editor tlk-editor">
-      <div className="table-editor-heading"><strong>Éditeur TLK</strong><span>Langue {table.languageId} · {table.entries.length} entrée(s)</span></div>
-      {table.entries.slice(0, 100).map((entry) => <TlkEntryEditor key={entry.index} entry={entry} onCommit={onCommit} />)}
-      {table.entries.length > 100 && <small>Affichage borné aux 100 premières entrées.</small>}
+      <div className="table-editor-heading"><div><strong>Textes TLK</strong><span>Langue {table.languageId} · {table.entries.length} entrée(s)</span></div><label><Search size={13}/><input aria-label="Rechercher dans les textes TLK" value={query} onChange={event=>setQuery(event.currentTarget.value)} placeholder="Texte, index ou son…"/></label></div>
+      {entries.map((entry) => <TlkEntryEditor key={entry.index} entry={entry} onCommit={onCommit} />)}
+      <div className="catalog-pagination compact"><button type="button" disabled={safePage===0} onClick={()=>setPage(value=>Math.max(0,value-1))}>Précédent</button><span>{matches.length} résultat(s) · {safePage+1}/{pages}</span><button type="button" disabled={safePage+1>=pages} onClick={()=>setPage(value=>value+1)}>Suivant</button></div>
       <div className="table-editor-add"><input value={newText} onChange={(event) => setNewText(event.currentTarget.value)} placeholder="Nouvelle chaîne" /><button type="button" onClick={() => { void onCommit({ kind: "append_entry", text: newText || null }); setNewText(""); }}>+ Entrée</button></div>
     </div>
   );
@@ -1366,9 +1502,10 @@ function TlkEntryEditor({ entry, onCommit }: { entry: TalkTable["entries"][numbe
   return (
     <div className="tlk-entry-row">
       <code>{entry.index}</code>
-      <textarea value={text} onChange={(event) => setText(event.currentTarget.value)} />
-      <input value={sound} onChange={(event) => setSound(event.currentTarget.value)} placeholder="sound resref" />
+      <textarea aria-label={`Texte TLK ${entry.index}`} value={text} onChange={(event) => setText(event.currentTarget.value)} />
+      <input aria-label={`Son TLK ${entry.index}`} value={sound} onChange={(event) => setSound(event.currentTarget.value)} placeholder="sound resref" />
       <button type="button" disabled={text === (entry.text ?? "") && sound === (entry.soundResref ?? "")} onClick={() => void onCommit({ kind: "set_entry", index: entry.index, text: text || null, soundResref: sound || null, soundLength: entry.soundLength })}>Appliquer</button>
+      <button type="button" className="danger-button" disabled={!text&&!sound} onClick={()=>{setText("");setSound("");void onCommit({kind:"set_entry",index:entry.index,text:null,soundResref:null,soundLength:entry.soundLength})}}>Vider</button>
     </div>
   );
 }
@@ -1597,13 +1734,23 @@ function PathField({ label, hint, value, placeholder, onChange, onBrowse }: Path
   );
 }
 
-type CatalogViewProps = {
+type ResourceWorkspaceProps = {
   jobId: string;
   summary: ResourceCatalogSummary;
   activeGroup: string;
   filter: string;
   selected?: ResolvedResource;
+  inspection?: ResourceInspection;
+  inspectionBusy: boolean;
+  editWorkspace?: WorkspaceSnapshot;
   onSelect: (resource: ResolvedResource) => void;
+  onCommitGff: (path: string, before: GenericGffValue, after: GenericGffValue) => Promise<void>;
+  onStructure: (action: BlueprintStructureAction) => Promise<void>;
+  onCommitTwoDa: (action: TwoDaEditAction) => Promise<void>;
+  onCommitTlk: (action: TlkEditAction) => Promise<void>;
+  onCreateWorkspace: () => Promise<void>;
+  onOpenScripts: (resref: string) => void;
+  onOpenDialogues: (resref: string) => void;
 };
 
 const blueprintTypeLabels:Record<number,string>={2025:"Objet",2027:"Créature",2032:"Déclencheur",2035:"Son",2040:"Rencontre",2042:"Porte",2044:"Plaçable",2051:"Marchand",2055:"Module",2058:"Point de passage"};
@@ -1639,75 +1786,52 @@ function formatGffValue(value:GenericGffValue):string {
   return "Structure avancée";
 }
 
-function CatalogView({ jobId, summary, activeGroup, filter, selected, onSelect }: CatalogViewProps) {
+function ResourceWorkspace({ jobId, summary, activeGroup, filter, selected, inspection, inspectionBusy, editWorkspace, onSelect, onCommitGff, onStructure, onCommitTwoDa, onCommitTlk, onCreateWorkspace, onOpenScripts, onOpenDialogues }: ResourceWorkspaceProps) {
   const [page, setPage] = useState(0);
+  const [query, setQuery] = useState(filter);
+  const [tab, setTab] = useState<"content" | "provenance" | "raw">("content");
   const pageSize = 100;
   const groupTypes = resourceTypesByGroup[activeGroup];
   const resourceTypes = activeGroup === "resources" ? [] : Array.from(groupTypes ?? []);
-  useEffect(() => setPage(0), [activeGroup, filter]);
+  useEffect(() => setQuery(filter), [filter]);
+  useEffect(() => setPage(0), [activeGroup, query]);
+  useEffect(() => setTab("content"), [selected?.key.resref, selected?.key.resourceType]);
   const pageQuery = useQuery({
-    queryKey: ["resources", jobId, activeGroup, filter, page],
-    queryFn: () => queryResources({ jobId, query: filter, resourceTypes, offset: page * pageSize, limit: pageSize }),
+    queryKey: ["resources", jobId, activeGroup, query, page],
+    queryFn: () => queryResources({ jobId, query, resourceTypes, offset: page * pageSize, limit: pageSize }),
   });
   const resources = pageQuery.data?.items ?? [];
   const total = pageQuery.data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, pageCount - 1);
 
-  return (
-    <section className="inventory-card" aria-label="Catalogue de ressources">
-      <div className="inventory-heading">
-        <div>
-          <span className="eyebrow">RESOURCE MANAGER · PROVENANCE VALIDÉE</span>
-          <h2>Catalogue résolu</h2>
-        </div>
-        <span className="format-badge">{summary.versionCount} versions</span>
-      </div>
-      <div className="inventory-metrics">
-        <Metric label="Ressources" value={summary.resourceCount.toLocaleString("fr-FR")} />
-        <Metric label="Versions masquées" value={summary.shadowedCount.toLocaleString("fr-FR")} />
-        <Metric label="Résultats" value={total.toLocaleString("fr-FR")} />
-      </div>
-      <div className="resource-table" role="table" aria-label="Ressources résolues">
-        <div className="resource-row resource-header" role="row">
-          <span role="columnheader">ResRef</span>
-          <span role="columnheader">Type</span>
-          <span role="columnheader">Source</span>
-          <span role="columnheader">Masquées</span>
-        </div>
-        {resources.map((resource) => (
-          <button
-            type="button"
-            className={
-              selected?.key.resref === resource.key.resref &&
-              selected.key.resourceType === resource.key.resourceType
-                ? "resource-row selected"
-                : "resource-row"
-            }
-            role="row"
-            key={`${resource.key.resref}-${resource.key.resourceType}`}
-            onClick={() => onSelect(resource)}
-          >
-            <code role="cell">{resource.key.resref}</code>
-            <span role="cell">#{resource.key.resourceType}</span>
-            <span role="cell">{resource.selected.sourceKind}</span>
-            <span role="cell">{resource.shadowed.length.toLocaleString("fr-FR")}</span>
-          </button>
-        ))}
-        {resources.length === 0 && (
-          <div className="resource-empty">
-            {pageQuery.isLoading ? "Chargement de la page…" : "Aucune ressource ne correspond à cette vue."}
-          </div>
-        )}
-      </div>
-      <div className="catalog-pagination">
-        <button type="button" disabled={safePage === 0} onClick={() => setPage(Math.max(0, safePage - 1))}>Précédent</button>
-        <span>Page {safePage + 1}/{pageCount}</span>
-        <button type="button" disabled={safePage + 1 >= pageCount} onClick={() => setPage(safePage + 1)}>Suivant</button>
-      </div>
-    </section>
-  );
+  const title=activeGroup==="tables"?"Tables 2DA et textes TLK":"Ressources du module";
+  return <section className="resource-workspace" aria-label={activeGroup==="tables"?"Atelier 2DA et TLK":"Atelier des ressources"}>
+    <aside className="resource-browser">
+      <header><span className="eyebrow">{activeGroup==="tables"?"DONNÉES DE JEU":"RESOURCE MANAGER"}</span><h2>{title}</h2><span>{total.toLocaleString("fr-FR")} résultat(s)</span></header>
+      <label className="resource-browser-search"><Search size={14}/><input aria-label={activeGroup==="tables"?"Rechercher une table":"Rechercher une ressource"} value={query} onChange={event=>setQuery(event.currentTarget.value)} placeholder={activeGroup==="tables"?"Nom de table…":"Nom ou ResRef…"}/></label>
+      <div className="resource-browser-list" role="list" aria-label="Ressources résolues">{resources.map(resource=><button type="button" role="listitem" key={`${resource.key.resref}-${resource.key.resourceType}`} className={selected?.key.resref===resource.key.resref&&selected.key.resourceType===resource.key.resourceType?"selected":""} onClick={()=>onSelect(resource)}><span>{resourceTypeDisplay(resource.key.resourceType)}</span><strong>{resource.key.resref}</strong><small>{resource.selected.sourceKind}{resource.shadowed.length?` · ${resource.shadowed.length} version(s) masquée(s)`:""}</small></button>)}{resources.length===0&&<p className="resource-empty">{pageQuery.isLoading?"Chargement…":"Aucune ressource ne correspond."}</p>}</div>
+      <div className="catalog-pagination compact"><button type="button" disabled={safePage===0} onClick={()=>setPage(Math.max(0,safePage-1))}>Précédent</button><span>{safePage+1}/{pageCount}</span><button type="button" disabled={safePage+1>=pageCount} onClick={()=>setPage(safePage+1)}>Suivant</button></div>
+    </aside>
+    <main className="resource-document">{selected?<><header className="resource-document-header"><div><span className="eyebrow">{resourceTypeDisplay(selected.key.resourceType)}</span><h2>{selected.key.resref}</h2><span>{selected.selected.size.toLocaleString("fr-FR")} octets · {selected.selected.sourceKind}</span></div><span className="format-badge">{editWorkspace?"Édition contrôlée":"Lecture seule"}</span></header><nav className="resource-document-tabs" aria-label="Vues de la ressource"><button type="button" className={tab==="content"?"active":""} onClick={()=>setTab("content")}>{activeGroup==="tables"?"Lignes":"Contenu lisible"}</button><button type="button" className={tab==="provenance"?"active":""} onClick={()=>setTab("provenance")}>Source et versions</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>Données brutes (avancé)</button></nav><div className="resource-document-scroll">{inspectionBusy?<div className="resource-document-empty"><LoaderCircle className="agent-spinner" size={20}/>Ouverture de la ressource…</div>:tab==="content"?<ResourceContent inspection={inspection} editWorkspace={editWorkspace} onCommitGff={onCommitGff} onStructure={onStructure} onCommitTwoDa={onCommitTwoDa} onCommitTlk={onCommitTlk} onCreateWorkspace={onCreateWorkspace}/>:tab==="provenance"?<div className="resource-provenance"><div className="resource-provenance-grid"><Property label="Nom" value={selected.key.resref}/><Property label="Type" value={resourceTypeDisplay(selected.key.resourceType)}/><Property label="Couche active" value={selected.selected.sourceKind}/><Property label="Priorité" value={String(selected.selected.priority)}/><Property label="Versions masquées" value={String(selected.shadowed.length)}/><Property label="Taille" value={`${selected.selected.size.toLocaleString("fr-FR")} octets`}/></div><code>{selected.selected.sourcePath}</code>{selected.shadowed.map(version=><code key={`${version.sourcePath}-${version.priority}`}>{version.sourceKind} · priorité {version.priority} · {version.sourcePath}</code>)}<div className="resource-related-actions"><button type="button" onClick={()=>onOpenScripts(selected.key.resref)}><Code2 size={13}/> Scripts liés</button><button type="button" onClick={()=>onOpenDialogues(selected.key.resref)}><MessageSquareText size={13}/> Dialogues liés</button></div></div>:<pre className="resource-raw">{JSON.stringify(inspection?.value??null,null,2)}</pre>}</div></>:<div className="resource-document-empty"><Archive size={42}/><h2>Sélectionnez une ressource</h2><p>Recherchez-la à gauche. Son contenu lisible et ses actions s’ouvriront ici, sans utiliser le petit inspecteur.</p><span>{summary.resourceCount.toLocaleString("fr-FR")} ressources résolues · {summary.versionCount.toLocaleString("fr-FR")} versions.</span></div>}</main>
+  </section>;
 }
+
+function ResourceContent({inspection,editWorkspace,onCommitGff,onStructure,onCommitTwoDa,onCommitTlk,onCreateWorkspace}:{inspection?:ResourceInspection;editWorkspace?:WorkspaceSnapshot;onCommitGff:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onStructure:(action:BlueprintStructureAction)=>Promise<void>;onCommitTwoDa:(action:TwoDaEditAction)=>Promise<void>;onCommitTlk:(action:TlkEditAction)=>Promise<void>;onCreateWorkspace:()=>Promise<void>}) {
+  if(!inspection)return <div className="resource-document-empty">Aucun contenu structuré disponible.</div>;
+  const editor=inspection.kind==="gff"?<GffFieldEditor document={inspection.value} onCommit={onCommitGff} onStructure={onStructure}/>:inspection.kind==="two_da"?<TwoDaEditor table={inspection.value} onCommit={onCommitTwoDa}/>:inspection.kind==="tlk"?<TlkEditor table={inspection.value} onCommit={onCommitTlk}/>:null;
+  if(editWorkspace&&editor)return <div className="resource-primary-editor">{editor}</div>;
+  return <div className="resource-readable-content">{!editWorkspace&&<div className="resource-edit-callout"><div><strong>Lecture seule</strong><span>Créez l’espace d’édition pour modifier directement ce contenu.</span></div><button type="button" onClick={()=>void onCreateWorkspace()}><PencilLine size={13}/> Activer l’édition</button></div>}<ResourceInspectionPreview inspection={inspection}/></div>;
+}
+
+function ResourceInspectionPreview({inspection}:{inspection:ResourceInspection}) {
+  if(inspection.kind==="gff")return <div className="resource-field-preview">{inspection.value.root.fields.slice(0,80).map(field=><article key={field.label}><span>{blueprintFieldLabel(field.label)??field.label}</span><strong>{formatGffValue(field.value)}</strong><code>{field.label}</code></article>)}</div>;
+  if(inspection.kind==="two_da")return <div className="resource-table-preview"><table><thead><tr><th>Label</th>{inspection.value.columns.map(column=><th key={column}>{column}</th>)}</tr></thead><tbody>{inspection.value.rows.slice(0,100).map(row=><tr key={row.label}><th>{row.label}</th>{row.cells.map((cell,index)=><td key={index}>{cell??"****"}</td>)}</tr>)}</tbody></table></div>;
+  if(inspection.kind==="tlk")return <div className="resource-tlk-preview">{inspection.value.entries.slice(0,100).map(entry=><article key={entry.index}><code>#{entry.index}</code><span>{entry.text??"Chaîne vide"}</span>{entry.soundResref&&<small>Son · {entry.soundResref}</small>}</article>)}</div>;
+  return <div className="binary-preview"><Property label="Taille" value={`${inspection.value.size.toLocaleString("fr-FR")} octets`}/><Property label="Empreinte" value={inspection.value.sha256}/><pre>{formatHex(inspection.value.hexPreview)}</pre>{inspection.value.truncated&&<small>Aperçu borné ; la ressource complète est conservée.</small>}</div>;
+}
+
+function resourceTypeDisplay(resourceType:number){return ({2009:"Source NWScript",2010:"Bytecode NWScript",2012:"Zone ARE",2014:"Module IFO",2017:"Table 2DA",2018:"Table TLK",2023:"Instances GIT",2029:"Dialogue DLG",2038:"Factions FAC",2046:"Informations GIC",2056:"Journal JRL",...blueprintTypeLabels} as Record<number,string>)[resourceType]??`Type ${resourceType}`}
 
 function DialogueSummaryView({ summary }: { summary: DialogueIndexSummary }) {
   return (
@@ -1738,7 +1862,7 @@ function DialogueWorkspace({ jobId, summary, filter, editWorkspace, onWorkspace,
 }
 
 function DialogueGraphView({ jobId, graph, loading, editWorkspace, onWorkspace, onOpenScript }: { jobId: string; graph?: DialogueGraph; loading: boolean; editWorkspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void; onOpenScript: (script: string)=>void }) {
-  const [tab,setTab]=useState<"tree"|"graph"|"raw">("graph"); const [selectedNode,setSelectedNode]=useState<string>();
+  const [tab,setTab]=useState<"lines"|"graph"|"raw">("lines"); const [selectedNode,setSelectedNode]=useState<string>();
   const [editedGraph,setEditedGraph]=useState<DialogueGraph>();
   const [structureBusy,setStructureBusy]=useState(false);const [structureMessage,setStructureMessage]=useState("");
   useEffect(()=>{if(graph)setEditedGraph(graph)},[graph]);
@@ -1757,18 +1881,58 @@ function DialogueGraphView({ jobId, graph, loading, editWorkspace, onWorkspace, 
     try{const result=await editDialogueStructure({jobId,workspaceId:editWorkspace.workspaceId,resref:currentGraph.key.resref,action});onWorkspace(result.workspace);setEditedGraph(result.graph);setStructureMessage("Structure enregistrée dans l'overlay.")}catch(error){setStructureMessage(normalizeAppError(error).technicalMessage);throw error}finally{setStructureBusy(false)}
   };
   const connectNodes=async(sourceId:string,targetId:string)=>{const source=dialogueNodeRef(sourceId);const target=dialogueNodeRef(targetId);if(!source||!target)throw new Error("Nœud DLG invalide");await commitStructure({kind:"add_link",source,target})};
-  return <div className="dialogue-document"><div className="script-tabs"><button type="button" className={tab==="tree"?"active":""} onClick={()=>setTab("tree")}>Arbre simplifié</button><button type="button" className={tab==="graph"?"active":""} onClick={()=>setTab("graph")}>Graphe complet</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>GFF brut</button><strong>{currentGraph.key.resref}</strong></div>
-    {editWorkspace&&<div className="dialogue-structure-actions"><strong>Structure DLG</strong><button type="button" disabled={structureBusy} onClick={()=>void commitStructure({kind:"add_node",nodeKind:"entry"}).catch(()=>undefined)}>+ Nœud Entry</button><button type="button" disabled={structureBusy} onClick={()=>void commitStructure({kind:"add_node",nodeKind:"reply"}).catch(()=>undefined)}>+ Nœud Reply</button><DialogueAddLinkEditor graph={currentGraph} source={null} label="Ajouter un départ" onAdd={commitStructure}/>{structureMessage&&<small>{structureMessage}</small>}</div>}
-    <div className="dialogue-editor-surface"><div className="dialogue-content">{tab==="tree"?<div className="dialogue-tree">{currentGraph.tree.map(value=><DialogueTreeBranch key={value.nodeId} value={value} depth={0} onSelect={setSelectedNode}/>)}</div>:tab==="graph"?<Suspense fallback={<div className="dialogue-empty">Chargement du graphe…</div>}><DialogueFlow graph={currentGraph} selectedId={selectedNode} onSelect={setSelectedNode} onConnect={editWorkspace?connectNodes:undefined}/></Suspense>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}</div><DialogueInspector graph={currentGraph} node={node} editWorkspace={editWorkspace} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/></div>
+  return <div className="dialogue-document"><div className="script-tabs"><button type="button" className={tab==="lines"?"active":""} onClick={()=>setTab("lines")}>Lignes</button><button type="button" className={tab==="graph"?"active":""} onClick={()=>setTab("graph")}>Graphe (avancé)</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>GFF (avancé)</button><strong>{currentGraph.key.resref}</strong></div>
+    {tab==="lines"?<DialogueLinesEditor graph={currentGraph} editWorkspace={editWorkspace} busy={structureBusy} message={structureMessage} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/>:tab==="graph"?<div className="dialogue-editor-surface"><div className="dialogue-content"><Suspense fallback={<div className="dialogue-empty">Chargement du graphe…</div>}><DialogueFlow graph={currentGraph} selectedId={selectedNode} onSelect={setSelectedNode} onConnect={editWorkspace?connectNodes:undefined}/></Suspense></div><DialogueInspector graph={currentGraph} node={node} editWorkspace={editWorkspace} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/></div>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}
   </div>;
 }
 
-function dialogueNodeRef(id:string):DialogueNodeRef|undefined {const [kind,indexText]=id.split(":");const index=Number(indexText);return (kind==="entry"||kind==="reply")&&Number.isInteger(index)&&index>=0?{kind,index}:undefined}
-
-function DialogueTreeBranch({ value, depth, onSelect }: { value: DialogueTreeNode; depth:number; onSelect: (id:string)=>void }) {
-  const [open,setOpen]=useState(depth<1);
-  return <div className="dialogue-tree-branch"><div className={`dialogue-tree-node ${value.kind}`}>{value.children.length>0?<button type="button" className="dialogue-tree-toggle" aria-label={open?"Replier la branche":"Déplier la branche"} onClick={()=>setOpen(current=>!current)}>{open?"−":"+"}</button>:<span/>}<button type="button" className="dialogue-tree-select" onClick={()=>onSelect(value.nodeId)}><code>{value.nodeId}</code><span>{value.displayText??"Texte non résolu"}</span>{value.cycle&&<em>cycle</em>}{value.repeated&&<em>lien partagé</em>}</button></div>{open&&value.children.length>0&&<div className="dialogue-tree-children">{value.children.map((child,index)=><DialogueTreeBranch key={`${child.nodeId}-${index}`} value={child} depth={depth+1} onSelect={onSelect}/>)}</div>}</div>;
+function DialogueLinesEditor({graph,editWorkspace,busy,message,onCommitField,onCommitStructure,onOpenScript}:{graph:DialogueGraph;editWorkspace?:WorkspaceSnapshot;busy:boolean;message:string;onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
+  const [query,setQuery]=useState("");
+  const normalized=query.trim().toLocaleLowerCase();
+  const nodes=graph.nodes.filter(node=>!normalized||[node.id,node.displayText,node.speaker,node.comment,node.actionScript].some(value=>value?.toLocaleLowerCase().includes(normalized)));
+  const starts=graph.links.filter(link=>link.source===null);
+  return <div className="dialogue-lines-workspace">
+    <header className="dialogue-lines-toolbar">
+      <label><Search size={14}/><input aria-label="Rechercher dans les lignes" placeholder="Rechercher un texte, un locuteur ou un script…" value={query} onChange={event=>setQuery(event.currentTarget.value)}/></label>
+      <span>{nodes.length}/{graph.nodes.length} lignes</span>
+      {editWorkspace?<><button type="button" disabled={busy} onClick={()=>void onCommitStructure({kind:"add_node",nodeKind:"entry"}).catch(()=>undefined)}>+ Réplique PNJ</button><button type="button" disabled={busy} onClick={()=>void onCommitStructure({kind:"add_node",nodeKind:"reply"}).catch(()=>undefined)}>+ Réponse joueur</button></>:<small>Créez un espace d’édition pour modifier le dialogue.</small>}
+    </header>
+    {message&&<p className="dialogue-lines-status" role="status">{message}</p>}
+    <section className="dialogue-starts" aria-label="Départs du dialogue"><div><strong>Début du dialogue</strong><span>{starts.length?`${starts.length} ligne(s) de départ` : "Aucune ligne de départ"}</span></div>{starts.map(link=><DialogueLineLink key={link.id} graph={graph} link={link} editable={Boolean(editWorkspace)} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>)}{editWorkspace&&<DialogueAddLinkEditor graph={graph} source={null} label="Ajouter une ligne de départ" onAdd={onCommitStructure}/>}</section>
+    <div className="dialogue-lines-list">{nodes.map(node=><DialogueLineCard key={node.id} graph={graph} node={node} editable={Boolean(editWorkspace)} onCommitField={onCommitField} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>)}{nodes.length===0&&<p className="dialogue-empty">Aucune ligne ne correspond à la recherche.</p>}</div>
+  </div>;
 }
+
+function DialogueLineCard({graph,node,editable,onCommitField,onCommitStructure,onOpenScript}:{graph:DialogueGraph;node:DialogueGraph["nodes"][number];editable:boolean;onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
+  const nodeRef={kind:node.kind,index:node.index} satisfies DialogueNodeRef;
+  const fields=dialogueNodeEditableFields(graph,node.id);
+  const textField=fields.find(field=>field.path.endsWith("/Text"));
+  const details=fields.filter(field=>field!==textField);
+  const outgoing=graph.links.filter(link=>link.source===node.id);
+  return <article className={`dialogue-line-card ${node.kind}`} aria-label={`Ligne ${node.id}`}>
+    <header><div><span>{node.kind==="entry"?"PNJ":"Joueur"}</span><code>{node.id}</code>{node.speaker&&<strong>{node.speaker}</strong>}</div>{editable&&<button type="button" className="danger-button" onClick={()=>void onCommitStructure({kind:"remove_node",node:nodeRef}).catch(()=>undefined)}>Supprimer la ligne</button>}</header>
+    <div className="dialogue-line-text">{editable&&textField?<EditableDialogueField field={{...textField,label:"Texte de la ligne"}} onCommit={onCommitField}/>:<p>{node.displayText??"Texte non résolu"}</p>}</div>
+    <div className="dialogue-line-links"><strong>{node.kind==="entry"?"Réponses proposées":"Suite du dialogue"}</strong>{outgoing.map(link=><DialogueLineLink key={link.id} graph={graph} link={link} editable={editable} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>)}{outgoing.length===0&&<span>Aucune ligne associée.</span>}{editable&&<DialogueAddLinkEditor graph={graph} source={nodeRef} label={node.kind==="entry"?"Associer une réponse joueur":"Associer la prochaine réplique PNJ"} onAdd={onCommitStructure}/>}</div>
+    {(details.length>0||node.actionScript||node.comment||node.quest)&&<details className="dialogue-line-details"><summary>Autres réglages de la ligne</summary>{editable&&details.map(field=><EditableDialogueField key={field.path} field={field} onCommit={onCommitField}/>)}{node.actionScript&&<button type="button" onClick={()=>onOpenScript(node.actionScript as string)}><Code2 size={12}/> Ouvrir l’action {node.actionScript}</button>}{node.comment&&<span>Commentaire · {node.comment}</span>}{node.quest&&<span>Quête · {node.quest}</span>}</details>}
+  </article>;
+}
+
+function DialogueLineLink({graph,link,editable,onCommitStructure,onOpenScript}:{graph:DialogueGraph;link:DialogueGraph["links"][number];editable:boolean;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
+  const target=graph.nodes.find(node=>node.id===link.target);
+  const source=dialogueNodeRefFromId(link.source);
+  const position=Number(link.id.split(":").at(-1));
+  return <div className="dialogue-line-link"><div className="dialogue-line-link-target"><span>→</span><strong>{target?.displayText??link.target}</strong><code>{link.target}</code>{link.broken&&<em>Lien cassé</em>}</div>{editable?<DialogueLinkTriggerEditor link={link} source={source} position={position} onCommit={onCommitStructure}/>:<div className="dialogue-link-scripts">{link.conditionScript&&<button type="button" onClick={()=>onOpenScript(link.conditionScript as string)}>Déclencheur · {link.conditionScript}</button>}{link.actionScript&&<button type="button" onClick={()=>onOpenScript(link.actionScript as string)}>Action · {link.actionScript}</button>}{!link.conditionScript&&!link.actionScript&&<span>Toujours disponible</span>}</div>}{editable&&<button type="button" className="danger-button compact" onClick={()=>void onCommitStructure({kind:"remove_link",source,position}).catch(()=>undefined)}>Dissocier</button>}</div>;
+}
+
+function DialogueLinkTriggerEditor({link,source,position,onCommit}:{link:DialogueGraph["links"][number];source:DialogueNodeRef|null;position:number;onCommit:(action:DialogueStructureAction)=>Promise<void>}) {
+  const condition=link.conditionScript??"";const action=link.actionScript??"";
+  const [conditionDraft,setConditionDraft]=useState(condition);const [actionDraft,setActionDraft]=useState(action);const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
+  useEffect(()=>{setConditionDraft(condition);setActionDraft(action);setMessage("")},[condition,action,link.id]);
+  const commit=async()=>{setBusy(true);setMessage("Enregistrement…");try{await onCommit({kind:"set_link_scripts",source,position,conditionScript:conditionDraft.trim()||null,actionScript:actionDraft.trim()||null});setMessage("Déclencheurs enregistrés.")}catch(error){setMessage(normalizeAppError(error).technicalMessage)}finally{setBusy(false)}};
+  return <div className="dialogue-trigger-editor"><label><span>Déclencheur (condition)</span><input aria-label={`Déclencheur de ${link.id}`} placeholder="script_condition" maxLength={16} value={conditionDraft} onChange={event=>setConditionDraft(event.currentTarget.value.toLocaleLowerCase())}/></label><label><span>Action après la ligne</span><input aria-label={`Action de ${link.id}`} placeholder="script_action" maxLength={16} value={actionDraft} onChange={event=>setActionDraft(event.currentTarget.value.toLocaleLowerCase())}/></label><button type="button" disabled={busy||(conditionDraft===condition&&actionDraft===action)} onClick={()=>void commit()}>{busy?"…":"Enregistrer"}</button>{message&&<small>{message}</small>}</div>;
+}
+
+function dialogueNodeRef(id:string):DialogueNodeRef|undefined {const [kind,indexText]=id.split(":");const index=Number(indexText);return (kind==="entry"||kind==="reply")&&Number.isInteger(index)&&index>=0?{kind,index}:undefined}
 
 function DialogueInspector({ graph, node, editWorkspace, onCommitField, onCommitStructure, onOpenScript }: { graph: DialogueGraph; node?: DialogueGraph["nodes"][number]; editWorkspace?: WorkspaceSnapshot; onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>; onCommitStructure:(action:DialogueStructureAction)=>Promise<void>; onOpenScript:(script:string)=>void }) {
   const nodeRef=node?{kind:node.kind,index:node.index} satisfies DialogueNodeRef:undefined;
@@ -1914,11 +2078,13 @@ function ScriptWorkspace({ jobId, summary, filter, editWorkspace, gameInstallPat
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string>();
   const [tab, setTab] = useState<"source" | "bytecode">("source");
+  const [query,setQuery]=useState(filter);
   const pageSize = 80;
-  useEffect(() => setPage(0), [filter]);
+  useEffect(()=>setQuery(filter),[filter]);
+  useEffect(() => setPage(0), [query]);
   const pageQuery = useQuery({
-    queryKey: ["scripts", jobId, filter, page],
-    queryFn: () => queryScripts({ jobId, query: filter, offset: page * pageSize, limit: pageSize }),
+    queryKey: ["scripts", jobId, query, page],
+    queryFn: () => queryScripts({ jobId, query, offset: page * pageSize, limit: pageSize }),
   });
   const items = pageQuery.data?.items ?? [];
   useEffect(() => {
@@ -1937,8 +2103,9 @@ function ScriptWorkspace({ jobId, summary, filter, editWorkspace, gameInstallPat
   return (
     <section className="inventory-card script-workspace" aria-label="Explorateur NWScript">
       <div className="inventory-heading">
-        <div><span className="eyebrow">RECHERCHE PLEIN TEXTE · MONACO</span><h2>Scripts en lecture seule</h2></div>
-        <span className="format-badge">{total.toLocaleString("fr-FR")} résultat(s)</span>
+        <div><span className="eyebrow">ÉCRIRE · ENREGISTRER · COMPILER</span><h2>Scripts NWScript</h2><p>Choisissez un script, modifiez sa source puis compilez-la depuis la même page.</p></div>
+        <label className="workshop-local-search"><Search size={14}/><input aria-label="Rechercher un script" value={query} onChange={event=>setQuery(event.currentTarget.value)} placeholder="Nom, symbole ou contenu…"/></label>
+        <span className="format-badge">{editWorkspace?"Édition contrôlée":`${total.toLocaleString("fr-FR")} résultat(s)`}</span>
       </div>
       <div className="script-layout">
         <div className="script-list">
@@ -2035,7 +2202,7 @@ function ScriptDocumentView({ document, loading, tab, onTab, jobId, editWorkspac
                 {compilation.diagnostics.map((diagnostic, index) => <span key={`${diagnostic.code}-${index}`}>{diagnostic.line ? `L${diagnostic.line} · ` : ""}{diagnostic.message}</span>)}
               </div>
             )}
-            <ScriptMetadata document={document} />
+            <details className="script-details"><summary>Symboles, includes et références</summary><ScriptMetadata document={document} /></details>
           </>
         ) : <div className="script-document-empty warning"><AlertTriangle size={18} /> Source NSS absente. Le NCS reste consultable dans la vue technique.</div>
       ) : (
@@ -2103,7 +2270,7 @@ function PhaseOneWorkspace({ jobId, activeView, editWorkspace, onWorkspace }: { 
   if (worldQuery.isLoading) return <section className="inventory-card world-workspace">Construction de la vue métier…</section>;
   if (!world) return <section className="inventory-card world-workspace">L’index global n’est pas disponible.</section>;
   return <section className={"inventory-card world-workspace" + (activeView === "scene" ? " scene-workspace-shell" : "")} aria-label="Explorateur de la Phase 1">
-    <div className="inventory-heading"><div><span className="eyebrow">SOURCE RUST · PROVENANCE CONSERVÉE</span><h2>{worldViewTitle(activeView)}</h2></div><label className="world-filter"><Search size={13} /><input value={filter} onChange={(event) => setFilter(event.currentTarget.value)} placeholder="Filtrer cette vue…" /></label></div>
+    <div className="inventory-heading workshop-heading"><div><span className="eyebrow">ATELIER SPÉCIALISÉ · SOURCE PROTÉGÉE</span><h2>{worldViewTitle(activeView)}</h2><p>{worldViewInstruction(activeView)}</p></div><label className="world-filter"><Search size={13} /><input aria-label={`Rechercher dans ${worldViewTitle(activeView)}`} value={filter} onChange={(event) => setFilter(event.currentTarget.value)} placeholder="Rechercher dans cette page…" /></label><span className="format-badge">{editWorkspace?"Édition contrôlée":"Lecture seule"}</span></div>
     {(activeView === "journal" || activeView === "factions") && <NarrativeView mode={activeView} jobId={jobId} world={world} filter={filter} editWorkspace={editWorkspace} onWorkspace={onWorkspace} />}
     {activeView === "areas" && <AreaMapView jobId={jobId} world={world} filter={filter} editWorkspace={editWorkspace} onWorkspace={onWorkspace} />}
     {activeView === "assets" && <><WalkmeshWorkbench jobId={jobId} workspace={editWorkspace} onWorkspace={onWorkspace} /><AssetView jobId={jobId} assets={world.assets.assets} filter={filter} /></>}
@@ -2115,6 +2282,8 @@ function PhaseOneWorkspace({ jobId, activeView, editWorkspace, onWorkspace }: { 
 function worldViewTitle(view: string) {
   return ({ journal: "Journal et quêtes", factions: "Factions et réputations", areas: "Carte 2D des zones", assets: "Modèles, textures et animations", scene: "Vue 3D des zones", graph: "Graphe global et validation" } as Record<string, string>)[view] ?? "Phase 1";
 }
+
+function worldViewInstruction(view:string){return ({journal:"Sélectionnez une quête, puis modifiez ses propriétés et ses étapes directement.",factions:"Sélectionnez une faction, puis réglez sa fiche et ses relations de réputation.",areas:"Choisissez une zone, placez ou déplacez ses éléments, puis ajustez la sélection à droite.",assets:"Recherchez un modèle ou une texture et ouvrez son aperçu en grand.",scene:"Choisissez une zone et contrôlez sa caméra, ses toitures et ses couches techniques.",graph:"Recherchez une ressource pour examiner ses relations et ses diagnostics proches."} as Record<string,string>)[view]??"Trouvez, comprenez et contrôlez les données de cette page."}
 
 function NarrativeView({ mode, jobId, world, filter, editWorkspace, onWorkspace }: { mode:"journal"|"factions"; jobId:string; world: WorldIndex; filter: string; editWorkspace?:WorkspaceSnapshot; onWorkspace:(workspace:WorkspaceSnapshot)=>void }) {
   const narrativeQuery=useQuery({queryKey:["narrative-documents",jobId,editWorkspace?.workspaceId,editWorkspace?.cursor],queryFn:()=>inspectNarrativeDocuments({jobId,workspaceId:editWorkspace?.workspaceId})});
@@ -2306,7 +2475,7 @@ function AreaCreationForm({ jobId, workspace, onAreaCreated }: { jobId: string; 
       setStatus("Zone créée dans l’overlay et ouverte immédiatement.");
     } catch (error) { setStatus(normalizeAppError(error).technicalMessage); }
   };
-  return <div className="area-create"><button type="button" onClick={() => setOpenPanel((value) => !value)}>+ Nouvelle zone</button>{openPanel && <div className="area-create-fields"><input aria-label="ResRef de la zone" maxLength={16} value={draft.resref} onChange={(event) => setDraft((value) => ({ ...value, resref: event.currentTarget.value.toLocaleLowerCase() }))} /><input aria-label="Nom de la zone" value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.currentTarget.value }))} /><input aria-label="Tileset" value={draft.tileset} onChange={(event) => setDraft((value) => ({ ...value, tileset: event.currentTarget.value.toLocaleLowerCase() }))} /><label>Largeur<input type="number" min="1" max="64" value={draft.width} onChange={(event) => setDraft((value) => ({ ...value, width: Number(event.currentTarget.value) }))} /></label><label>Hauteur<input type="number" min="1" max="64" value={draft.height} onChange={(event) => setDraft((value) => ({ ...value, height: Number(event.currentTarget.value) }))} /></label><button type="button" className="secondary-button" onClick={() => void create()}>Créer ARE/GIT/GIC</button>{status && <small>{status}</small>}</div>}</div>;
+  return <div className="area-create"><button type="button" onClick={() => setOpenPanel((value) => !value)}>+ Nouvelle zone</button>{openPanel && <div className="area-create-fields"><input aria-label="ResRef de la zone" maxLength={16} value={draft.resref} onChange={(event) => setDraft((value) => ({ ...value, resref: event.currentTarget.value.toLocaleLowerCase() }))} /><input aria-label="Nom de la zone" value={draft.name} onChange={(event) => setDraft((value) => ({ ...value, name: event.currentTarget.value }))} /><input aria-label="Tileset" value={draft.tileset} onChange={(event) => setDraft((value) => ({ ...value, tileset: event.currentTarget.value.toLocaleLowerCase() }))} /><label>Largeur<input type="number" min="1" max="32" value={draft.width} onChange={(event) => setDraft((value) => ({ ...value, width: Number(event.currentTarget.value) }))} /></label><label>Hauteur<input type="number" min="1" max="32" value={draft.height} onChange={(event) => setDraft((value) => ({ ...value, height: Number(event.currentTarget.value) }))} /></label><button type="button" className="secondary-button" onClick={() => void create()}>Créer ARE/GIT/GIC</button>{status && <small>{status}</small>}</div>}</div>;
 }
 
 function applyAreaWorkspaceValues(area: AreaMap, values: Record<string, unknown>): AreaMap {
@@ -2430,14 +2599,14 @@ function AreaSpawnPointEditor({ points, onChange, disabled, onSave }: { points: 
 }
 
 function AreaTileEditor({ jobId, area, tile, workspace, onWorkspace }: { jobId: string; area: string; tile: AreaMap["tiles"][number]; workspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void }) {
-  const [draft, setDraft] = useState({ tileId: tile.tileId, orientation: tile.orientation, height: 0 });
+  const [draft, setDraft] = useState({ tileId: tile.tileId, orientation: tile.orientation, height: tile.height });
   const [message, setMessage] = useState("");
-  useEffect(() => setDraft({ tileId: tile.tileId, orientation: tile.orientation, height: 0 }), [tile]);
+  useEffect(() => setDraft({ tileId: tile.tileId, orientation: tile.orientation, height: tile.height }), [tile]);
   const save = async () => {
     if (!workspace) return;
     setMessage("Enregistrement…");
     try {
-      const snapshot = await setAreaTile({ jobId, workspaceId: workspace.workspaceId, area, x: tile.x, y: tile.y, before: { tileId: tile.tileId, orientation: tile.orientation, height: 0 }, after: draft });
+      const snapshot = await setAreaTile({ jobId, workspaceId: workspace.workspaceId, area, x: tile.x, y: tile.y, before: { tileId: tile.tileId, orientation: tile.orientation, height: tile.height }, after: draft });
       onWorkspace(snapshot);
       setMessage("Tuile enregistrée dans l’overlay.");
     } catch (error) { setMessage(normalizeAppError(error).technicalMessage); }
@@ -2584,12 +2753,13 @@ export function WalkmeshWorkbench({ jobId, workspace, onWorkspace }: { jobId: st
 
 function AssetView({ jobId, assets, filter }: { jobId: string; assets: AssetRecord[]; filter: string }) {
   const textureTypes = [2033, 2073, 3, 2080, 2081, 2079, 6];
-  const query = filter.toLocaleLowerCase(); const values = assets.filter((value) => (value.key.resref + " " + value.format + " " + value.modelNodes.join(" ") + " " + value.animations.join(" ")).toLocaleLowerCase().includes(query)).slice(0, 250);
+  const [category,setCategory]=useState<"all"|"models"|"textures"|"previewable"|"issues">("all");
+  const query = filter.toLocaleLowerCase(); const values = assets.filter((value) => (value.key.resref + " " + value.format + " " + value.modelNodes.join(" ") + " " + value.animations.join(" ")).toLocaleLowerCase().includes(query)).filter(value=>category==="all"||(category==="models"&&value.key.resourceType===2002)||(category==="textures"&&textureTypes.includes(value.key.resourceType))||(category==="previewable"&&value.support==="preview")||(category==="issues"&&value.diagnostics.length>0)).slice(0, 250);
   const [selected, setSelected] = useState<AssetRecord>();
   useEffect(() => { if (selected && !values.includes(selected)) setSelected(undefined); }, [selected, values]);
   const texture = selected?.textures.map((resref) => assets.filter((value) => value.key.resref === resref && textureTypes.includes(value.key.resourceType)).sort((left, right) => textureTypes.indexOf(left.key.resourceType) - textureTypes.indexOf(right.key.resourceType))[0]).find(Boolean);
   const imageSelected = selected && textureTypes.includes(selected.key.resourceType) && selected.support === "preview";
-  return <div className="asset-workspace"><div className="asset-grid">{values.map((value) => <button type="button" onClick={() => setSelected(value)} className={"asset-card " + value.support + (selected === value ? " selected" : "")} key={value.key.resref + ":" + String(value.key.resourceType)}><div className="asset-preview"><Box size={28} /><span>{value.width && value.height ? String(value.width) + "×" + String(value.height) : value.modelNodes[0] ?? value.format}</span></div><strong>{value.key.resref}</strong><code>{value.format} · {value.support}</code><small>{value.meshCount} mesh · {value.triangleCount.toLocaleString("fr-FR")} triangles · {value.animations.length} animations</small>{value.glbPreview && <b className="glb-ready">GLB disponible</b>}{value.diagnostics.map((item) => <em key={item.code}>{item.code}</em>)}</button>)}</div>{selected && <aside className="model-preview-panel"><header><div><span className="eyebrow">CACHE VERSIONNÉ · SOURCE IMMUABLE</span><h3>{selected.key.resref}</h3></div><button type="button" onClick={() => setSelected(undefined)} aria-label="Fermer l’aperçu"><X size={15} /></button></header>{selected.glbPreview ? <ModelPreview jobId={jobId} asset={selected} texture={texture} /> : imageSelected ? <ImagePreview jobId={jobId} asset={selected} /> : <div className="model-preview-empty"><AlertTriangle size={24} /><p>Aucun aperçu visuel disponible pour cette ressource.</p></div>}{selected.key.resourceType === 2002 ? <div className="model-preview-metrics"><span>{selected.meshCount} mesh</span><span>{selected.skinCount} skin</span><span>{selected.walkmeshCount} walkmesh</span><span>{selected.textures.length} textures</span><span>supermodel · {selected.supermodel ?? "aucun"}</span></div> : <div className="model-preview-metrics"><span>{selected.format.toUpperCase()}</span><span>{selected.width ?? "?"}×{selected.height ?? "?"}</span><span>{selected.sha256.slice(0, 12)}…</span></div>}</aside>}</div>;
+  return <div className="asset-workspace"><nav className="asset-filter-bar" aria-label="Filtres des assets">{([['all','Tout'],['models','Modèles'],['textures','Textures'],['previewable','Avec aperçu'],['issues','À vérifier']] as const).map(([value,label])=><button type="button" key={value} className={category===value?"active":""} onClick={()=>setCategory(value)}>{label}</button>)}<span>{values.length} résultat(s)</span></nav><div className="asset-grid">{values.map((value) => <button type="button" onClick={() => setSelected(value)} className={"asset-card " + value.support + (selected === value ? " selected" : "")} key={value.key.resref + ":" + String(value.key.resourceType)}><div className="asset-preview"><Box size={28} /><span>{value.width && value.height ? String(value.width) + "×" + String(value.height) : value.modelNodes[0] ?? value.format}</span></div><strong>{value.key.resref}</strong><code>{value.format} · {value.support}</code><small>{value.meshCount} mesh · {value.triangleCount.toLocaleString("fr-FR")} triangles · {value.animations.length} animations</small>{value.glbPreview && <b className="glb-ready">GLB disponible</b>}{value.diagnostics.map((item) => <em key={item.code}>{item.code}</em>)}</button>)}{values.length===0&&<p className="resource-empty">Aucun asset ne correspond aux filtres.</p>}</div>{selected && <aside className="model-preview-panel"><header><div><span className="eyebrow">CACHE VERSIONNÉ · SOURCE IMMUABLE</span><h3>{selected.key.resref}</h3></div><button type="button" onClick={() => setSelected(undefined)} aria-label="Fermer l’aperçu"><X size={15} /></button></header>{selected.glbPreview ? <ModelPreview jobId={jobId} asset={selected} texture={texture} /> : imageSelected ? <ImagePreview jobId={jobId} asset={selected} /> : <div className="model-preview-empty"><AlertTriangle size={24} /><p>Aucun aperçu visuel disponible pour cette ressource.</p></div>}{selected.key.resourceType === 2002 ? <div className="model-preview-metrics"><span>{selected.meshCount} mesh</span><span>{selected.skinCount} skin</span><span>{selected.walkmeshCount} walkmesh</span><span>{selected.textures.length} textures</span><span>supermodel · {selected.supermodel ?? "aucun"}</span></div> : <div className="model-preview-metrics"><span>{selected.format.toUpperCase()}</span><span>{selected.width ?? "?"}×{selected.height ?? "?"}</span><span>{selected.sha256.slice(0, 12)}…</span></div>}</aside>}</div>;
 }
 
 function ImagePreview({ jobId, asset }: { jobId: string; asset: AssetRecord }) {
@@ -2656,7 +2826,7 @@ function SceneView({ jobId, world, filter }: { jobId: string; world: WorldIndex;
   const [showOverlays, setShowOverlays] = useState(true); const [showWalkmeshes, setShowWalkmeshes] = useState(false); const [showTileFade, setShowTileFade] = useState(false); const [wireframe, setWireframe] = useState(false); const [cameraMode, setCameraMode] = useState<"orbit" | "aurora">("orbit");
   useEffect(() => { if (!scenes.some((value) => value.area === selected)) setSelected(scenes[0]?.area); }, [scenes, selected]);
   const scene = scenes.find((value) => value.area === selected);
-  return <div className="scene-workspace"><div className="scene-toolbar"><select value={selected ?? ""} onChange={(event) => setSelected(event.currentTarget.value)}>{scenes.map((value) => <option key={value.area}>{value.area}</option>)}</select>{scene && <span>{scene.resolvedAssets}/{scene.objects.length + scene.overlays.length} modèles résolus · {scene.uniqueModels} GLB uniques · {scene.missingAssets} dégradé(s)</span>}<label><input type="checkbox" checked={showOverlays} onChange={(event) => setShowOverlays(event.currentTarget.checked)} /> Overlays</label><label><input type="checkbox" checked={showWalkmeshes} onChange={(event) => setShowWalkmeshes(event.currentTarget.checked)} /> Walkmeshes</label><label title="Réafficher les plafonds et toitures que le moteur Aurora estompe pour dégager la vue"><input type="checkbox" checked={showTileFade} onChange={(event) => setShowTileFade(event.currentTarget.checked)} /> Toitures</label><label><input type="checkbox" checked={wireframe} onChange={(event) => setWireframe(event.currentTarget.checked)} /> Filaire</label><button type="button" onClick={() => setCameraMode((value) => value === "orbit" ? "aurora" : "orbit")}>{cameraMode === "orbit" ? "Vue Aurora" : "Vue orbitale"}</button></div>{scene ? <BabylonScene jobId={jobId} manifest={scene} showOverlays={showOverlays} showWalkmeshes={showWalkmeshes} showTileFade={showTileFade} wireframe={wireframe} cameraMode={cameraMode} /> : <p>Aucune scène.</p>}</div>;
+  return <div className="scene-workspace"><div className="scene-toolbar"><label className="scene-zone-picker"><span>Zone affichée</span><select aria-label="Zone affichée en 3D" value={selected ?? ""} onChange={(event) => setSelected(event.currentTarget.value)}>{scenes.map((value) => <option key={value.area}>{value.area}</option>)}</select></label>{scene && <span>{scene.resolvedAssets}/{scene.objects.length + scene.overlays.length} modèles résolus · {scene.missingAssets} dégradé(s)</span>}<button type="button" onClick={() => setCameraMode((value) => value === "orbit" ? "aurora" : "orbit")}>{cameraMode === "orbit" ? "Passer en vue Aurora" : "Passer en vue orbitale"}</button><details className="scene-options"><summary>Affichage avancé</summary><label><input type="checkbox" checked={showOverlays} onChange={(event) => setShowOverlays(event.currentTarget.checked)} /> Repères techniques</label><label><input type="checkbox" checked={showWalkmeshes} onChange={(event) => setShowWalkmeshes(event.currentTarget.checked)} /> Walkmeshes</label><label title="Réafficher les plafonds et toitures que le moteur Aurora estompe pour dégager la vue"><input type="checkbox" checked={showTileFade} onChange={(event) => setShowTileFade(event.currentTarget.checked)} /> Toitures</label><label><input type="checkbox" checked={wireframe} onChange={(event) => setWireframe(event.currentTarget.checked)} /> Mode filaire</label></details></div>{scene ? <BabylonScene jobId={jobId} manifest={scene} showOverlays={showOverlays} showWalkmeshes={showWalkmeshes} showTileFade={showTileFade} wireframe={wireframe} cameraMode={cameraMode} /> : <p>Aucune scène.</p>}</div>;
 }
 
 function BabylonScene({ jobId, manifest, showOverlays, showWalkmeshes, showTileFade, wireframe, cameraMode }: { jobId: string; manifest: SceneManifest; showOverlays: boolean; showWalkmeshes: boolean; showTileFade: boolean; wireframe: boolean; cameraMode: "orbit" | "aurora" }) {
@@ -2739,9 +2909,12 @@ function BabylonScene({ jobId, manifest, showOverlays, showWalkmeshes, showTileF
 
 function GlobalGraphView({ jobId, world, filter }: { jobId: string; world: WorldIndex; filter: string }) {
   const query = filter.toLocaleLowerCase(); const nodes = world.graphNodes.filter((value) => (value.id + " " + value.kind + " " + value.label).toLocaleLowerCase().includes(query)).slice(0, 120); const ids = new Set(nodes.map((value) => value.id)); const edges = world.graphEdges.filter((value) => ids.has(value.source) || ids.has(value.target)).slice(0, 300);
+  const [selected,setSelected]=useState<string>();
+  useEffect(()=>{if(!nodes.some(node=>node.id===selected))setSelected(nodes[0]?.id)},[nodes,selected]);
+  const selectedNode=nodes.find(node=>node.id===selected);const visibleEdges=selected?edges.filter(edge=>edge.source===selected||edge.target===selected):edges;
   const reportQuery = useQuery({ queryKey: ["diagnostic-report", jobId], queryFn: () => diagnosticReport({ jobId }), enabled: false });
   const download = async (kind: "json" | "html") => { const result = reportQuery.data ?? (await reportQuery.refetch()).data; if (!result) return; const content = kind === "json" ? result.json : result.html; const blob = new Blob([content], { type: kind === "json" ? "application/json" : "text/html" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "opennever-diagnostic." + kind; link.click(); URL.revokeObjectURL(link.href); };
-  return <div className="global-report"><div className="report-actions"><button type="button" onClick={() => void download("json")}><Download size={13} /> Rapport JSON stable</button><button type="button" onClick={() => void download("html")}><Download size={13} /> Rapport HTML autonome</button><span>Schéma v1 · chemins de preuve anonymisés</span></div><div className="targeted-graph"><div><h3>Nœuds ciblés · {nodes.length}/{world.graphNodes.length}</h3>{nodes.map((value) => <article key={value.id}><code>{value.kind}</code><strong>{value.label}</strong><small>{value.id}</small></article>)}</div><div><h3>Relations proches · {edges.length}</h3>{edges.map((value) => <article key={value.id} className={value.confidence}><span>{value.source} → {value.target}</span><b>{value.kind} · {value.confidence}</b><small>{value.evidence.resource} · {value.evidence.fieldPath}</small></article>)}</div><div><h3>Diagnostics · {world.diagnostics.length}</h3>{world.diagnostics.slice(0, 250).map((value, index) => <article key={value.code + ":" + value.resource + ":" + String(index)} className={value.severity}><b>{value.code}</b><span>{value.message}</span><small>{value.resource}</small></article>)}</div></div></div>;
+  return <div className="global-report"><div className="report-actions"><div><strong>{selectedNode?.label??"Aucune ressource sélectionnée"}</strong><span>{selectedNode?`${visibleEdges.length} relation(s) directe(s) · ${selectedNode.kind}`:"Recherchez puis sélectionnez une ressource."}</span></div><button type="button" onClick={() => void download("json")}><Download size={13} /> Exporter JSON</button><button type="button" onClick={() => void download("html")}><Download size={13} /> Exporter HTML</button></div><div className="targeted-graph"><div><h3>Ressources · {nodes.length}/{world.graphNodes.length}</h3>{nodes.map((value) => <button type="button" className={selected===value.id?"selected":""} onClick={()=>setSelected(value.id)} key={value.id}><code>{value.kind}</code><strong>{value.label}</strong><small>{value.id}</small></button>)}</div><div><h3>Relations directes · {visibleEdges.length}</h3>{visibleEdges.map((value) => <article key={value.id} className={value.confidence}><span>{value.source} → {value.target}</span><b>{value.kind} · {value.confidence}</b><small>{value.evidence.resource} · {value.evidence.fieldPath}</small></article>)}{visibleEdges.length===0&&<p>Aucune relation directe.</p>}</div><div><h3>Diagnostics · {world.diagnostics.length}</h3>{world.diagnostics.slice(0, 250).map((value, index) => <article key={value.code + ":" + value.resource + ":" + String(index)} className={value.severity}><b>{value.code}</b><span>{value.message}</span><small>{value.resource}</small></article>)}</div></div></div>;
 }
 
 function StructuredSummaryView({ summary }: { summary: StructuredResourceSummary }) {

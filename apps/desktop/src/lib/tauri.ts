@@ -44,6 +44,37 @@ export type InstancePlacement = {
   category: string; templateResref: string; tag: string;
   x: number; y: number; z: number; bearing: number; linkedTo: string | null;
 };
+export type MapDensityRule = {
+  category: string; perHundredTiles: number; minSpacingTiles: number; templateResrefs: string[];
+};
+export type MapGenerationSpec = {
+  schemaVersion: number; brief: string; resref: string; name: string; tileset: string;
+  width: number; height: number; seed: number; baseTileId: number; variantTileIds: number[];
+  borderMargin: number; reservedPercent: number; densities: MapDensityRule[];
+};
+export type MapTilePlan = { x: number; y: number; tileId: number; orientation: number; height: number };
+export type MapGenerationPlan = {
+  planSha256: string; spec: MapGenerationSpec; tiles: MapTilePlan[]; placements: InstancePlacement[];
+  metrics: { totalTiles: number; buildableTiles: number; reservedTiles: number; placementCount: number; occupiedPercent: number };
+  compatibility: {
+    tilesetResolved: boolean; tilesetSha256: string | null; resolvedTileCount: number;
+    selectedTileIds: number[]; tileIdsVerified: boolean; edgeCompatibilityVerified: boolean;
+  };
+  warnings: string[];
+};
+export type MapAuthoringContext = {
+  limits: {
+    maxWidth: number; maxHeight: number; maxTiles: number; maxResrefLength: number;
+    maxDensityRules: number; maxBlueprintsPerRule: number; maxPlacements: number;
+  };
+  availableTilesets: string[];
+  selectedTileset: { resref: string; sha256: string; tileCount: number; tileIds: number[] } | null;
+  blueprintCounts: Record<string, number>;
+};
+export type AiMapDraftResult = {
+  endpointOrigin: string; model: string; plan: MapGenerationPlan; sharedBlueprintCount: number;
+};
+export type ApplyMapGenerationResult = { workspace: WorkspaceSnapshot; area: AreaMap; plan: MapGenerationPlan };
 export type ModifiedResource = {
   resource: ResourceKey; sourceSha256: string | null; outputSha256: string;
   sizeBytes: number; relativePath: string;
@@ -172,7 +203,7 @@ export type ContextPolicy = {
   retentionDays: number; allowInsecureLocalHttp: boolean; allowedProviderHosts: string[];
 };
 export type ToolRuntimePolicy = {
-  compilerPath: string; gameInstallPath: string; includePaths: string[]; developmentPath: string;
+  compilerPath: string; gameInstallPath: string; userDataPath: string; includePaths: string[]; developmentPath: string;
   toolsetTempPath: string; allowedOutputRoots: string[];
   nwnExecutablePath: string; nwnWorkingDirectory: string; nwnArguments: string[];
 };
@@ -335,7 +366,7 @@ export type AreaStructureAction =
   | { kind: "set_transition"; instanceId: string; destination: string; flags: number; loadScreenId: number }
   | { kind: "add_inventory_item"; instanceId: string; resref: string; stackSize: number; x: number; y: number; infinite: boolean; categoryIndex: number | null }
   | { kind: "remove_inventory_item"; instanceId: string; itemIndex: number; categoryIndex: number | null };
-export type AreaTile = { x: number; y: number; tileId: number; orientation: number };
+export type AreaTile = { x: number; y: number; tileId: number; orientation: number; height: number };
 export type AreaInstance = {
   id: string; category: string; tag: string | null; templateResref: string | null;
   x: number; y: number; z: number; bearing: number | null;
@@ -399,6 +430,7 @@ export type DialogueStructureAction =
   | { kind: "add_node"; nodeKind: "entry" | "reply" }
   | { kind: "remove_node"; node: DialogueNodeRef }
   | { kind: "add_link"; source: DialogueNodeRef | null; target: DialogueNodeRef }
+  | { kind: "set_link_scripts"; source: DialogueNodeRef | null; position: number; conditionScript: string | null; actionScript: string | null }
   | { kind: "remove_link"; source: DialogueNodeRef | null; position: number };
 export type DialogueSearchHit = { resref: string; nodeCount: number; linkCount: number; cycleCount: number; diagnosticCount: number; preview: string | null };
 export type DialoguePage = { items: DialogueSearchHit[]; offset: number; limit: number; total: number };
@@ -552,11 +584,23 @@ export type JobSnapshot = {
   error?: AppError | null;
 };
 
+export type RestoredModuleSession = {
+  job: JobSnapshot;
+  workspace: WorkspaceSnapshot | null;
+};
+
 export async function getAppStatus(): Promise<AppStatus> {
   if (!isTauri()) {
     return { appVersion: "browser-preview", readOnly: true, editingAvailable: true, databaseSchemaVersion: 1 };
   }
   return invoke<AppStatus>("get_app_status");
+}
+
+export async function restoreModuleSession(
+  request: ModuleAnalysisRequest,
+): Promise<RestoredModuleSession | null> {
+  if (!isTauri()) return null;
+  return invoke<RestoredModuleSession | null>("restore_module_session", { request });
 }
 
 export async function createEditWorkspace(request: { jobId: string }): Promise<WorkspaceSnapshot> {
@@ -862,6 +906,31 @@ export async function createWorkspaceArea(request: {
 }): Promise<{ workspace: WorkspaceSnapshot; area: AreaMap }> {
   requireTauri();
   return invoke<{ workspace: WorkspaceSnapshot; area: AreaMap }>("create_workspace_area", { request });
+}
+
+export async function getMapAuthoringContext(request: { jobId: string; tileset: string }): Promise<MapAuthoringContext> {
+  requireTauri();
+  return invoke<MapAuthoringContext>("get_map_authoring_context", { request });
+}
+
+export async function previewMapGeneration(request: { jobId: string; spec: MapGenerationSpec }): Promise<MapGenerationPlan> {
+  requireTauri();
+  return invoke<MapGenerationPlan>("preview_map_generation", { request });
+}
+
+export async function draftMapWithAi(request: {
+  jobId: string; currentSpec: MapGenerationSpec; provider: ProviderProfile; apiKey?: string;
+  includeBlueprintResrefs: boolean;
+}): Promise<AiMapDraftResult> {
+  requireTauri();
+  return invoke<AiMapDraftResult>("draft_map_with_ai", { request });
+}
+
+export async function applyMapGeneration(request: {
+  jobId: string; workspaceId: string; spec: MapGenerationSpec; expectedPlanSha256: string;
+}): Promise<ApplyMapGenerationResult> {
+  requireTauri();
+  return invoke<ApplyMapGenerationResult>("apply_map_generation", { request });
 }
 
 export async function listWorkspaceCreatedAreas(request: { workspaceId: string }): Promise<AreaMap[]> {

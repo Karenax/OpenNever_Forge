@@ -3,11 +3,23 @@ use aurora_agent::{
     context_allows_capability, evaluate_capability, sanitize_context_value, validate_tool_scope,
 };
 use aurora_core::{AppError, AppResult, ErrorSeverity, ResourceKey, decode_nwn_text};
-use aurora_edit::{AiChangeSet, EditCommand, EditWorkspace, ai_change_set_sha256};
+use aurora_edit::{
+    AiChangeSet, AreaAudioPatch, AreaEnvironmentPatch, AreaStructureAction, EditCommand,
+    EditWorkspace, InstancePlacement, MAP_MAX_BLUEPRINTS_PER_RULE, MAP_MAX_DENSITY_RULES,
+    MAP_MAX_HEIGHT, MAP_MAX_PLACEMENTS, MAP_MAX_TILES, MAP_MAX_WIDTH, MapCompatibilityReport,
+    MapGenerationPlan, MapGenerationSpec, TileState, Transform, add_area_instance,
+    ai_change_set_sha256, create_generated_map_resources, edit_area_audio, edit_area_environment,
+    edit_area_instance_by_id, edit_area_structure, edit_area_tile_at,
+    generate_map_plan_with_compatibility, inspect_area_audio, inspect_area_environment,
+    remove_area_instance,
+};
 use aurora_erf::{ContainerReader, ErfReader};
-use aurora_gff::parse_gff;
+use aurora_gff::{parse_gff, read_module_info};
 use aurora_nwscript::parse_nss;
-use serde::Deserialize;
+use aurora_project::{DependencyRoots, ModuleDependencyKind, inspect_module_dependencies};
+use aurora_resource::{ResourceCatalog, ResourceManager, ResourceManagerConfig};
+use aurora_world::{adapt_area, parse_set_tile_models, render_area_atlas_svg};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -99,6 +111,7 @@ fn workspace_argument() -> AppResult<PathBuf> {
 }
 
 struct McpServer {
+    root: PathBuf,
     workspace: EditWorkspace,
     store: AgentWorkspaceStore,
     registry: CapabilityRegistry,
@@ -107,12 +120,14 @@ struct McpServer {
     started: Instant,
     initialize_seen: bool,
     ready: bool,
+    resource_catalog: Option<ResourceCatalog>,
 }
 
 impl McpServer {
     fn open(root: PathBuf) -> AppResult<Self> {
         let workspace = EditWorkspace::open(&root)?;
         Ok(Self {
+            root: root.clone(),
             workspace,
             store: AgentWorkspaceStore::new(&root),
             registry: CapabilityRegistry::standard(),
@@ -121,6 +136,7 @@ impl McpServer {
             started: Instant::now(),
             initialize_seen: false,
             ready: false,
+            resource_catalog: None,
         })
     }
 
@@ -418,6 +434,177 @@ impl McpServer {
                 };
                 self.apply_change_set(change_set)
             }
+            "map.context" => {
+                let arguments: MapContextArguments = decode_arguments(arguments, name)?;
+                self.map_context(arguments)
+            }
+            "map.inspect" => {
+                let arguments: MapAreaArguments = decode_arguments(arguments, name)?;
+                self.inspect_map(&arguments.area)
+            }
+            "map.atlas" => {
+                let arguments: MapAreaArguments = decode_arguments(arguments, name)?;
+                let inspection = self.inspect_map(&arguments.area)?;
+                let area: aurora_world::AreaMap =
+                    serde_json::from_value(inspection["area"].clone()).map_err(|error| {
+                        mcp_error(
+                            "MCP_MAP_INSPECTION_INVALID",
+                            "La carte inspectÃ©e ne peut pas Ãªtre convertie en atlas.",
+                            error.to_string(),
+                        )
+                    })?;
+                let svg = render_area_atlas_svg(&area);
+                Ok(json!({
+                    "area":arguments.area,
+                    "mimeType":"image/svg+xml",
+                    "sha256":hex::encode(Sha256::digest(svg.as_bytes())),
+                    "svg":svg,
+                }))
+            }
+            "map.preview" => {
+                let arguments: MapPreviewArguments = decode_arguments(arguments, name)?;
+                let plan = self.verified_map_plan(&arguments.spec)?;
+                serialize_tool_value(plan)
+            }
+            "map.apply" => {
+                let arguments: MapApplyArguments = decode_arguments(arguments, name)?;
+                self.apply_map(arguments.spec, Some(&arguments.expected_plan_sha256))
+            }
+            "map.generate" => {
+                let spec: MapGenerationSpec = decode_arguments(arguments, name)?;
+                self.apply_map(spec, None)
+            }
+            "map.environment.edit" => {
+                let arguments: MapEnvironmentArguments = decode_arguments(arguments, name)?;
+                let patch = arguments.patch;
+                self.apply_map_resource_transform(
+                    ResourceKey::new(&arguments.area, 2012),
+                    &arguments.expected_sha256,
+                    serde_json::to_string(&patch).unwrap_or_else(|_| "map_environment".to_owned()),
+                    move |bytes, source| edit_area_environment(bytes, source, &patch),
+                )
+            }
+            "map.audio.edit" => {
+                let arguments: MapAudioArguments = decode_arguments(arguments, name)?;
+                let patch = arguments.patch;
+                self.apply_map_resource_transform(
+                    ResourceKey::new(&arguments.area, 2023),
+                    &arguments.expected_sha256,
+                    serde_json::to_string(&patch).unwrap_or_else(|_| "map_audio".to_owned()),
+                    move |bytes, source| edit_area_audio(bytes, source, &patch),
+                )
+            }
+            "map.tile.edit" => {
+                let arguments: MapTileArguments = decode_arguments(arguments, name)?;
+                self.verify_map_tile(&arguments.area, arguments.after.tile_id)?;
+                self.apply_map_resource_transform(
+                    ResourceKey::new(&arguments.area, 2012),
+                    &arguments.expected_sha256,
+                    format!("map_tile:{},{}", arguments.x, arguments.y),
+                    move |bytes, source| {
+                        edit_area_tile_at(
+                            bytes,
+                            source,
+                            arguments.x,
+                            arguments.y,
+                            arguments.before,
+                            arguments.after,
+                        )
+                    },
+                )
+            }
+            "map.instance.add" => {
+                let arguments: MapInstanceAddArguments = decode_arguments(arguments, name)?;
+                self.validate_map_placement(&arguments.placement)?;
+                let resource = ResourceKey::new(&arguments.area, 2023);
+                let source_bytes = self.resolved_catalog_resource_bytes(&resource)?;
+                let current = self
+                    .workspace
+                    .staged_resource_bytes(&resource)?
+                    .or_else(|| source_bytes.clone())
+                    .ok_or_else(|| {
+                        mcp_error(
+                            "MCP_MAP_AREA_MISSING",
+                            "La ressource GIT de la zone est introuvable.",
+                            resource.to_string(),
+                        )
+                    })?;
+                verify_expected_sha256(&current, &arguments.expected_sha256)?;
+                let (output, instance_id) = add_area_instance(
+                    &current,
+                    &format!("mcp::{}", resource.file_name()),
+                    &arguments.area,
+                    &arguments.placement,
+                )?;
+                let workspace = self.commit_map_transform(
+                    resource,
+                    source_bytes.as_deref(),
+                    &current,
+                    &output,
+                    format!("map_instance_add:{instance_id}"),
+                )?;
+                Ok(json!({"instanceId":instance_id,"workspace":workspace}))
+            }
+            "map.instance.move" => {
+                let arguments: MapInstanceMoveArguments = decode_arguments(arguments, name)?;
+                let area = arguments.area;
+                let instance_id = arguments.instance_id;
+                self.apply_map_resource_transform(
+                    ResourceKey::new(&area, 2023),
+                    &arguments.expected_sha256,
+                    format!("map_instance_move:{instance_id}"),
+                    move |bytes, source| {
+                        edit_area_instance_by_id(
+                            bytes,
+                            source,
+                            &area,
+                            &instance_id,
+                            arguments.before,
+                            arguments.after,
+                        )
+                    },
+                )
+            }
+            "map.instance.remove" => {
+                let arguments: MapInstanceRemoveArguments = decode_arguments(arguments, name)?;
+                let area = arguments.area;
+                let instance_id = arguments.instance_id;
+                self.apply_map_resource_transform(
+                    ResourceKey::new(&area, 2023),
+                    &arguments.expected_sha256,
+                    format!("map_instance_remove:{instance_id}"),
+                    move |bytes, source| remove_area_instance(bytes, source, &area, &instance_id),
+                )
+            }
+            "map.structure.edit" => {
+                let arguments: MapStructureArguments = decode_arguments(arguments, name)?;
+                let item_template =
+                    if let AreaStructureAction::AddInventoryItem { resref, .. } = &arguments.action
+                    {
+                        let key = ResourceKey::new(resref, 2025);
+                        let bytes = self.map_resource_bytes(&key)?.ok_or_else(|| {
+                            mcp_error(
+                                "MCP_MAP_BLUEPRINT_MISSING",
+                                "Le blueprint UTI de l'objet est introuvable.",
+                                key.to_string(),
+                            )
+                        })?;
+                        Some(parse_gff(&bytes, &format!("mcp::{}", key.file_name()))?)
+                    } else {
+                        None
+                    };
+                let area = arguments.area;
+                let action = arguments.action;
+                self.apply_map_resource_transform(
+                    ResourceKey::new(&area, 2023),
+                    &arguments.expected_sha256,
+                    serde_json::to_string(&action).unwrap_or_else(|_| "map_structure".to_owned()),
+                    move |bytes, source| {
+                        edit_area_structure(bytes, source, &area, &action, item_template.as_ref())
+                            .map(|(output, _)| output)
+                    },
+                )
+            }
             _ => Err(mcp_error(
                 "MCP_TOOL_NOT_IMPLEMENTED",
                 "L’outil MCP demandé n’est pas encore exécutable.",
@@ -426,10 +613,446 @@ impl McpServer {
         }
     }
 
+    fn load_resource_catalog(&mut self) -> AppResult<ResourceCatalog> {
+        if let Some(catalog) = &self.resource_catalog {
+            return Ok(catalog.clone());
+        }
+        let snapshot = self.workspace.snapshot()?;
+        let module_key = ResourceKey::new("module", 2014);
+        let module_bytes = self.resource_bytes(&module_key)?;
+        let module_info = read_module_info(&module_bytes, "mcp::module.ifo")?;
+        let policy = self.policy()?;
+        let roots = DependencyRoots {
+            game_install_path: non_empty_path(&policy.tool_runtime.game_install_path),
+            user_data_path: non_empty_path(&policy.tool_runtime.user_data_path),
+        };
+        let dependencies = inspect_module_dependencies(&module_info, &roots);
+        let hak_paths = dependencies
+            .dependencies
+            .iter()
+            .filter(|dependency| dependency.kind == ModuleDependencyKind::Hak)
+            .filter_map(|dependency| dependency.selected_path.as_deref().map(PathBuf::from))
+            .collect::<Vec<_>>();
+        let cache_root = self.root.join("agent");
+        std::fs::create_dir_all(&cache_root).map_err(|error| {
+            Box::new(AppError::io(
+                "create MCP catalog cache",
+                cache_root.display().to_string(),
+                &error,
+            ))
+        })?;
+        let cancelled = AtomicBool::new(false);
+        let build = ResourceManager::build_with_cache(
+            &ResourceManagerConfig {
+                module_path: PathBuf::from(&snapshot.source.path),
+                hak_paths,
+                game_install_path: roots.game_install_path,
+                user_data_path: roots.user_data_path,
+            },
+            Some(&cache_root.join("resource-catalog.json")),
+            &cancelled,
+        )?;
+        self.resource_catalog = Some(build.catalog.clone());
+        Ok(build.catalog)
+    }
+
+    fn map_resource_bytes(&mut self, resource: &ResourceKey) -> AppResult<Option<Vec<u8>>> {
+        if let Some(bytes) = self.workspace.staged_resource_bytes(resource)? {
+            return Ok(Some(bytes));
+        }
+        self.resolved_catalog_resource_bytes(resource)
+    }
+
+    fn resolved_catalog_resource_bytes(
+        &mut self,
+        resource: &ResourceKey,
+    ) -> AppResult<Option<Vec<u8>>> {
+        let catalog = self.load_resource_catalog()?;
+        let Some(resolved) = catalog.get(resource) else {
+            return Ok(None);
+        };
+        ResourceManager::read(&resolved.selected, &AtomicBool::new(false)).map(Some)
+    }
+
+    fn map_context(&mut self, arguments: MapContextArguments) -> AppResult<Value> {
+        let catalog = self.load_resource_catalog()?;
+        let snapshot = self.workspace.snapshot()?;
+        let staged = snapshot
+            .modified_resources
+            .iter()
+            .map(|resource| resource.resource.clone())
+            .collect::<Vec<_>>();
+        let mut tilesets = catalog
+            .entries
+            .iter()
+            .map(|entry| &entry.key)
+            .chain(staged.iter())
+            .filter(|key| key.resource_type == 2013)
+            .map(|key| key.resref.clone())
+            .collect::<Vec<_>>();
+        tilesets.sort();
+        tilesets.dedup();
+        let selected_resref = arguments.tileset.or_else(|| tilesets.first().cloned());
+        let selected_tileset = if let Some(resref) = selected_resref.as_deref() {
+            let key = ResourceKey::new(resref, 2013);
+            let bytes = self.map_resource_bytes(&key)?.ok_or_else(|| {
+                mcp_error(
+                    "MCP_MAP_TILESET_MISSING",
+                    "Le SET demandÃ© est introuvable.",
+                    key.to_string(),
+                )
+            })?;
+            let models = parse_set_tile_models(&bytes);
+            if models.is_empty() {
+                return Err(mcp_error(
+                    "MCP_MAP_TILESET_INVALID",
+                    "Le SET demandÃ© ne contient aucune tuile lisible.",
+                    key.to_string(),
+                ));
+            }
+            Some(json!({
+                "resref":resref,
+                "sha256":hex::encode(Sha256::digest(&bytes)),
+                "tileCount":models.len(),
+                "tileIds":models.keys().copied().collect::<Vec<_>>(),
+                "edgeCompatibilityVerified":false,
+            }))
+        } else {
+            None
+        };
+        let query = arguments.query.trim().to_ascii_lowercase();
+        let limit = arguments.limit.clamp(1, 500);
+        let mut blueprints = BTreeMap::<String, Vec<String>>::new();
+        for category in map_blueprint_categories() {
+            let resource_type = map_template_resource_type(category).expect("known category");
+            let mut values = catalog
+                .entries
+                .iter()
+                .map(|entry| &entry.key)
+                .chain(staged.iter())
+                .filter(|key| key.resource_type == resource_type)
+                .map(|key| key.resref.clone())
+                .filter(|resref| query.is_empty() || resref.contains(&query))
+                .collect::<Vec<_>>();
+            values.sort();
+            values.dedup();
+            values.truncate(limit);
+            blueprints.insert(category.to_owned(), values);
+        }
+        let mut areas = catalog
+            .entries
+            .iter()
+            .map(|entry| &entry.key)
+            .chain(staged.iter())
+            .filter(|key| key.resource_type == 2012)
+            .map(|key| key.resref.clone())
+            .collect::<Vec<_>>();
+        areas.sort();
+        areas.dedup();
+        Ok(json!({
+            "limits":{
+                "maxWidth":MAP_MAX_WIDTH,"maxHeight":MAP_MAX_HEIGHT,"maxTiles":MAP_MAX_TILES,
+                "maxResrefLength":16,"maxDensityRules":MAP_MAX_DENSITY_RULES,
+                "maxBlueprintsPerRule":MAP_MAX_BLUEPRINTS_PER_RULE,"maxPlacements":MAP_MAX_PLACEMENTS,
+                "maxPolygonPoints":256,"worldUnitsPerTile":10
+            },
+            "availableTilesets":tilesets,
+            "selectedTileset":selected_tileset,
+            "blueprints":blueprints,
+            "existingAreas":areas,
+            "catalog":catalog.summary(),
+            "operations":[
+                "map.preview","map.apply","map.generate","map.inspect","map.atlas","map.environment.edit",
+                "map.audio.edit","map.tile.edit","map.instance.add","map.instance.move",
+                "map.instance.remove","map.structure.edit"
+            ],
+            "compatibility":{
+                "sourceModuleImmutable":snapshot.source_intact,
+                "tilesAndBlueprintsResolvedLocally":true,
+                "visualTileEdgeCompatibilityVerified":false,
+                "recommendedMode":"Use one proven tile id until visual connector validation is available."
+            }
+        }))
+    }
+
+    fn verified_map_plan(&mut self, spec: &MapGenerationSpec) -> AppResult<MapGenerationPlan> {
+        let tileset_key = ResourceKey::new(&spec.tileset, 2013);
+        let set_bytes = self.map_resource_bytes(&tileset_key)?.ok_or_else(|| {
+            mcp_error(
+                "MCP_MAP_TILESET_MISSING",
+                "Le SET de la carte est introuvable dans le module, les HAK ou NWN.",
+                tileset_key.to_string(),
+            )
+        })?;
+        let models = parse_set_tile_models(&set_bytes);
+        if models.is_empty() {
+            return Err(mcp_error(
+                "MCP_MAP_TILESET_INVALID",
+                "Le SET de la carte ne contient aucune tuile lisible.",
+                tileset_key.to_string(),
+            ));
+        }
+        let mut selected_tile_ids = vec![spec.base_tile_id];
+        selected_tile_ids.extend(spec.variant_tile_ids.iter().copied());
+        selected_tile_ids.sort_unstable();
+        selected_tile_ids.dedup();
+        let missing = selected_tile_ids
+            .iter()
+            .filter(|tile_id| !models.contains_key(tile_id))
+            .copied()
+            .collect::<Vec<_>>();
+        if !missing.is_empty() {
+            return Err(mcp_error(
+                "MCP_MAP_TILE_MISSING",
+                "Une ou plusieurs tuiles n'existent pas dans le SET choisi.",
+                format!("{} missing {missing:?}", spec.tileset),
+            ));
+        }
+        for rule in &spec.densities {
+            let resource_type = map_template_resource_type(&rule.category).ok_or_else(|| {
+                mcp_error(
+                    "MCP_MAP_CATEGORY_UNSUPPORTED",
+                    "Une catÃ©gorie de placement n'est pas prise en charge.",
+                    rule.category.clone(),
+                )
+            })?;
+            for resref in &rule.template_resrefs {
+                let key = ResourceKey::new(resref, resource_type);
+                if self.map_resource_bytes(&key)?.is_none() {
+                    return Err(mcp_error(
+                        "MCP_MAP_BLUEPRINT_MISSING",
+                        "Un blueprint de la carte est introuvable.",
+                        key.to_string(),
+                    ));
+                }
+            }
+        }
+        generate_map_plan_with_compatibility(
+            spec,
+            MapCompatibilityReport {
+                tileset_resolved: true,
+                tileset_sha256: Some(hex::encode(Sha256::digest(&set_bytes))),
+                resolved_tile_count: models.len(),
+                selected_tile_ids,
+                tile_ids_verified: true,
+                edge_compatibility_verified: false,
+            },
+        )
+    }
+
+    fn apply_map(
+        &mut self,
+        spec: MapGenerationSpec,
+        expected_plan_sha256: Option<&str>,
+    ) -> AppResult<Value> {
+        let plan = self.verified_map_plan(&spec)?;
+        if expected_plan_sha256
+            .is_some_and(|expected| !expected.eq_ignore_ascii_case(&plan.plan_sha256))
+        {
+            return Err(mcp_error(
+                "MCP_MAP_PLAN_CHANGED",
+                "Le plan de carte a changÃ© depuis sa prÃ©visualisation.",
+                format!("current plan is {}", plan.plan_sha256),
+            ));
+        }
+        let resources = create_generated_map_resources(&plan)?;
+        for resource in &resources {
+            if self.map_resource_bytes(&resource.key)?.is_some() {
+                return Err(mcp_error(
+                    "MCP_MAP_AREA_EXISTS",
+                    "Une ressource de cette carte existe dÃ©jÃ .",
+                    resource.key.to_string(),
+                ));
+            }
+        }
+        let workspace = self.workspace.create_resources_atomic(&resources)?;
+        Ok(json!({
+            "area":plan.spec.resref,
+            "planSha256":plan.plan_sha256,
+            "metrics":plan.metrics,
+            "compatibility":plan.compatibility,
+            "warnings":plan.warnings,
+            "createdResources":resources.iter().map(|resource| resource.key.to_string()).collect::<Vec<_>>(),
+            "workspace":workspace,
+        }))
+    }
+
+    fn inspect_map(&mut self, area: &str) -> AppResult<Value> {
+        let are_key = ResourceKey::new(area, 2012);
+        let git_key = ResourceKey::new(area, 2023);
+        let gic_key = ResourceKey::new(area, 2046);
+        let are = self.map_resource_bytes(&are_key)?.ok_or_else(|| {
+            mcp_error(
+                "MCP_MAP_AREA_MISSING",
+                "La zone demandÃ©e est introuvable.",
+                are_key.to_string(),
+            )
+        })?;
+        let git = self.map_resource_bytes(&git_key)?;
+        let gic = self.map_resource_bytes(&gic_key)?;
+        let are_document = parse_gff(&are, &format!("mcp::{}", are_key.file_name()))?;
+        let git_document = git
+            .as_deref()
+            .map(|bytes| parse_gff(bytes, &format!("mcp::{}", git_key.file_name())))
+            .transpose()?;
+        let gic_document = gic
+            .as_deref()
+            .map(|bytes| parse_gff(bytes, &format!("mcp::{}", gic_key.file_name())))
+            .transpose()?;
+        let area = adapt_area(
+            area,
+            &are_document,
+            git_document.as_ref(),
+            gic_document.as_ref(),
+        );
+        let environment = inspect_area_environment(&are, &format!("mcp::{}", are_key.file_name()))?;
+        let audio = git
+            .as_deref()
+            .map(|bytes| inspect_area_audio(bytes, &format!("mcp::{}", git_key.file_name())))
+            .transpose()?;
+        Ok(json!({
+            "area":area,
+            "environment":environment,
+            "audio":audio,
+            "resourceSha256":{
+                "are":hex::encode(Sha256::digest(&are)),
+                "git":git.as_deref().map(|bytes| hex::encode(Sha256::digest(bytes))),
+                "gic":gic.as_deref().map(|bytes| hex::encode(Sha256::digest(bytes))),
+            }
+        }))
+    }
+
+    fn verify_map_tile(&mut self, area: &str, tile_id: u32) -> AppResult<()> {
+        let are_key = ResourceKey::new(area, 2012);
+        let are = self.map_resource_bytes(&are_key)?.ok_or_else(|| {
+            mcp_error(
+                "MCP_MAP_AREA_MISSING",
+                "La zone demandÃ©e est introuvable.",
+                are_key.to_string(),
+            )
+        })?;
+        let document = parse_gff(&are, &format!("mcp::{}", are_key.file_name()))?;
+        let area_map = adapt_area(area, &document, None, None);
+        let tileset = area_map.tileset.ok_or_else(|| {
+            mcp_error(
+                "MCP_MAP_TILESET_MISSING",
+                "La zone ne dÃ©clare aucun tileset.",
+                area.to_owned(),
+            )
+        })?;
+        let set_key = ResourceKey::new(tileset, 2013);
+        let set = self.map_resource_bytes(&set_key)?.ok_or_else(|| {
+            mcp_error(
+                "MCP_MAP_TILESET_MISSING",
+                "Le SET de la zone est introuvable.",
+                set_key.to_string(),
+            )
+        })?;
+        if !parse_set_tile_models(&set).contains_key(&tile_id) {
+            return Err(mcp_error(
+                "MCP_MAP_TILE_MISSING",
+                "La tuile demandÃ©e n'existe pas dans le SET de la zone.",
+                format!("{set_key}: tile {tile_id}"),
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_map_placement(&mut self, placement: &InstancePlacement) -> AppResult<()> {
+        let resource_type = map_template_resource_type(&placement.category).ok_or_else(|| {
+            mcp_error(
+                "MCP_MAP_CATEGORY_UNSUPPORTED",
+                "La catÃ©gorie de placement n'est pas prise en charge.",
+                placement.category.clone(),
+            )
+        })?;
+        if placement.tag.is_empty()
+            || placement.tag.len() > 64
+            || placement
+                .tag
+                .chars()
+                .any(|character| character.is_control())
+            || !placement.x.is_finite()
+            || !placement.y.is_finite()
+            || !placement.z.is_finite()
+            || !placement.bearing.is_finite()
+        {
+            return Err(mcp_error(
+                "MCP_MAP_PLACEMENT_INVALID",
+                "Le placement contient un tag ou des coordonnÃ©es invalides.",
+                placement.tag.clone(),
+            ));
+        }
+        let key = ResourceKey::new(&placement.template_resref, resource_type);
+        if self.map_resource_bytes(&key)?.is_none() {
+            return Err(mcp_error(
+                "MCP_MAP_BLUEPRINT_MISSING",
+                "Le blueprint du placement est introuvable.",
+                key.to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn apply_map_resource_transform(
+        &mut self,
+        resource: ResourceKey,
+        expected_sha256: &str,
+        operation: String,
+        transform: impl FnOnce(&[u8], &str) -> AppResult<Vec<u8>>,
+    ) -> AppResult<Value> {
+        let source_bytes = self.resolved_catalog_resource_bytes(&resource)?;
+        let current = self
+            .workspace
+            .staged_resource_bytes(&resource)?
+            .or_else(|| source_bytes.clone())
+            .ok_or_else(|| {
+                mcp_error(
+                    "MCP_MAP_RESOURCE_MISSING",
+                    "La ressource de carte Ã  modifier est introuvable.",
+                    resource.to_string(),
+                )
+            })?;
+        verify_expected_sha256(&current, expected_sha256)?;
+        let output = transform(&current, &format!("mcp::{}", resource.file_name()))?;
+        let workspace = self.commit_map_transform(
+            resource,
+            source_bytes.as_deref(),
+            &current,
+            &output,
+            operation,
+        )?;
+        serialize_tool_value(workspace)
+    }
+
+    fn commit_map_transform(
+        &mut self,
+        resource: ResourceKey,
+        source_bytes: Option<&[u8]>,
+        current: &[u8],
+        output: &[u8],
+        operation: String,
+    ) -> AppResult<aurora_edit::WorkspaceSnapshot> {
+        let before_sha256 = hex::encode(Sha256::digest(current));
+        let after_sha256 = hex::encode(Sha256::digest(output));
+        self.workspace
+            .stage_resource(resource.clone(), source_bytes, output)?;
+        self.workspace.apply(EditCommand::TransformResource {
+            resource,
+            operation,
+            before_sha256,
+            after_sha256,
+        })
+    }
+
     fn resource_bytes(&self, resource: &ResourceKey) -> AppResult<Vec<u8>> {
         if let Some(bytes) = self.workspace.staged_resource_bytes(resource)? {
             return Ok(bytes);
         }
+        self.source_resource_bytes(resource)
+    }
+
+    fn source_resource_bytes(&self, resource: &ResourceKey) -> AppResult<Vec<u8>> {
         let snapshot = self.workspace.snapshot()?;
         let source = Path::new(&snapshot.source.path);
         let reader = ErfReader::default();
@@ -476,7 +1099,8 @@ impl McpServer {
         json!({"resources":[
             {"uri":"opennever://workspace/snapshot","name":"Workspace snapshot","mimeType":"application/json"},
             {"uri":"opennever://agent/policy","name":"Agent policy","mimeType":"application/json"},
-            {"uri":"opennever://agent/capabilities","name":"Capability registry","mimeType":"application/json"}
+            {"uri":"opennever://agent/capabilities","name":"Capability registry","mimeType":"application/json"},
+            {"uri":"opennever://map/authoring-contract","name":"Map authoring contract","mimeType":"application/json"}
         ]})
     }
 
@@ -493,6 +1117,14 @@ impl McpServer {
             "opennever://workspace/snapshot" => serde_json::to_value(self.workspace.snapshot()?),
             "opennever://agent/policy" => serde_json::to_value(&policy),
             "opennever://agent/capabilities" => serde_json::to_value(&self.registry),
+            "opennever://map/authoring-contract" => Ok(json!({
+                "workflow":["map.context","map.preview","map.apply","map.inspect","targeted map edits","map.inspect"],
+                "coordinates":{"tileOrigin":"zero-based top-left grid","worldUnitsPerTile":10,"instanceCoordinates":"world units"},
+                "editable":["tiles and height","area scripts","weather and lighting","music and ambient audio","creatures","doors","encounters","items","placeables","sounds","stores","triggers","waypoints","trigger and encounter polygons","encounter spawn points","door and trigger transitions","placeable and store inventories"],
+                "preconditions":"Every targeted edit uses the current ARE or GIT SHA-256 returned by map.inspect.",
+                "compatibility":"SET tile identifiers and blueprint ResRefs are resolved locally. Visual connector compatibility between different tile variants is not yet proven.",
+                "sourceSafety":"All writes target the reversible workspace overlay; the source MOD and NWN installation remain immutable."
+            })),
             _ => {
                 return Err(mcp_error(
                     "MCP_RESOURCE_NOT_FOUND",
@@ -530,6 +1162,94 @@ struct ReplaceScriptArguments {
     after: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapContextArguments {
+    tileset: Option<String>,
+    query: String,
+    limit: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapAreaArguments {
+    area: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapPreviewArguments {
+    spec: MapGenerationSpec,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapApplyArguments {
+    spec: MapGenerationSpec,
+    expected_plan_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapEnvironmentArguments {
+    area: String,
+    expected_sha256: String,
+    patch: AreaEnvironmentPatch,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapAudioArguments {
+    area: String,
+    expected_sha256: String,
+    patch: AreaAudioPatch,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapTileArguments {
+    area: String,
+    x: u32,
+    y: u32,
+    expected_sha256: String,
+    before: TileState,
+    after: TileState,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapInstanceAddArguments {
+    area: String,
+    expected_sha256: String,
+    placement: InstancePlacement,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapInstanceMoveArguments {
+    area: String,
+    instance_id: String,
+    expected_sha256: String,
+    before: Transform,
+    after: Transform,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapInstanceRemoveArguments {
+    area: String,
+    instance_id: String,
+    expected_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MapStructureArguments {
+    area: String,
+    expected_sha256: String,
+    action: AreaStructureAction,
+}
+
 fn mcp_tool_is_implemented(id: &str) -> bool {
     matches!(
         id,
@@ -539,6 +1259,19 @@ fn mcp_tool_is_implemented(id: &str) -> bool {
             | "resource.read"
             | "resource.set_field"
             | "script.replace"
+            | "map.context"
+            | "map.inspect"
+            | "map.atlas"
+            | "map.preview"
+            | "map.apply"
+            | "map.generate"
+            | "map.environment.edit"
+            | "map.audio.edit"
+            | "map.tile.edit"
+            | "map.instance.add"
+            | "map.instance.move"
+            | "map.instance.remove"
+            | "map.structure.edit"
             | "workspace.checkpoint"
     )
 }
@@ -591,6 +1324,61 @@ fn is_gff(resource_type: u16) -> bool {
                 | "utw"
         )
     )
+}
+
+fn map_blueprint_categories() -> [&'static str; 9] {
+    [
+        "creature",
+        "door",
+        "encounter",
+        "item",
+        "placeable",
+        "sound",
+        "store",
+        "trigger",
+        "waypoint",
+    ]
+}
+
+fn map_template_resource_type(category: &str) -> Option<u16> {
+    match category {
+        "creature" => Some(2027),
+        "door" => Some(2042),
+        "encounter" => Some(2040),
+        "item" => Some(2025),
+        "placeable" => Some(2044),
+        "sound" => Some(2035),
+        "store" => Some(2051),
+        "trigger" => Some(2032),
+        "waypoint" => Some(2058),
+        _ => None,
+    }
+}
+
+fn verify_expected_sha256(bytes: &[u8], expected: &str) -> AppResult<()> {
+    let actual = hex::encode(Sha256::digest(bytes));
+    if expected.len() != 64 || !expected.eq_ignore_ascii_case(&actual) {
+        return Err(mcp_error(
+            "MCP_MAP_RESOURCE_CHANGED",
+            "La carte a changÃ© depuis son inspection. Inspectez-la de nouveau.",
+            format!("expected {expected:?}, current {actual}"),
+        ));
+    }
+    Ok(())
+}
+
+fn non_empty_path(value: &str) -> Option<PathBuf> {
+    (!value.trim().is_empty()).then(|| PathBuf::from(value))
+}
+
+fn serialize_tool_value(value: impl Serialize) -> AppResult<Value> {
+    serde_json::to_value(value).map_err(|error| {
+        mcp_error(
+            "MCP_TOOL_RESULT_INVALID",
+            "Le rÃ©sultat MCP n'a pas pu Ãªtre prÃ©parÃ©.",
+            error.to_string(),
+        )
+    })
 }
 
 fn decode_arguments<T: serde::de::DeserializeOwned>(value: Value, name: &str) -> AppResult<T> {
@@ -751,5 +1539,196 @@ mod tests {
             .handle(json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}))
             .expect("response");
         assert_eq!(early["error"]["data"]["code"], "MCP_NOT_INITIALIZED");
+    }
+
+    #[test]
+    fn creates_and_edits_a_complete_map_through_mcp_tools() {
+        let temporary = tempfile::tempdir().expect("temporary");
+        let module = temporary.path().join("source.mod");
+        create_empty_module(
+            &module,
+            &NewModuleDefinition {
+                name: "MCP Map Test".to_owned(),
+                tag: "MCP_MAP_TEST".to_owned(),
+                entry_area: "entry".to_owned(),
+                tileset: "tno01".to_owned(),
+            },
+        )
+        .expect("module");
+        let module_bytes = fs::read(&module).expect("module bytes");
+        let source_digest = hex::encode(Sha256::digest(&module_bytes));
+        let workspace_root = temporary.path().join("workspace");
+        let mut workspace = EditWorkspace::create(
+            &workspace_root,
+            &module,
+            &source_digest,
+            module_bytes.len() as u64,
+        )
+        .expect("workspace");
+        workspace
+            .create_resource(
+                ResourceKey::new("tno01", 2013),
+                b"[TILE0]\nmodel=tno01_a01\n[TILE1]\nmodel=tno01_a02\n",
+            )
+            .expect("SET");
+        workspace
+            .create_resource(ResourceKey::new("plc_test", 2044), b"synthetic UTP")
+            .expect("UTP");
+        workspace
+            .create_resource(ResourceKey::new("trg_test", 2032), b"synthetic UTT")
+            .expect("UTT");
+
+        let store = AgentWorkspaceStore::new(&workspace_root);
+        let mut policy = built_in_policy(SecurityLevel::Operator);
+        policy.context.include_module_metadata = true;
+        policy.context.include_resource_contents = true;
+        for capability in [
+            "map.context",
+            "map.inspect",
+            "map.atlas",
+            "map.preview",
+            "map.apply",
+            "map.environment.edit",
+            "map.tile.edit",
+            "map.instance.add",
+            "map.instance.move",
+            "map.instance.remove",
+            "map.structure.edit",
+        ] {
+            policy.capability_overrides.insert(
+                capability.to_owned(),
+                CapabilityOverride {
+                    access: CapabilityAccess::Execute,
+                    approval: ApprovalMode::Never,
+                    scope: ToolScope::Workspace,
+                    max_calls: 20,
+                },
+            );
+        }
+        store.save_policy(&policy).expect("policy");
+        let mut server = McpServer::open(workspace_root).expect("server");
+        server.handle(json!({
+            "jsonrpc":"2.0","id":1,"method":"initialize",
+            "params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"1"}}
+        }));
+        server.handle(json!({"jsonrpc":"2.0","method":"notifications/initialized"}));
+
+        let context = server
+            .handle(json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"map.context","arguments":{"tileset":"tno01","query":"","limit":100}}}))
+            .expect("context");
+        assert_eq!(
+            context["result"]["structuredContent"]["selectedTileset"]["tileIds"],
+            json!([0, 1])
+        );
+        assert_eq!(
+            context["result"]["structuredContent"]["blueprints"]["placeable"],
+            json!(["plc_test"])
+        );
+
+        let spec = json!({
+            "schemaVersion":1,
+            "brief":"Une petite place avec un dÃ©cor reproductible",
+            "resref":"mcp_map",
+            "name":"Carte MCP",
+            "tileset":"tno01",
+            "width":4,
+            "height":4,
+            "seed":42,
+            "baseTileId":0,
+            "variantTileIds":[],
+            "borderMargin":1,
+            "reservedPercent":0,
+            "densities":[{"category":"placeable","perHundredTiles":25,"minSpacingTiles":1,"templateResrefs":["plc_test"]}]
+        });
+        let cursor_before = server.workspace.snapshot().expect("snapshot").cursor;
+        let preview = server
+            .handle(json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"map.preview","arguments":{"spec":spec.clone()}}}))
+            .expect("preview");
+        assert_eq!(
+            server.workspace.snapshot().expect("snapshot").cursor,
+            cursor_before
+        );
+        let plan_sha = preview["result"]["structuredContent"]["planSha256"]
+            .as_str()
+            .expect("plan sha")
+            .to_owned();
+        let applied = server
+            .handle(json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"map.apply","arguments":{"spec":spec,"expectedPlanSha256":plan_sha}}}))
+            .expect("apply");
+        assert_eq!(applied["result"]["isError"], false);
+
+        let inspected = server
+            .handle(json!({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"map.inspect","arguments":{"area":"mcp_map"}}}))
+            .expect("inspect");
+        let atlas = server
+            .handle(json!({"jsonrpc":"2.0","id":51,"method":"tools/call","params":{"name":"map.atlas","arguments":{"area":"mcp_map"}}}))
+            .expect("atlas");
+        assert_eq!(
+            atlas["result"]["structuredContent"]["mimeType"],
+            "image/svg+xml"
+        );
+        assert!(
+            atlas["result"]["structuredContent"]["svg"]
+                .as_str()
+                .is_some_and(|svg| svg.starts_with("<svg"))
+        );
+        let are_sha = inspected["result"]["structuredContent"]["resourceSha256"]["are"]
+            .as_str()
+            .expect("ARE sha")
+            .to_owned();
+        let git_sha = inspected["result"]["structuredContent"]["resourceSha256"]["git"]
+            .as_str()
+            .expect("GIT sha")
+            .to_owned();
+        let first_tile = inspected["result"]["structuredContent"]["area"]["tiles"][0].clone();
+
+        let environment = server
+            .handle(json!({"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"map.environment.edit","arguments":{"area":"mcp_map","expectedSha256":are_sha,"patch":{"comments":"Carte finalisÃ©e via MCP","chanceRain":20,"onEnter":"map_enter"}}}}))
+            .expect("environment");
+        assert_eq!(environment["result"]["isError"], false);
+
+        let reinspection = server
+            .handle(json!({"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"map.inspect","arguments":{"area":"mcp_map"}}}))
+            .expect("reinspect");
+        let updated_are_sha = reinspection["result"]["structuredContent"]["resourceSha256"]["are"]
+            .as_str()
+            .expect("updated ARE sha")
+            .to_owned();
+        let tile = server
+            .handle(json!({"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"map.tile.edit","arguments":{"area":"mcp_map","x":0,"y":0,"expectedSha256":updated_are_sha,"before":{"tileId":first_tile["tileId"],"orientation":first_tile["orientation"],"height":first_tile["height"]},"after":{"tileId":1,"orientation":2,"height":first_tile["height"]}}}}))
+            .expect("tile");
+        assert_eq!(tile["result"]["isError"], false);
+
+        let trigger = server
+            .handle(json!({"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"map.instance.add","arguments":{"area":"mcp_map","expectedSha256":git_sha,"placement":{"category":"trigger","templateResref":"trg_test","tag":"trg_exit","x":15.0,"y":15.0,"z":0.0,"bearing":0.0,"linkedTo":"entry"}}}}))
+            .expect("trigger");
+        let instance_id = trigger["result"]["structuredContent"]["instanceId"]
+            .as_str()
+            .expect("instance id")
+            .to_owned();
+        let after_trigger = server.inspect_map("mcp_map").expect("after trigger");
+        let trigger_git_sha = after_trigger["resourceSha256"]["git"]
+            .as_str()
+            .expect("trigger GIT sha")
+            .to_owned();
+        let geometry = server
+            .handle(json!({"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"map.structure.edit","arguments":{"area":"mcp_map","expectedSha256":trigger_git_sha,"action":{"kind":"set_geometry","instanceId":instance_id,"points":[{"x":12.0,"y":12.0,"z":0.0},{"x":18.0,"y":12.0,"z":0.0},{"x":18.0,"y":18.0,"z":0.0}]}}}}))
+            .expect("geometry");
+        assert_eq!(geometry["result"]["isError"], false);
+        let final_map = server.inspect_map("mcp_map").expect("final map");
+        assert!(
+            final_map["area"]["instances"]
+                .as_array()
+                .expect("instances")
+                .iter()
+                .any(|instance| instance["tag"] == "trg_exit"
+                    && instance["geometry"]
+                        .as_array()
+                        .is_some_and(|points| points.len() == 3))
+        );
+        assert_eq!(
+            fs::read(&module).expect("source remains readable"),
+            module_bytes
+        );
     }
 }

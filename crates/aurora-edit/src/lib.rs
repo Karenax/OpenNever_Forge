@@ -1,4 +1,12 @@
+mod mapgen;
 mod sync;
+
+pub use mapgen::{
+    MAP_GENERATION_SCHEMA_VERSION, MAP_MAX_BLUEPRINTS_PER_RULE, MAP_MAX_DENSITY_RULES,
+    MAP_MAX_HEIGHT, MAP_MAX_PLACEMENTS, MAP_MAX_TILES, MAP_MAX_WIDTH, MapCompatibilityReport,
+    MapDensityRule, MapGenerationMetrics, MapGenerationPlan, MapGenerationSpec, MapTilePlan,
+    generate_map_plan, generate_map_plan_with_compatibility,
+};
 
 pub use sync::{
     AURORA_SYNC_SCHEMA_VERSION, AuroraSyncAction, AuroraSyncAppliedFile, AuroraSyncBaseline,
@@ -157,6 +165,54 @@ pub struct AreaSpawnPoint {
     pub orientation: f64,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaEnvironmentPatch {
+    pub tag: Option<String>,
+    pub comments: Option<String>,
+    pub day_night_cycle: Option<bool>,
+    pub is_night: Option<bool>,
+    pub no_rest: Option<bool>,
+    pub player_vs_player: Option<u8>,
+    pub chance_rain: Option<u8>,
+    pub chance_snow: Option<u8>,
+    pub chance_lightning: Option<u8>,
+    pub wind_power: Option<u8>,
+    pub fog_clip_distance: Option<f32>,
+    pub sky_box: Option<u8>,
+    pub load_screen_id: Option<u16>,
+    pub lighting_scheme: Option<u8>,
+    pub shadow_opacity: Option<u8>,
+    pub sun_ambient_color: Option<u32>,
+    pub sun_diffuse_color: Option<u32>,
+    pub sun_fog_color: Option<u32>,
+    pub sun_fog_amount: Option<u8>,
+    pub sun_shadows: Option<bool>,
+    pub moon_ambient_color: Option<u32>,
+    pub moon_diffuse_color: Option<u32>,
+    pub moon_fog_color: Option<u32>,
+    pub moon_fog_amount: Option<u8>,
+    pub moon_shadows: Option<bool>,
+    pub on_enter: Option<String>,
+    pub on_exit: Option<String>,
+    pub on_heartbeat: Option<String>,
+    pub on_user_defined: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AreaAudioPatch {
+    pub ambient_sound_day: Option<i32>,
+    pub ambient_sound_night: Option<i32>,
+    pub ambient_sound_day_volume: Option<u8>,
+    pub ambient_sound_night_volume: Option<u8>,
+    pub environment_audio: Option<i32>,
+    pub music_battle: Option<i32>,
+    pub music_day: Option<i32>,
+    pub music_night: Option<i32>,
+    pub music_delay: Option<i32>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(
     tag = "kind",
@@ -224,6 +280,12 @@ pub enum DialogueStructureAction {
     AddLink {
         source: Option<DialogueNodeRef>,
         target: DialogueNodeRef,
+    },
+    SetLinkScripts {
+        source: Option<DialogueNodeRef>,
+        position: usize,
+        condition_script: Option<String>,
+        action_script: Option<String>,
     },
     RemoveLink {
         source: Option<DialogueNodeRef>,
@@ -4282,10 +4344,12 @@ pub fn create_area_resources(
     tile_id: u32,
 ) -> AppResult<Vec<ErfResourceInput>> {
     validate_resref(resref)?;
-    if width == 0 || height == 0 || width > 64 || height > 64 {
+    if width == 0 || height == 0 || width > MAP_MAX_WIDTH || height > MAP_MAX_HEIGHT {
         return Err(edit_error(
             "EDIT_AREA_DIMENSIONS_INVALID",
-            format!("area dimensions {width}x{height} are outside 1..=64"),
+            format!(
+                "area dimensions {width}x{height} exceed the compatible {MAP_MAX_WIDTH}x{MAP_MAX_HEIGHT} limit"
+            ),
         ));
     }
     let tile_count = width
@@ -4700,6 +4764,20 @@ pub fn edit_dialogue_structure(
         DialogueStructureAction::AddLink { source, target } => {
             add_dialogue_link(&mut document.root, *source, *target)?;
         }
+        DialogueStructureAction::SetLinkScripts {
+            source,
+            position,
+            condition_script,
+            action_script,
+        } => {
+            set_dialogue_link_scripts(
+                &mut document.root,
+                *source,
+                *position,
+                condition_script.as_deref(),
+                action_script.as_deref(),
+            )?;
+        }
         DialogueStructureAction::RemoveLink { source, position } => {
             let links = dialogue_links_mut(&mut document.root, *source)?;
             if *position >= links.len() {
@@ -4859,6 +4937,59 @@ fn add_dialogue_link(
             gff_field("IsChild", 0, GenericValue::Byte(0)),
         ],
     });
+    Ok(())
+}
+
+fn set_dialogue_link_scripts(
+    root: &mut GenericStruct,
+    source: Option<DialogueNodeRef>,
+    position: usize,
+    condition_script: Option<&str>,
+    action_script: Option<&str>,
+) -> AppResult<()> {
+    let links = dialogue_links_mut(root, source)?;
+    let link_count = links.len();
+    let link = links.get_mut(position).ok_or_else(|| {
+        edit_error(
+            "EDIT_DIALOGUE_LINK_NOT_FOUND",
+            format!(
+                "link position {position} is outside a list of {} links",
+                link_count
+            ),
+        )
+    })?;
+    set_optional_dialogue_resref(link, &["Active", "Conditional"], "Active", condition_script)?;
+    set_optional_dialogue_resref(link, &["Script", "ActionScript"], "Script", action_script)?;
+    Ok(())
+}
+
+fn set_optional_dialogue_resref(
+    structure: &mut GenericStruct,
+    labels: &[&str],
+    preferred_label: &str,
+    value: Option<&str>,
+) -> AppResult<()> {
+    let value = value.map(str::trim).filter(|value| !value.is_empty());
+    if let Some(value) = value {
+        validate_resref(value)?;
+        if let Some(field) = structure
+            .fields
+            .iter_mut()
+            .find(|field| labels.iter().any(|label| field.label == *label))
+        {
+            field.value = GenericValue::ResRef(value.to_owned());
+        } else {
+            structure.fields.push(gff_field(
+                preferred_label,
+                11,
+                GenericValue::ResRef(value.to_owned()),
+            ));
+        }
+    } else {
+        structure
+            .fields
+            .retain(|field| !labels.iter().any(|label| field.label == *label));
+    }
     Ok(())
 }
 
@@ -5754,6 +5885,279 @@ pub fn edit_area_instance(
     write_gff(&document)
 }
 
+pub fn edit_area_instance_by_id(
+    bytes: &[u8],
+    source: &str,
+    area: &str,
+    instance_id: &str,
+    before: Transform,
+    after: Transform,
+) -> AppResult<Vec<u8>> {
+    let (list_label, index) = parse_area_instance_id(area, instance_id)?;
+    edit_area_instance(bytes, source, list_label, index, before, after)
+}
+
+pub fn edit_area_tile_at(
+    bytes: &[u8],
+    source: &str,
+    x: u32,
+    y: u32,
+    before: TileState,
+    after: TileState,
+) -> AppResult<Vec<u8>> {
+    let document = parse_gff(bytes, source)?;
+    let width = find_field(&document.root, &["Width"])
+        .and_then(|field| integer(&field.value))
+        .and_then(|value| u32::try_from(value).ok())
+        .ok_or_else(|| edit_error("EDIT_AREA_DIMENSIONS_INVALID", "ARE width is missing"))?;
+    let height = find_field(&document.root, &["Height"])
+        .and_then(|field| integer(&field.value))
+        .and_then(|value| u32::try_from(value).ok())
+        .ok_or_else(|| edit_error("EDIT_AREA_DIMENSIONS_INVALID", "ARE height is missing"))?;
+    if x >= width || y >= height {
+        return Err(edit_error(
+            "EDIT_AREA_TILE_NOT_FOUND",
+            format!("tile {x},{y} is outside the {width}x{height} area"),
+        ));
+    }
+    let index = y
+        .checked_mul(width)
+        .and_then(|value| value.checked_add(x))
+        .ok_or_else(|| edit_error("EDIT_AREA_TILE_INDEX_OVERFLOW", "tile index overflow"))?
+        as usize;
+    edit_area_tile(bytes, source, index, before, after)
+}
+
+pub fn edit_area_environment(
+    bytes: &[u8],
+    source: &str,
+    patch: &AreaEnvironmentPatch,
+) -> AppResult<Vec<u8>> {
+    validate_area_environment_patch(patch)?;
+    let mut document = parse_gff(bytes, source)?;
+    let root = &mut document.root;
+    if let Some(value) = &patch.tag {
+        set_or_insert_string(root, "Tag", value.clone())?;
+    }
+    if let Some(value) = &patch.comments {
+        set_or_insert_string(root, "Comments", value.clone())?;
+    }
+    patch_bool(root, "DayNightCycle", patch.day_night_cycle)?;
+    patch_bool(root, "IsNight", patch.is_night)?;
+    patch_bool(root, "NoRest", patch.no_rest)?;
+    patch_integer(
+        root,
+        "PlayerVsPlayer",
+        patch.player_vs_player.map(i64::from),
+        0,
+    )?;
+    patch_integer(root, "ChanceRain", patch.chance_rain.map(i64::from), 5)?;
+    patch_integer(root, "ChanceSnow", patch.chance_snow.map(i64::from), 5)?;
+    patch_integer(
+        root,
+        "ChanceLightning",
+        patch.chance_lightning.map(i64::from),
+        5,
+    )?;
+    patch_integer(root, "WindPower", patch.wind_power.map(i64::from), 5)?;
+    if let Some(value) = patch.fog_clip_distance {
+        set_or_insert_float(root, "FogClipDist", value)?;
+    }
+    patch_integer(root, "SkyBox", patch.sky_box.map(i64::from), 0)?;
+    patch_integer(root, "LoadScreenID", patch.load_screen_id.map(i64::from), 2)?;
+    patch_integer(
+        root,
+        "LightingScheme",
+        patch.lighting_scheme.map(i64::from),
+        0,
+    )?;
+    patch_integer(
+        root,
+        "ShadowOpacity",
+        patch.shadow_opacity.map(i64::from),
+        0,
+    )?;
+    patch_integer(
+        root,
+        "SunAmbientColor",
+        patch.sun_ambient_color.map(i64::from),
+        4,
+    )?;
+    patch_integer(
+        root,
+        "SunDiffuseColor",
+        patch.sun_diffuse_color.map(i64::from),
+        4,
+    )?;
+    patch_integer(root, "SunFogColor", patch.sun_fog_color.map(i64::from), 4)?;
+    patch_integer(root, "SunFogAmount", patch.sun_fog_amount.map(i64::from), 0)?;
+    patch_bool(root, "SunShadows", patch.sun_shadows)?;
+    patch_integer(
+        root,
+        "MoonAmbientColor",
+        patch.moon_ambient_color.map(i64::from),
+        4,
+    )?;
+    patch_integer(
+        root,
+        "MoonDiffuseColor",
+        patch.moon_diffuse_color.map(i64::from),
+        4,
+    )?;
+    patch_integer(root, "MoonFogColor", patch.moon_fog_color.map(i64::from), 4)?;
+    patch_integer(
+        root,
+        "MoonFogAmount",
+        patch.moon_fog_amount.map(i64::from),
+        0,
+    )?;
+    patch_bool(root, "MoonShadows", patch.moon_shadows)?;
+    patch_resref(root, "OnEnter", patch.on_enter.as_deref())?;
+    patch_resref(root, "OnExit", patch.on_exit.as_deref())?;
+    patch_resref(root, "OnHeartbeat", patch.on_heartbeat.as_deref())?;
+    patch_resref(root, "OnUserDefined", patch.on_user_defined.as_deref())?;
+    write_gff(&document)
+}
+
+pub fn inspect_area_environment(bytes: &[u8], source: &str) -> AppResult<AreaEnvironmentPatch> {
+    let document = parse_gff(bytes, source)?;
+    let root = &document.root;
+    Ok(AreaEnvironmentPatch {
+        tag: read_text_field(root, "Tag"),
+        comments: read_text_field(root, "Comments"),
+        day_night_cycle: read_bool_field(root, "DayNightCycle"),
+        is_night: read_bool_field(root, "IsNight"),
+        no_rest: read_bool_field(root, "NoRest"),
+        player_vs_player: read_integer_field(root, "PlayerVsPlayer").and_then(as_u8),
+        chance_rain: read_integer_field(root, "ChanceRain").and_then(as_u8),
+        chance_snow: read_integer_field(root, "ChanceSnow").and_then(as_u8),
+        chance_lightning: read_integer_field(root, "ChanceLightning").and_then(as_u8),
+        wind_power: read_integer_field(root, "WindPower").and_then(as_u8),
+        fog_clip_distance: read_numeric_field(root, "FogClipDist").map(|value| value as f32),
+        sky_box: read_integer_field(root, "SkyBox").and_then(as_u8),
+        load_screen_id: read_integer_field(root, "LoadScreenID")
+            .and_then(|value| u16::try_from(value).ok()),
+        lighting_scheme: read_integer_field(root, "LightingScheme").and_then(as_u8),
+        shadow_opacity: read_integer_field(root, "ShadowOpacity").and_then(as_u8),
+        sun_ambient_color: read_integer_field(root, "SunAmbientColor").and_then(as_u32),
+        sun_diffuse_color: read_integer_field(root, "SunDiffuseColor").and_then(as_u32),
+        sun_fog_color: read_integer_field(root, "SunFogColor").and_then(as_u32),
+        sun_fog_amount: read_integer_field(root, "SunFogAmount").and_then(as_u8),
+        sun_shadows: read_bool_field(root, "SunShadows"),
+        moon_ambient_color: read_integer_field(root, "MoonAmbientColor").and_then(as_u32),
+        moon_diffuse_color: read_integer_field(root, "MoonDiffuseColor").and_then(as_u32),
+        moon_fog_color: read_integer_field(root, "MoonFogColor").and_then(as_u32),
+        moon_fog_amount: read_integer_field(root, "MoonFogAmount").and_then(as_u8),
+        moon_shadows: read_bool_field(root, "MoonShadows"),
+        on_enter: read_text_field(root, "OnEnter"),
+        on_exit: read_text_field(root, "OnExit"),
+        on_heartbeat: read_text_field(root, "OnHeartbeat"),
+        on_user_defined: read_text_field(root, "OnUserDefined"),
+    })
+}
+
+pub fn edit_area_audio(bytes: &[u8], source: &str, patch: &AreaAudioPatch) -> AppResult<Vec<u8>> {
+    validate_area_audio_patch(patch)?;
+    let mut document = parse_gff(bytes, source)?;
+    let properties = document
+        .root
+        .fields
+        .iter_mut()
+        .find(|field| field.label == "AreaProperties")
+        .and_then(|field| match &mut field.value {
+            GenericValue::Struct(value) => Some(value.as_mut()),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            edit_error(
+                "EDIT_AREA_AUDIO_PROPERTIES_MISSING",
+                "GIT AreaProperties is missing or invalid",
+            )
+        })?;
+    patch_integer(
+        properties,
+        "AmbientSndDay",
+        patch.ambient_sound_day.map(i64::from),
+        5,
+    )?;
+    patch_integer(
+        properties,
+        "AmbientSndNight",
+        patch.ambient_sound_night.map(i64::from),
+        5,
+    )?;
+    patch_integer(
+        properties,
+        "AmbientSndDayVol",
+        patch.ambient_sound_day_volume.map(i64::from),
+        5,
+    )?;
+    patch_integer(
+        properties,
+        "AmbientSndNitVol",
+        patch.ambient_sound_night_volume.map(i64::from),
+        5,
+    )?;
+    patch_integer(
+        properties,
+        "EnvAudio",
+        patch.environment_audio.map(i64::from),
+        5,
+    )?;
+    patch_integer(
+        properties,
+        "MusicBattle",
+        patch.music_battle.map(i64::from),
+        5,
+    )?;
+    patch_integer(properties, "MusicDay", patch.music_day.map(i64::from), 5)?;
+    patch_integer(
+        properties,
+        "MusicNight",
+        patch.music_night.map(i64::from),
+        5,
+    )?;
+    patch_integer(
+        properties,
+        "MusicDelay",
+        patch.music_delay.map(i64::from),
+        5,
+    )?;
+    write_gff(&document)
+}
+
+pub fn inspect_area_audio(bytes: &[u8], source: &str) -> AppResult<AreaAudioPatch> {
+    let document = parse_gff(bytes, source)?;
+    let properties = document
+        .root
+        .fields
+        .iter()
+        .find(|field| field.label == "AreaProperties")
+        .and_then(|field| match &field.value {
+            GenericValue::Struct(value) => Some(value.as_ref()),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            edit_error(
+                "EDIT_AREA_AUDIO_PROPERTIES_MISSING",
+                "GIT AreaProperties is missing or invalid",
+            )
+        })?;
+    Ok(AreaAudioPatch {
+        ambient_sound_day: read_integer_field(properties, "AmbientSndDay").and_then(as_i32),
+        ambient_sound_night: read_integer_field(properties, "AmbientSndNight").and_then(as_i32),
+        ambient_sound_day_volume: read_integer_field(properties, "AmbientSndDayVol")
+            .and_then(as_u8),
+        ambient_sound_night_volume: read_integer_field(properties, "AmbientSndNitVol")
+            .and_then(as_u8),
+        environment_audio: read_integer_field(properties, "EnvAudio").and_then(as_i32),
+        music_battle: read_integer_field(properties, "MusicBattle").and_then(as_i32),
+        music_day: read_integer_field(properties, "MusicDay").and_then(as_i32),
+        music_night: read_integer_field(properties, "MusicNight").and_then(as_i32),
+        music_delay: read_integer_field(properties, "MusicDelay").and_then(as_i32),
+    })
+}
+
 pub fn edit_area_structure(
     bytes: &[u8],
     source: &str,
@@ -6169,6 +6573,15 @@ fn set_or_insert_integer(
         2 => GenericValue::Word(u16::try_from(value).map_err(|_| {
             edit_error("EDIT_GFF_VALUE_RANGE", format!("{value} does not fit WORD"))
         })?),
+        4 => GenericValue::Dword(u32::try_from(value).map_err(|_| {
+            edit_error(
+                "EDIT_GFF_VALUE_RANGE",
+                format!("{value} does not fit DWORD"),
+            )
+        })?),
+        5 => GenericValue::Int(i32::try_from(value).map_err(|_| {
+            edit_error("EDIT_GFF_VALUE_RANGE", format!("{value} does not fit INT"))
+        })?),
         _ => {
             return Err(edit_error(
                 "EDIT_GFF_FIELD_TYPE_INVALID",
@@ -6180,12 +6593,157 @@ fn set_or_insert_integer(
     Ok(())
 }
 
+fn set_or_insert_float(structure: &mut GenericStruct, label: &str, value: f32) -> AppResult<()> {
+    if find_field(structure, &[label]).is_some() {
+        return set_numeric(structure, &[label], f64::from(value));
+    }
+    structure
+        .fields
+        .push(gff_field(label, 8, GenericValue::Float(value)));
+    Ok(())
+}
+
+fn patch_integer(
+    structure: &mut GenericStruct,
+    label: &str,
+    value: Option<i64>,
+    field_type: u32,
+) -> AppResult<()> {
+    if let Some(value) = value {
+        set_or_insert_integer(structure, label, value, field_type)?;
+    }
+    Ok(())
+}
+
+fn patch_bool(structure: &mut GenericStruct, label: &str, value: Option<bool>) -> AppResult<()> {
+    patch_integer(structure, label, value.map(i64::from), 0)
+}
+
+fn patch_resref(structure: &mut GenericStruct, label: &str, value: Option<&str>) -> AppResult<()> {
+    if let Some(value) = value {
+        if !value.is_empty() {
+            validate_resref(value)?;
+        }
+        set_or_insert_resref(structure, label, value.to_owned())?;
+    }
+    Ok(())
+}
+
+fn read_text_field(structure: &GenericStruct, label: &str) -> Option<String> {
+    find_field(structure, &[label]).and_then(|field| match &field.value {
+        GenericValue::String(value) | GenericValue::ResRef(value) => Some(value.clone()),
+        _ => None,
+    })
+}
+
+fn read_integer_field(structure: &GenericStruct, label: &str) -> Option<i64> {
+    find_field(structure, &[label]).and_then(|field| integer(&field.value))
+}
+
+fn read_numeric_field(structure: &GenericStruct, label: &str) -> Option<f64> {
+    find_field(structure, &[label]).and_then(|field| numeric(&field.value))
+}
+
+fn read_bool_field(structure: &GenericStruct, label: &str) -> Option<bool> {
+    read_integer_field(structure, label).map(|value| value != 0)
+}
+
+fn as_u8(value: i64) -> Option<u8> {
+    u8::try_from(value).ok()
+}
+
+fn as_u32(value: i64) -> Option<u32> {
+    u32::try_from(value).ok()
+}
+
+fn as_i32(value: i64) -> Option<i32> {
+    i32::try_from(value).ok()
+}
+
+fn validate_area_environment_patch(patch: &AreaEnvironmentPatch) -> AppResult<()> {
+    if patch.tag.as_ref().is_some_and(|value| {
+        value.is_empty()
+            || value.len() > 64
+            || value.chars().any(|character| character.is_control())
+    }) || patch
+        .comments
+        .as_ref()
+        .is_some_and(|value| value.len() > 16 * 1024 || value.contains('\0'))
+        || patch.player_vs_player.is_some_and(|value| value > 2)
+        || [patch.chance_rain, patch.chance_snow, patch.chance_lightning]
+            .into_iter()
+            .flatten()
+            .any(|value| value > 100)
+        || patch.wind_power.is_some_and(|value| value > 2)
+        || patch
+            .fog_clip_distance
+            .is_some_and(|value| !value.is_finite() || !(1.0..=1_000.0).contains(&value))
+        || patch.shadow_opacity.is_some_and(|value| value > 100)
+    {
+        return Err(edit_error(
+            "EDIT_AREA_ENVIRONMENT_INVALID",
+            "area environment values exceed their conservative NWN bounds",
+        ));
+    }
+    for script in [
+        patch.on_enter.as_deref(),
+        patch.on_exit.as_deref(),
+        patch.on_heartbeat.as_deref(),
+        patch.on_user_defined.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !script.is_empty() {
+            validate_resref(script)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_area_audio_patch(patch: &AreaAudioPatch) -> AppResult<()> {
+    let ids = [
+        patch.ambient_sound_day,
+        patch.ambient_sound_night,
+        patch.environment_audio,
+        patch.music_battle,
+        patch.music_day,
+        patch.music_night,
+        patch.music_delay,
+    ];
+    if ids.into_iter().flatten().any(|value| value < 0)
+        || patch
+            .ambient_sound_day_volume
+            .is_some_and(|value| value > 127)
+        || patch
+            .ambient_sound_night_volume
+            .is_some_and(|value| value > 127)
+    {
+        return Err(edit_error(
+            "EDIT_AREA_AUDIO_INVALID",
+            "area audio identifiers must be non-negative and volumes must be within 0..=127",
+        ));
+    }
+    Ok(())
+}
+
 pub fn add_area_instance(
     bytes: &[u8],
     source: &str,
     area: &str,
     placement: &InstancePlacement,
 ) -> AppResult<(Vec<u8>, String)> {
+    let mut document = parse_gff(bytes, source)?;
+    let instance_id = append_area_instance(&mut document, area, placement)?;
+    let output = write_gff(&document)?;
+    Ok((output, instance_id))
+}
+
+fn append_area_instance(
+    document: &mut GenericGff,
+    area: &str,
+    placement: &InstancePlacement,
+) -> AppResult<String> {
     validate_resref(&placement.template_resref)?;
     if !placement.x.is_finite()
         || !placement.y.is_finite()
@@ -6198,7 +6756,6 @@ pub fn add_area_instance(
         ));
     }
     let list_label = instance_list_label(&placement.category)?;
-    let mut document = parse_gff(bytes, source)?;
     let values = list_mut(&mut document.root, list_label)?;
     let index = values.len();
     let mut fields = vec![
@@ -6262,8 +6819,7 @@ pub fn add_area_instance(
         struct_type: 1,
         fields,
     });
-    let output = write_gff(&document)?;
-    Ok((output, format!("{area}:{list_label}:{index}")))
+    Ok(format!("{area}:{list_label}:{index}"))
 }
 
 pub fn remove_area_instance(
@@ -6355,6 +6911,78 @@ pub fn edit_area_tile(
         set_integer(tile, &["Tile_Height", "Height"], i64::from(after.height))?;
     }
     write_gff(&document)
+}
+
+pub fn create_generated_map_resources(
+    plan: &MapGenerationPlan,
+) -> AppResult<Vec<ErfResourceInput>> {
+    let expected = generate_map_plan_with_compatibility(&plan.spec, plan.compatibility.clone())?;
+    if expected.plan_sha256 != plan.plan_sha256
+        || expected.tiles != plan.tiles
+        || expected.placements != plan.placements
+    {
+        return Err(edit_error(
+            "EDIT_MAP_PLAN_CHANGED",
+            "map plan does not match its deterministic specification",
+        ));
+    }
+    let mut resources = create_area_resources(
+        &plan.spec.resref,
+        &plan.spec.name,
+        &plan.spec.tileset,
+        plan.spec.width,
+        plan.spec.height,
+        plan.spec.base_tile_id,
+    )?;
+    let are = resources
+        .iter_mut()
+        .find(|resource| resource.key.resource_type == 2012)
+        .ok_or_else(|| edit_error("EDIT_MAP_RESOURCE_MISSING", "generated ARE is missing"))?;
+    let mut are_document = parse_gff(&are.bytes, &format!("map-plan::{}", are.key.file_name()))?;
+    let tile_values = list_mut_any(&mut are_document.root, &["Tile_List", "TileList"])?;
+    if tile_values.len() != plan.tiles.len() {
+        return Err(edit_error(
+            "EDIT_MAP_TILE_COUNT_INVALID",
+            format!(
+                "generated ARE has {} tiles but plan has {}",
+                tile_values.len(),
+                plan.tiles.len()
+            ),
+        ));
+    }
+    for tile in &plan.tiles {
+        let index = tile
+            .y
+            .checked_mul(plan.spec.width)
+            .and_then(|value| value.checked_add(tile.x))
+            .ok_or_else(|| edit_error("EDIT_MAP_TILE_INDEX_OVERFLOW", "tile index overflow"))?
+            as usize;
+        let value = tile_values.get_mut(index).ok_or_else(|| {
+            edit_error(
+                "EDIT_MAP_TILE_NOT_FOUND",
+                format!("generated ARE has no tile at {},{}", tile.x, tile.y),
+            )
+        })?;
+        set_integer(value, &["Tile_ID", "TileID"], i64::from(tile.tile_id))?;
+        set_integer(
+            value,
+            &["Tile_Orientation", "Orientation"],
+            i64::from(tile.orientation),
+        )?;
+        set_integer(value, &["Tile_Height", "Height"], i64::from(tile.height))?;
+    }
+    are.bytes = write_gff(&are_document)?;
+
+    let git = resources
+        .iter_mut()
+        .find(|resource| resource.key.resource_type == 2023)
+        .ok_or_else(|| edit_error("EDIT_MAP_RESOURCE_MISSING", "generated GIT is missing"))?;
+    let mut git_document = parse_gff(&git.bytes, &format!("map-plan::{}", git.key.file_name()))?;
+    for placement in &plan.placements {
+        append_area_instance(&mut git_document, &plan.spec.resref, placement)?;
+    }
+    git.bytes = write_gff(&git_document)?;
+    Ok(resources)
 }
 
 fn list_mut<'a>(
@@ -8303,6 +8931,76 @@ mod tests {
     }
 
     #[test]
+    fn dialogue_links_can_add_change_and_remove_trigger_scripts() {
+        let link = GenericStruct {
+            index: 0,
+            struct_type: 0,
+            fields: vec![
+                gff_field("Index", 4, GenericValue::Dword(0)),
+                gff_field("IsChild", 0, GenericValue::Byte(0)),
+            ],
+        };
+        let document = gff_document(
+            "DLG ",
+            "dialogue",
+            vec![
+                gff_field("EntryList", 15, GenericValue::List(Vec::new())),
+                gff_field("ReplyList", 15, GenericValue::List(Vec::new())),
+                gff_field("StartingList", 15, GenericValue::List(vec![link])),
+            ],
+        );
+        let bytes = write_gff(&document).expect("dialogue fixture");
+        let (bytes, reopened) = edit_dialogue_structure(
+            &bytes,
+            "dialogue.dlg",
+            &DialogueStructureAction::SetLinkScripts {
+                source: None,
+                position: 0,
+                condition_script: Some("check_start".to_owned()),
+                action_script: Some("begin_scene".to_owned()),
+            },
+        )
+        .expect("associate trigger scripts");
+        let GenericValue::List(starts) = &find_field(&reopened.root, &["StartingList"])
+            .expect("starting list")
+            .value
+        else {
+            panic!("StartingList must remain a list");
+        };
+        assert_eq!(
+            find_field(&starts[0], &["Active"]).map(|field| &field.value),
+            Some(&GenericValue::ResRef("check_start".to_owned()))
+        );
+        assert_eq!(
+            find_field(&starts[0], &["Script"]).map(|field| &field.value),
+            Some(&GenericValue::ResRef("begin_scene".to_owned()))
+        );
+
+        let (_bytes, reopened) = edit_dialogue_structure(
+            &bytes,
+            "dialogue.dlg",
+            &DialogueStructureAction::SetLinkScripts {
+                source: None,
+                position: 0,
+                condition_script: None,
+                action_script: Some("next_scene".to_owned()),
+            },
+        )
+        .expect("remove condition and change action");
+        let GenericValue::List(starts) = &find_field(&reopened.root, &["StartingList"])
+            .expect("starting list")
+            .value
+        else {
+            panic!("StartingList must remain a list");
+        };
+        assert!(find_field(&starts[0], &["Active", "Conditional"]).is_none());
+        assert_eq!(
+            find_field(&starts[0], &["Script"]).map(|field| &field.value),
+            Some(&GenericValue::ResRef("next_scene".to_owned()))
+        );
+    }
+
+    #[test]
     fn dialogue_structure_actions_use_the_typescript_ipc_shape() {
         let value = serde_json::to_value(DialogueStructureAction::AddNode {
             node_kind: DialogueNodeKind::Entry,
@@ -8328,6 +9026,23 @@ mod tests {
                 }
             }
         ));
+        let value = serde_json::to_value(DialogueStructureAction::SetLinkScripts {
+            source: None,
+            position: 1,
+            condition_script: Some("check_start".to_owned()),
+            action_script: None,
+        })
+        .expect("serialize dialogue trigger action");
+        assert_eq!(
+            value,
+            json!({
+                "kind": "set_link_scripts",
+                "source": null,
+                "position": 1,
+                "conditionScript": "check_start",
+                "actionScript": null
+            })
+        );
     }
 
     #[test]
@@ -9085,5 +9800,73 @@ mod tests {
                 .code,
             "EDIT_NSS_COMPILATION_STALE"
         );
+    }
+
+    #[test]
+    fn edits_map_environment_audio_and_addressed_tiles() {
+        let resources =
+            create_area_resources("mapped", "Carte MCP", "tno01", 3, 2, 0).expect("area");
+        let are = resources
+            .iter()
+            .find(|resource| resource.key.resource_type == 2012)
+            .expect("ARE");
+        let git = resources
+            .iter()
+            .find(|resource| resource.key.resource_type == 2023)
+            .expect("GIT");
+        let are = edit_area_environment(
+            &are.bytes,
+            "mapped.are",
+            &AreaEnvironmentPatch {
+                comments: Some("Une carte pilotÃ©e par MCP".to_owned()),
+                chance_rain: Some(35),
+                fog_clip_distance: Some(72.0),
+                on_enter: Some("map_enter".to_owned()),
+                ..AreaEnvironmentPatch::default()
+            },
+        )
+        .expect("environment");
+        let are = edit_area_tile_at(
+            &are,
+            "mapped.are",
+            2,
+            1,
+            TileState {
+                tile_id: 0,
+                orientation: 0,
+                height: 0,
+            },
+            TileState {
+                tile_id: 7,
+                orientation: 2,
+                height: 1,
+            },
+        )
+        .expect("tile");
+        let are = parse_gff(&are, "mapped.are").expect("reopen ARE");
+        assert_eq!(
+            integer(&find_field(&are.root, &["ChanceRain"]).expect("rain").value),
+            Some(35)
+        );
+        let tiles = list_mut_any(&mut are.clone().root, &["Tile_List"])
+            .expect("tiles")
+            .clone();
+        assert_eq!(
+            integer(&find_field(&tiles[5], &["Tile_ID"]).expect("id").value),
+            Some(7)
+        );
+
+        let git = edit_area_audio(
+            &git.bytes,
+            "mapped.git",
+            &AreaAudioPatch {
+                ambient_sound_day: Some(12),
+                ambient_sound_day_volume: Some(64),
+                music_day: Some(3),
+                ..AreaAudioPatch::default()
+            },
+        )
+        .expect("audio");
+        parse_gff(&git, "mapped.git").expect("reopen GIT");
     }
 }

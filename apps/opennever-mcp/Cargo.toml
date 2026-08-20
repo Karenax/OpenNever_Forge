@@ -12,6 +12,9 @@ aurora-edit = { path = "../../crates/aurora-edit" }
 aurora-erf = { path = "../../crates/aurora-erf" }
 aurora-gff = { path = "../../crates/aurora-gff" }
 aurora-nwscript = { path = "../../crates/aurora-nwscript" }
+aurora-project = { path = "../../crates/aurora-project" }
+aurora-resource = { path = "../../crates/aurora-resource" }
+aurora-world = { path = "../../crates/aurora-world" }
 hex.workspace = true
 serde.workspace = true
 serde_json.workspace = true

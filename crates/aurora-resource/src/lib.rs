@@ -220,6 +220,11 @@ pub struct ResourceCatalogBuild {
 }
 
 impl ResourceManager {
+    pub fn game_source_signature(game_root: &Path, cancelled: &AtomicBool) -> AppResult<String> {
+        let language_root = preferred_language_root(game_root);
+        catalog_cache::game_source_signature(game_root, language_root.as_deref(), cancelled)
+    }
+
     pub fn build(
         config: &ResourceManagerConfig,
         cancelled: &AtomicBool,

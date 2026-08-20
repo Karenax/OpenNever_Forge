@@ -300,25 +300,40 @@ fn decode_responses(value: Value) -> AppResult<ProviderStep> {
 
 fn strict_schema(schema: &Value) -> Value {
     let mut schema = schema.clone();
-    if let Some(object) = schema.as_object_mut()
-        && object.get("type").and_then(Value::as_str) == Some("object")
-    {
-        object.insert("additionalProperties".to_owned(), Value::Bool(false));
-        let required = object
-            .get("properties")
-            .and_then(Value::as_object)
-            .map(|properties| {
-                Value::Array(
-                    properties
-                        .keys()
-                        .map(|key| Value::String(key.clone()))
-                        .collect(),
-                )
-            })
-            .unwrap_or_else(|| Value::Array(Vec::new()));
-        object.insert("required".to_owned(), required);
-    }
+    normalize_strict_schema(&mut schema);
     schema
+}
+
+fn normalize_strict_schema(schema: &mut Value) {
+    match schema {
+        Value::Object(object) => {
+            for value in object.values_mut() {
+                normalize_strict_schema(value);
+            }
+            if object.get("type").and_then(Value::as_str) == Some("object") {
+                object.insert("additionalProperties".to_owned(), Value::Bool(false));
+                let required = object
+                    .get("properties")
+                    .and_then(Value::as_object)
+                    .map(|properties| {
+                        Value::Array(
+                            properties
+                                .keys()
+                                .map(|key| Value::String(key.clone()))
+                                .collect(),
+                        )
+                    })
+                    .unwrap_or_else(|| Value::Array(Vec::new()));
+                object.insert("required".to_owned(), required);
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                normalize_strict_schema(value);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn schema_supports_strict(schema: &Value) -> bool {
@@ -420,6 +435,23 @@ mod tests {
         assert_eq!(
             body["tools"][0]["function"]["parameters"]["additionalProperties"],
             false
+        );
+
+        let map_tool = registry.get("map.environment.edit").expect("map tool");
+        let map_body = test_request(
+            &chat_provider(),
+            std::slice::from_ref(map_tool),
+            false,
+            None,
+            &[],
+            &[],
+        );
+        let patch = &map_body["tools"][0]["function"]["parameters"]["properties"]["patch"];
+        assert_eq!(patch["additionalProperties"], false);
+        assert!(
+            patch["required"]
+                .as_array()
+                .is_some_and(|required| required.len() == 29)
         );
     }
 

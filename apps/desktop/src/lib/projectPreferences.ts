@@ -10,6 +10,7 @@ type StoredProjectPreferences = {
 };
 
 export const PROJECT_PREFERENCES_STORAGE_KEY = "opennever-forge.project-preferences";
+export const LAST_EXPLORER_ITEM_STORAGE_KEY = "opennever-forge.last-explorer-item";
 
 export const EMPTY_PROJECT_PREFERENCES: ProjectPreferences = {
   modulePath: "",
@@ -61,5 +62,27 @@ export function saveProjectPreferences(
     storage.setItem(PROJECT_PREFERENCES_STORAGE_KEY, JSON.stringify(stored));
   } catch {
     // L'application reste utilisable si le stockage WebView est indisponible.
+  }
+}
+
+export function loadLastExplorerItem(storage = browserStorage()): string {
+  if (!storage) return "module";
+  try {
+    const value = storage.getItem(LAST_EXPLORER_ITEM_STORAGE_KEY)?.trim();
+    return value && value.length <= 64 ? value : "module";
+  } catch {
+    return "module";
+  }
+}
+
+export function saveLastExplorerItem(
+  explorerItem: string,
+  storage = browserStorage(),
+): void {
+  if (!storage || !explorerItem || explorerItem.length > 64) return;
+  try {
+    storage.setItem(LAST_EXPLORER_ITEM_STORAGE_KEY, explorerItem);
+  } catch {
+    // La navigation reste utilisable si le stockage WebView est indisponible.
   }
 }
