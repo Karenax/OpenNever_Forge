@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-pub const GLB_CACHE_SCHEMA_VERSION: u32 = 6;
+pub const GLB_CACHE_SCHEMA_VERSION: u32 = 7;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -58,10 +58,8 @@ pub fn export_glb(model: &MdlModel) -> Result<GlbArtifact, MdlError> {
             .iter()
             .map(|value| [value[0], 1.0 - value[1]])
             .collect::<Vec<_>>();
-        let mut indices = Vec::with_capacity(mesh.indices.len());
-        for face in mesh.indices.chunks_exact(3) {
-            indices.extend([face[0], face[2], face[1]]);
-        }
+        // NWN is Z-up and glTF is Y-up. This axis conversion has a positive
+        // determinant, so it preserves triangle winding.
 
         let position_accessor = builder.push_vec3_f32(&position_values, 34962, true)?;
         let normal_accessor = if normal_values.len() == position_values.len() {
@@ -79,7 +77,7 @@ pub fn export_glb(model: &MdlModel) -> Result<GlbArtifact, MdlError> {
         } else {
             None
         };
-        let index_accessor = builder.push_indices(&indices)?;
+        let index_accessor = builder.push_indices(&mesh.indices)?;
         let material_index = builder.materials.len();
         let alpha = if mesh.material.transparency_hint == 0 {
             1.0
@@ -691,6 +689,70 @@ mod tests {
     use super::*;
     use crate::parse_mdl;
 
+    fn glb_parts(bytes: &[u8]) -> (Value, &[u8]) {
+        let json_length = usize::try_from(u32::from_le_bytes(
+            bytes[12..16].try_into().expect("JSON length"),
+        ))
+        .expect("JSON length fits usize");
+        let json_end = 20 + json_length;
+        let document = serde_json::from_slice(&bytes[20..json_end]).expect("GLB JSON");
+        let binary_length = usize::try_from(u32::from_le_bytes(
+            bytes[json_end..json_end + 4]
+                .try_into()
+                .expect("binary length"),
+        ))
+        .expect("binary length fits usize");
+        let binary_start = json_end + 8;
+        (document, &bytes[binary_start..binary_start + binary_length])
+    }
+
+    fn accessor_offset(document: &Value, accessor: usize) -> usize {
+        let view = document["accessors"][accessor]["bufferView"]
+            .as_u64()
+            .expect("buffer view") as usize;
+        let view_offset = document["bufferViews"][view]["byteOffset"]
+            .as_u64()
+            .unwrap_or(0) as usize;
+        let accessor_offset = document["accessors"][accessor]["byteOffset"]
+            .as_u64()
+            .unwrap_or(0) as usize;
+        view_offset + accessor_offset
+    }
+
+    fn read_vec3_f32(document: &Value, binary: &[u8], accessor: usize) -> Vec<[f32; 3]> {
+        assert_eq!(document["accessors"][accessor]["componentType"], 5126);
+        assert_eq!(document["accessors"][accessor]["type"], "VEC3");
+        let count = document["accessors"][accessor]["count"]
+            .as_u64()
+            .expect("accessor count") as usize;
+        let offset = accessor_offset(document, accessor);
+        (0..count)
+            .map(|index| {
+                let start = offset + index * 12;
+                std::array::from_fn(|axis| {
+                    let at = start + axis * 4;
+                    f32::from_le_bytes(binary[at..at + 4].try_into().expect("f32"))
+                })
+            })
+            .collect()
+    }
+
+    fn read_u16_indices(document: &Value, binary: &[u8], accessor: usize) -> Vec<usize> {
+        assert_eq!(document["accessors"][accessor]["componentType"], 5123);
+        let count = document["accessors"][accessor]["count"]
+            .as_u64()
+            .expect("index count") as usize;
+        let offset = accessor_offset(document, accessor);
+        (0..count)
+            .map(|index| {
+                let at = offset + index * 2;
+                usize::from(u16::from_le_bytes(
+                    binary[at..at + 2].try_into().expect("u16"),
+                ))
+            })
+            .collect()
+    }
+
     #[test]
     fn exports_deterministic_glb_with_triangle_mesh() {
         let model = parse_mdl(
@@ -711,6 +773,58 @@ mod tests {
         assert!(document.get("skins").is_none());
         assert!(document.get("animations").is_none());
         assert_eq!(document["materials"][0]["extras"]["nwnTileFade"], 1);
+    }
+
+    #[test]
+    fn textured_floor_keeps_upward_winding_after_axis_conversion() {
+        let model = parse_mdl(
+            b"newmodel floor\nnode trimesh floor\nverts 3\n0 0 0\n1 0 0\n0 1 0\ntverts 3\n0 0\n1 0\n0 1\nfaces 1\n0 1 2 0 0 1 2 0\nbitmap floor_stone\nendnode\ndonemodel floor\n",
+        )
+        .expect("textured floor model");
+        let artifact = export_glb(&model).expect("floor GLB");
+        let (document, binary) = glb_parts(&artifact.bytes);
+        let primitive = &document["meshes"][0]["primitives"][0];
+        let positions_accessor = primitive["attributes"]["POSITION"]
+            .as_u64()
+            .expect("positions accessor") as usize;
+        let normals_accessor = primitive["attributes"]["NORMAL"]
+            .as_u64()
+            .expect("normals accessor") as usize;
+        let indices_accessor = primitive["indices"].as_u64().expect("indices accessor") as usize;
+        let positions = read_vec3_f32(&document, binary, positions_accessor);
+        let normals = read_vec3_f32(&document, binary, normals_accessor);
+        let indices = read_u16_indices(&document, binary, indices_accessor);
+
+        let [a, b, c] = [
+            positions[indices[0]],
+            positions[indices[1]],
+            positions[indices[2]],
+        ];
+        let ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+        let ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+        let face_normal = [
+            ab[1] * ac[2] - ab[2] * ac[1],
+            ab[2] * ac[0] - ab[0] * ac[2],
+            ab[0] * ac[1] - ab[1] * ac[0],
+        ];
+        let vertex_normal = normals[indices[0]];
+        let alignment = face_normal[0] * vertex_normal[0]
+            + face_normal[1] * vertex_normal[1]
+            + face_normal[2] * vertex_normal[2];
+
+        assert_eq!(indices, [0, 1, 2]);
+        assert!(
+            face_normal[1] > 0.0,
+            "the floor front face must point upward"
+        );
+        assert!(
+            alignment > 0.0,
+            "face winding and vertex normals must agree"
+        );
+        assert_eq!(
+            document["materials"][0]["extras"]["nwnTextures"],
+            json!(["floor_stone"])
+        );
     }
 
     #[test]

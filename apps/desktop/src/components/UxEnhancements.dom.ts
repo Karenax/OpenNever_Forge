@@ -8,6 +8,40 @@ import {
   type WorkbenchDomain,
 } from "./UxEnhancements.model";
 
+const workbenchMutationNodeSelector = [
+  ".top-menu",
+  ".workspace-grid",
+  ".diagnostics",
+  ".map-workspace-header",
+  ".tree-root",
+  ".tree-item[title]",
+  ".tree-section-label",
+  ".diagnostic-row",
+  ".map-creator-page",
+  ".map-plan-metrics",
+].join(",");
+
+const workbenchMutationTargetSelector = [
+  ".top-menu",
+  ".workspace-grid",
+  ".diagnostics",
+  ".tree-root",
+  ".map-creator-page",
+].join(",");
+
+export function nodeAffectsWorkbench(node: Node): boolean {
+  if (!(node instanceof Element)) return false;
+  return node.matches(workbenchMutationNodeSelector) || Boolean(node.querySelector(workbenchMutationNodeSelector));
+}
+
+export function mutationsAffectWorkbench(records: MutationRecord[]): boolean {
+  return records.some((record) => {
+    const target = record.target instanceof Element ? record.target : record.target.parentElement;
+    if (target?.matches(workbenchMutationTargetSelector)) return true;
+    return [...record.addedNodes, ...record.removedNodes].some(nodeAffectsWorkbench);
+  });
+}
+
 function setTextContent(element: Element | null, value: string): void {
   if (element && element.textContent !== value) element.textContent = value;
 }

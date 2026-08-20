@@ -2,7 +2,16 @@
   "edges": [
     {
       "evidence": {
-        "line": 413,
+        "line": 423,
+        "path": "apps/desktop/src/App.test.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.test.tsx:largeDialogueGraph",
+      "target": "file:apps/desktop/src/App.test.tsx"
+    },
+    {
+      "evidence": {
+        "line": 414,
         "path": "apps/desktop/src/App.test.tsx"
       },
       "kind": "defined_in",
@@ -20,7 +29,7 @@
     },
     {
       "evidence": {
-        "line": 2480,
+        "line": 2512,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -29,7 +38,7 @@
     },
     {
       "evidence": {
-        "line": 2512,
+        "line": 2544,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -38,7 +47,7 @@
     },
     {
       "evidence": {
-        "line": 1980,
+        "line": 2002,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -83,7 +92,7 @@
     },
     {
       "evidence": {
-        "line": 2162,
+        "line": 2194,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -119,7 +128,7 @@
     },
     {
       "evidence": {
-        "line": 2166,
+        "line": 2198,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -146,7 +155,7 @@
     },
     {
       "evidence": {
-        "line": 2027,
+        "line": 2058,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -155,7 +164,7 @@
     },
     {
       "evidence": {
-        "line": 1951,
+        "line": 1973,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -164,7 +173,7 @@
     },
     {
       "evidence": {
-        "line": 1934,
+        "line": 1956,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -173,11 +182,20 @@
     },
     {
       "evidence": {
-        "line": 2023,
+        "line": 2054,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
       "source": "client_operation:apps/desktop/src/App.tsx:dialogueNodeRefFromId",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 2028,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:dialogueTargetMatches",
       "target": "file:apps/desktop/src/App.tsx"
     },
     {
@@ -236,7 +254,7 @@
     },
     {
       "evidence": {
-        "line": 2239,
+        "line": 2271,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -245,7 +263,7 @@
     },
     {
       "evidence": {
-        "line": 2347,
+        "line": 2379,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -254,7 +272,7 @@
     },
     {
       "evidence": {
-        "line": 2817,
+        "line": 2849,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -263,7 +281,7 @@
     },
     {
       "evidence": {
-        "line": 2960,
+        "line": 3001,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -290,7 +308,7 @@
     },
     {
       "evidence": {
-        "line": 2540,
+        "line": 2572,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -299,7 +317,7 @@
     },
     {
       "evidence": {
-        "line": 2814,
+        "line": 2846,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -317,7 +335,7 @@
     },
     {
       "evidence": {
-        "line": 2956,
+        "line": 2997,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -335,11 +353,20 @@
     },
     {
       "evidence": {
-        "line": 2149,
+        "line": 2181,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
       "source": "client_operation:apps/desktop/src/App.tsx:saveSource",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 2857,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/App.tsx:sceneGroundElevation",
       "target": "file:apps/desktop/src/App.tsx"
     },
     {
@@ -362,7 +389,7 @@
     },
     {
       "evidence": {
-        "line": 2813,
+        "line": 2845,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -371,7 +398,7 @@
     },
     {
       "evidence": {
-        "line": 2810,
+        "line": 2842,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -380,7 +407,7 @@
     },
     {
       "evidence": {
-        "line": 2812,
+        "line": 2844,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -398,7 +425,7 @@
     },
     {
       "evidence": {
-        "line": 2285,
+        "line": 2317,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -407,7 +434,7 @@
     },
     {
       "evidence": {
-        "line": 2281,
+        "line": 2313,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -650,7 +677,7 @@
     },
     {
       "evidence": {
-        "line": 407,
+        "line": 408,
         "path": "apps/desktop/src/components/HelpCenter.tsx"
       },
       "kind": "defined_in",
@@ -767,7 +794,7 @@
     },
     {
       "evidence": {
-        "line": 42,
+        "line": 76,
         "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
       },
       "kind": "defined_in",
@@ -776,7 +803,7 @@
     },
     {
       "evidence": {
-        "line": 94,
+        "line": 128,
         "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
       },
       "kind": "defined_in",
@@ -785,7 +812,7 @@
     },
     {
       "evidence": {
-        "line": 142,
+        "line": 176,
         "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
       },
       "kind": "defined_in",
@@ -794,7 +821,25 @@
     },
     {
       "evidence": {
-        "line": 26,
+        "line": 36,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:mutationsAffectWorkbench",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 31,
+        "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+      },
+      "kind": "defined_in",
+      "source": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:nodeAffectsWorkbench",
+      "target": "file:apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "evidence": {
+        "line": 60,
         "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
       },
       "kind": "defined_in",
@@ -803,7 +848,7 @@
     },
     {
       "evidence": {
-        "line": 14,
+        "line": 48,
         "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
       },
       "kind": "defined_in",
@@ -812,7 +857,7 @@
     },
     {
       "evidence": {
-        "line": 10,
+        "line": 44,
         "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
       },
       "kind": "defined_in",
@@ -1802,7 +1847,7 @@
     },
     {
       "evidence": {
-        "line": 2501,
+        "line": 2533,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1811,7 +1856,7 @@
     },
     {
       "evidence": {
-        "line": 2466,
+        "line": 2498,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1820,7 +1865,7 @@
     },
     {
       "evidence": {
-        "line": 2514,
+        "line": 2546,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1829,7 +1874,7 @@
     },
     {
       "evidence": {
-        "line": 2542,
+        "line": 2574,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1838,7 +1883,7 @@
     },
     {
       "evidence": {
-        "line": 2409,
+        "line": 2441,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1847,7 +1892,7 @@
     },
     {
       "evidence": {
-        "line": 2520,
+        "line": 2552,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1856,7 +1901,7 @@
     },
     {
       "evidence": {
-        "line": 2590,
+        "line": 2622,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1865,7 +1910,7 @@
     },
     {
       "evidence": {
-        "line": 2595,
+        "line": 2627,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1874,7 +1919,7 @@
     },
     {
       "evidence": {
-        "line": 2600,
+        "line": 2632,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1883,7 +1928,7 @@
     },
     {
       "evidence": {
-        "line": 2753,
+        "line": 2785,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -1892,7 +1937,7 @@
     },
     {
       "evidence": {
-        "line": 2831,
+        "line": 2872,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2018,7 +2063,7 @@
     },
     {
       "evidence": {
-        "line": 2004,
+        "line": 2034,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2036,7 +2081,7 @@
     },
     {
       "evidence": {
-        "line": 1936,
+        "line": 1958,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2045,7 +2090,7 @@
     },
     {
       "evidence": {
-        "line": 1905,
+        "line": 1923,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2054,7 +2099,7 @@
     },
     {
       "evidence": {
-        "line": 1919,
+        "line": 1942,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2063,7 +2108,7 @@
     },
     {
       "evidence": {
-        "line": 1888,
+        "line": 1894,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2072,7 +2117,7 @@
     },
     {
       "evidence": {
-        "line": 2013,
+        "line": 2044,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2081,7 +2126,7 @@
     },
     {
       "evidence": {
-        "line": 1926,
+        "line": 1948,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2090,11 +2135,20 @@
     },
     {
       "evidence": {
-        "line": 1945,
+        "line": 1967,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
       "source": "component:apps/desktop/src/App.tsx:DialogueNodeFieldEditor",
+      "target": "file:apps/desktop/src/App.tsx"
+    },
+    {
+      "evidence": {
+        "line": 1938,
+        "path": "apps/desktop/src/App.tsx"
+      },
+      "kind": "defined_in",
+      "source": "component:apps/desktop/src/App.tsx:DialogueStartRules",
       "target": "file:apps/desktop/src/App.tsx"
     },
     {
@@ -2117,7 +2171,7 @@
     },
     {
       "evidence": {
-        "line": 2356,
+        "line": 2388,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2126,7 +2180,7 @@
     },
     {
       "evidence": {
-        "line": 1965,
+        "line": 1987,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2135,7 +2189,7 @@
     },
     {
       "evidence": {
-        "line": 2043,
+        "line": 2074,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2153,7 +2207,7 @@
     },
     {
       "evidence": {
-        "line": 2349,
+        "line": 2381,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2162,7 +2216,7 @@
     },
     {
       "evidence": {
-        "line": 1992,
+        "line": 2014,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2171,7 +2225,7 @@
     },
     {
       "evidence": {
-        "line": 1970,
+        "line": 1992,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2189,7 +2243,7 @@
     },
     {
       "evidence": {
-        "line": 2377,
+        "line": 2409,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2198,7 +2252,7 @@
     },
     {
       "evidence": {
-        "line": 2363,
+        "line": 2395,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2207,7 +2261,7 @@
     },
     {
       "evidence": {
-        "line": 2388,
+        "line": 2420,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2216,7 +2270,7 @@
     },
     {
       "evidence": {
-        "line": 2397,
+        "line": 2429,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2225,7 +2279,7 @@
     },
     {
       "evidence": {
-        "line": 2403,
+        "line": 2435,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2234,7 +2288,7 @@
     },
     {
       "evidence": {
-        "line": 2371,
+        "line": 2403,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2252,7 +2306,7 @@
     },
     {
       "evidence": {
-        "line": 2909,
+        "line": 2950,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2261,7 +2315,7 @@
     },
     {
       "evidence": {
-        "line": 2764,
+        "line": 2796,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2270,7 +2324,7 @@
     },
     {
       "evidence": {
-        "line": 2321,
+        "line": 2353,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2279,7 +2333,7 @@
     },
     {
       "evidence": {
-        "line": 2331,
+        "line": 2363,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2288,7 +2342,7 @@
     },
     {
       "evidence": {
-        "line": 2341,
+        "line": 2373,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2297,7 +2351,7 @@
     },
     {
       "evidence": {
-        "line": 2315,
+        "line": 2347,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2306,7 +2360,7 @@
     },
     {
       "evidence": {
-        "line": 2947,
+        "line": 2988,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2315,7 +2369,7 @@
     },
     {
       "evidence": {
-        "line": 2781,
+        "line": 2813,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2324,7 +2378,7 @@
     },
     {
       "evidence": {
-        "line": 2287,
+        "line": 2319,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2333,7 +2387,7 @@
     },
     {
       "evidence": {
-        "line": 2226,
+        "line": 2258,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2342,7 +2396,7 @@
     },
     {
       "evidence": {
-        "line": 2248,
+        "line": 2280,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2360,7 +2414,7 @@
     },
     {
       "evidence": {
-        "line": 2265,
+        "line": 2297,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2369,7 +2423,7 @@
     },
     {
       "evidence": {
-        "line": 2964,
+        "line": 3005,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2405,7 +2459,7 @@
     },
     {
       "evidence": {
-        "line": 2823,
+        "line": 2864,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2414,7 +2468,7 @@
     },
     {
       "evidence": {
-        "line": 2133,
+        "line": 2165,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2423,7 +2477,7 @@
     },
     {
       "evidence": {
-        "line": 2214,
+        "line": 2246,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2432,7 +2486,7 @@
     },
     {
       "evidence": {
-        "line": 2051,
+        "line": 2083,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2441,7 +2495,7 @@
     },
     {
       "evidence": {
-        "line": 2076,
+        "line": 2108,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2450,7 +2504,7 @@
     },
     {
       "evidence": {
-        "line": 2919,
+        "line": 2960,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2495,7 +2549,7 @@
     },
     {
       "evidence": {
-        "line": 2624,
+        "line": 2656,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2504,7 +2558,7 @@
     },
     {
       "evidence": {
-        "line": 2241,
+        "line": 2273,
         "path": "apps/desktop/src/App.tsx"
       },
       "kind": "defined_in",
@@ -2585,7 +2639,7 @@
     },
     {
       "evidence": {
-        "line": 421,
+        "line": 422,
         "path": "apps/desktop/src/components/HelpCenter.tsx"
       },
       "kind": "defined_in",
@@ -2675,7 +2729,7 @@
     },
     {
       "evidence": {
-        "line": 36,
+        "line": 41,
         "path": "apps/desktop/src/components/UxEnhancements.tsx"
       },
       "kind": "defined_in",
@@ -3575,7 +3629,7 @@
     },
     {
       "evidence": {
-        "line": 26,
+        "line": 27,
         "path": "apps/desktop/src-tauri/src/session.rs"
       },
       "kind": "defined_in",
@@ -6167,7 +6221,7 @@
     },
     {
       "evidence": {
-        "line": 6,
+        "line": 7,
         "path": "apps/desktop/src/App.test.tsx"
       },
       "kind": "imports",
@@ -6185,7 +6239,16 @@
     },
     {
       "evidence": {
-        "line": 7,
+        "line": 6,
+        "path": "apps/desktop/src/App.test.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/App.test.tsx",
+      "target": "file:apps/desktop/src/lib/tauri.ts"
+    },
+    {
+      "evidence": {
+        "line": 8,
         "path": "apps/desktop/src/App.test.tsx"
       },
       "kind": "imports",
@@ -6320,7 +6383,7 @@
     },
     {
       "evidence": {
-        "line": 7,
+        "line": 8,
         "path": "apps/desktop/src/components/UxEnhancements.test.ts"
       },
       "kind": "imports",
@@ -6329,7 +6392,7 @@
     },
     {
       "evidence": {
-        "line": 10,
+        "line": 14,
         "path": "apps/desktop/src/components/UxEnhancements.tsx"
       },
       "kind": "imports",
@@ -6338,7 +6401,7 @@
     },
     {
       "evidence": {
-        "line": 11,
+        "line": 15,
         "path": "apps/desktop/src/components/UxEnhancements.tsx"
       },
       "kind": "imports",
@@ -6347,25 +6410,7 @@
     },
     {
       "evidence": {
-        "line": 12,
-        "path": "apps/desktop/src/components/UxEnhancements.tsx"
-      },
-      "kind": "imports",
-      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
-      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
-    },
-    {
-      "evidence": {
-        "line": 31,
-        "path": "apps/desktop/src/components/UxEnhancements.tsx"
-      },
-      "kind": "imports",
-      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
-      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
-    },
-    {
-      "evidence": {
-        "line": 34,
+        "line": 16,
         "path": "apps/desktop/src/components/UxEnhancements.tsx"
       },
       "kind": "imports",
@@ -6375,6 +6420,33 @@
     {
       "evidence": {
         "line": 35,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 38,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 39,
+        "path": "apps/desktop/src/components/UxEnhancements.tsx"
+      },
+      "kind": "imports",
+      "source": "file:apps/desktop/src/components/UxEnhancements.tsx",
+      "target": "file:apps/desktop/src/components/UxEnhancements.tsx"
+    },
+    {
+      "evidence": {
+        "line": 40,
         "path": "apps/desktop/src/components/UxEnhancements.tsx"
       },
       "kind": "imports",
@@ -8156,7 +8228,7 @@
     },
     {
       "evidence": {
-        "line": 33,
+        "line": 34,
         "path": "apps/desktop/src-tauri/src/session.rs"
       },
       "kind": "defined_in",
@@ -8165,7 +8237,7 @@
     },
     {
       "evidence": {
-        "line": 215,
+        "line": 216,
         "path": "apps/desktop/src-tauri/src/session.rs"
       },
       "kind": "defined_in",
@@ -8174,7 +8246,7 @@
     },
     {
       "evidence": {
-        "line": 143,
+        "line": 144,
         "path": "apps/desktop/src-tauri/src/session.rs"
       },
       "kind": "defined_in",
@@ -10793,7 +10865,16 @@
     },
     {
       "evidence": {
-        "line": 439,
+        "line": 464,
+        "path": "apps/desktop/src-tauri/src/session.rs"
+      },
+      "kind": "tests",
+      "source": "test:apps/desktop/src-tauri/src/session.rs:reads_valid_cached_trees_beyond_serdes_default_json_envelope",
+      "target": "file:apps/desktop/src-tauri/src/session.rs"
+    },
+    {
+      "evidence": {
+        "line": 515,
         "path": "apps/desktop/src-tauri/src/session.rs"
       },
       "kind": "tests",
@@ -11711,7 +11792,7 @@
     },
     {
       "evidence": {
-        "line": 734,
+        "line": 848,
         "path": "crates/aurora-mdl/src/glb.rs"
       },
       "kind": "tests",
@@ -11720,7 +11801,7 @@
     },
     {
       "evidence": {
-        "line": 694,
+        "line": 756,
         "path": "crates/aurora-mdl/src/glb.rs"
       },
       "kind": "tests",
@@ -11729,11 +11810,20 @@
     },
     {
       "evidence": {
-        "line": 716,
+        "line": 830,
         "path": "crates/aurora-mdl/src/glb.rs"
       },
       "kind": "tests",
       "source": "test:crates/aurora-mdl/src/glb.rs:skin_remapping_deduplicates_joints_and_normalizes_weights",
+      "target": "file:crates/aurora-mdl/src/glb.rs"
+    },
+    {
+      "evidence": {
+        "line": 778,
+        "path": "crates/aurora-mdl/src/glb.rs"
+      },
+      "kind": "tests",
+      "source": "test:crates/aurora-mdl/src/glb.rs:textured_floor_keeps_upward_winding_after_axis_conversion",
       "target": "file:crates/aurora-mdl/src/glb.rs"
     },
     {
@@ -12144,15 +12234,23 @@
   ],
   "metadata": {
     "schema_version": 1,
-    "source_digest": "sha256:f50409efdca104eef9d54f65ac5c7593379a9079eb9c61401fef28f384bff111",
+    "source_digest": "sha256:abd0ce4ba62728749d13b4b1b16ea9aed5d6dcbd79b50b2bac98aea45163f57a",
     "source_file_count": 96
   },
   "nodes": [
     {
+      "id": "client_operation:apps/desktop/src/App.test.tsx:largeDialogueGraph",
+      "kind": "client_operation",
+      "layer": "tests",
+      "line": 423,
+      "name": "largeDialogueGraph",
+      "path": "apps/desktop/src/App.test.tsx"
+    },
+    {
       "id": "client_operation:apps/desktop/src/App.test.tsx:renderApp",
       "kind": "client_operation",
       "layer": "tests",
-      "line": 413,
+      "line": 414,
       "name": "renderApp",
       "path": "apps/desktop/src/App.test.tsx"
     },
@@ -12168,7 +12266,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:applyAreaWorkspaceValues",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2480,
+      "line": 2512,
       "name": "applyAreaWorkspaceValues",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12176,7 +12274,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:areaCategoryShortLabel",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2512,
+      "line": 2544,
       "name": "areaCategoryShortLabel",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12184,7 +12282,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:asDialogueLocalizedString",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1980,
+      "line": 2002,
       "name": "asDialogueLocalizedString",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12224,7 +12322,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:chooseCompiler",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2162,
+      "line": 2194,
       "name": "chooseCompiler",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12248,7 +12346,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:compileSource",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2166,
+      "line": 2198,
       "name": "compileSource",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12272,7 +12370,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:dialogueLinkEditContext",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2027,
+      "line": 2058,
       "name": "dialogueLinkEditContext",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12280,7 +12378,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:dialogueNodeEditableFields",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1951,
+      "line": 1973,
       "name": "dialogueNodeEditableFields",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12288,7 +12386,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:dialogueNodeRef",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 1934,
+      "line": 1956,
       "name": "dialogueNodeRef",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12296,8 +12394,16 @@
       "id": "client_operation:apps/desktop/src/App.tsx:dialogueNodeRefFromId",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2023,
+      "line": 2054,
       "name": "dialogueNodeRefFromId",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:dialogueTargetMatches",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 2028,
+      "name": "dialogueTargetMatches",
       "path": "apps/desktop/src/App.tsx"
     },
     {
@@ -12352,7 +12458,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:formatHex",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2239,
+      "line": 2271,
       "name": "formatHex",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12360,7 +12466,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:isIntegerGffValue",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2347,
+      "line": 2379,
       "name": "isIntegerGffValue",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12368,7 +12474,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:isTileOccluder",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2817,
+      "line": 2849,
       "name": "isTileOccluder",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12376,7 +12482,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:localizedPrimary",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2960,
+      "line": 3001,
       "name": "localizedPrimary",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12400,7 +12506,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:paletteCategoryToInstance",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2540,
+      "line": 2572,
       "name": "paletteCategoryToInstance",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12408,7 +12514,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:previewTextureFormat",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2814,
+      "line": 2846,
       "name": "previewTextureFormat",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12424,7 +12530,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:resourceKeyName",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2956,
+      "line": 2997,
       "name": "resourceKeyName",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12440,8 +12546,16 @@
       "id": "client_operation:apps/desktop/src/App.tsx:saveSource",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2149,
+      "line": 2181,
       "name": "saveSource",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/App.tsx:sceneGroundElevation",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 2857,
+      "name": "sceneGroundElevation",
       "path": "apps/desktop/src/App.tsx"
     },
     {
@@ -12464,7 +12578,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:textureExtensionForResourceType",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2813,
+      "line": 2845,
       "name": "textureExtensionForResourceType",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12472,7 +12586,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:textureMime",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2810,
+      "line": 2842,
       "name": "textureMime",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12480,7 +12594,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:textureMimeForResourceType",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2812,
+      "line": 2844,
       "name": "textureMimeForResourceType",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12496,7 +12610,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:worldViewInstruction",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2285,
+      "line": 2317,
       "name": "worldViewInstruction",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12504,7 +12618,7 @@
       "id": "client_operation:apps/desktop/src/App.tsx:worldViewTitle",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 2281,
+      "line": 2313,
       "name": "worldViewTitle",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -12720,7 +12834,7 @@
       "id": "client_operation:apps/desktop/src/components/HelpCenter.tsx:topicMatches",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 407,
+      "line": 408,
       "name": "topicMatches",
       "path": "apps/desktop/src/components/HelpCenter.tsx"
     },
@@ -12824,7 +12938,7 @@
       "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:annotateMapCreator",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 42,
+      "line": 76,
       "name": "annotateMapCreator",
       "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
     },
@@ -12832,7 +12946,7 @@
       "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:annotateWorkbench",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 94,
+      "line": 128,
       "name": "annotateWorkbench",
       "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
     },
@@ -12840,15 +12954,31 @@
       "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:countDiagnostics",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 142,
+      "line": 176,
       "name": "countDiagnostics",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:mutationsAffectWorkbench",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 36,
+      "name": "mutationsAffectWorkbench",
+      "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
+    },
+    {
+      "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:nodeAffectsWorkbench",
+      "kind": "client_operation",
+      "layer": "interface",
+      "line": 31,
+      "name": "nodeAffectsWorkbench",
       "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
     },
     {
       "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:replaceButtonLabel",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 26,
+      "line": 60,
       "name": "replaceButtonLabel",
       "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
     },
@@ -12856,7 +12986,7 @@
       "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:replaceInlineLabel",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 14,
+      "line": 48,
       "name": "replaceInlineLabel",
       "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
     },
@@ -12864,7 +12994,7 @@
       "id": "client_operation:apps/desktop/src/components/UxEnhancements.dom.ts:setTextContent",
       "kind": "client_operation",
       "layer": "interface",
-      "line": 10,
+      "line": 44,
       "name": "setTextContent",
       "path": "apps/desktop/src/components/UxEnhancements.dom.ts"
     },
@@ -13744,7 +13874,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaCanvas",
       "kind": "component",
       "layer": "interface",
-      "line": 2501,
+      "line": 2533,
       "name": "AreaCanvas",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13752,7 +13882,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaCreationForm",
       "kind": "component",
       "layer": "interface",
-      "line": 2466,
+      "line": 2498,
       "name": "AreaCreationForm",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13760,7 +13890,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaInspector",
       "kind": "component",
       "layer": "interface",
-      "line": 2514,
+      "line": 2546,
       "name": "AreaInspector",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13768,7 +13898,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaInstanceEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2542,
+      "line": 2574,
       "name": "AreaInstanceEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13776,7 +13906,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaMapView",
       "kind": "component",
       "layer": "interface",
-      "line": 2409,
+      "line": 2441,
       "name": "AreaMapView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13784,7 +13914,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaPlacementForm",
       "kind": "component",
       "layer": "interface",
-      "line": 2520,
+      "line": 2552,
       "name": "AreaPlacementForm",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13792,7 +13922,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaPointEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2590,
+      "line": 2622,
       "name": "AreaPointEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13800,7 +13930,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaSpawnPointEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2595,
+      "line": 2627,
       "name": "AreaSpawnPointEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13808,7 +13938,7 @@
       "id": "component:apps/desktop/src/App.tsx:AreaTileEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2600,
+      "line": 2632,
       "name": "AreaTileEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13816,7 +13946,7 @@
       "id": "component:apps/desktop/src/App.tsx:AssetView",
       "kind": "component",
       "layer": "interface",
-      "line": 2753,
+      "line": 2785,
       "name": "AssetView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13824,7 +13954,7 @@
       "id": "component:apps/desktop/src/App.tsx:BabylonScene",
       "kind": "component",
       "layer": "interface",
-      "line": 2831,
+      "line": 2872,
       "name": "BabylonScene",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13936,7 +14066,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueAddLinkEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2004,
+      "line": 2034,
       "name": "DialogueAddLinkEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13952,7 +14082,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueInspector",
       "kind": "component",
       "layer": "interface",
-      "line": 1936,
+      "line": 1958,
       "name": "DialogueInspector",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13960,7 +14090,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueLineCard",
       "kind": "component",
       "layer": "interface",
-      "line": 1905,
+      "line": 1923,
       "name": "DialogueLineCard",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13968,7 +14098,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueLineLink",
       "kind": "component",
       "layer": "interface",
-      "line": 1919,
+      "line": 1942,
       "name": "DialogueLineLink",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13976,7 +14106,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueLinesEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1888,
+      "line": 1894,
       "name": "DialogueLinesEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13984,7 +14114,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueLinkFieldEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2013,
+      "line": 2044,
       "name": "DialogueLinkFieldEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -13992,7 +14122,7 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueLinkTriggerEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1926,
+      "line": 1948,
       "name": "DialogueLinkTriggerEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14000,8 +14130,16 @@
       "id": "component:apps/desktop/src/App.tsx:DialogueNodeFieldEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 1945,
+      "line": 1967,
       "name": "DialogueNodeFieldEditor",
+      "path": "apps/desktop/src/App.tsx"
+    },
+    {
+      "id": "component:apps/desktop/src/App.tsx:DialogueStartRules",
+      "kind": "component",
+      "layer": "interface",
+      "line": 1938,
+      "name": "DialogueStartRules",
       "path": "apps/desktop/src/App.tsx"
     },
     {
@@ -14024,7 +14162,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableBooleanGffField",
       "kind": "component",
       "layer": "interface",
-      "line": 2356,
+      "line": 2388,
       "name": "EditableBooleanGffField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14032,7 +14170,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableDialogueField",
       "kind": "component",
       "layer": "interface",
-      "line": 1965,
+      "line": 1987,
       "name": "EditableDialogueField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14040,7 +14178,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableDialogueTargetField",
       "kind": "component",
       "layer": "interface",
-      "line": 2043,
+      "line": 2074,
       "name": "EditableDialogueTargetField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14056,7 +14194,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableIntegerGffField",
       "kind": "component",
       "layer": "interface",
-      "line": 2349,
+      "line": 2381,
       "name": "EditableIntegerGffField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14064,7 +14202,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableLocalizedDialogueField",
       "kind": "component",
       "layer": "interface",
-      "line": 1992,
+      "line": 2014,
       "name": "EditableLocalizedDialogueField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14072,7 +14210,7 @@
       "id": "component:apps/desktop/src/App.tsx:EditableScalarDialogueField",
       "kind": "component",
       "layer": "interface",
-      "line": 1970,
+      "line": 1992,
       "name": "EditableScalarDialogueField",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14088,7 +14226,7 @@
       "id": "component:apps/desktop/src/App.tsx:FactionEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2377,
+      "line": 2409,
       "name": "FactionEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14096,7 +14234,7 @@
       "id": "component:apps/desktop/src/App.tsx:FactionMatrix",
       "kind": "component",
       "layer": "interface",
-      "line": 2363,
+      "line": 2395,
       "name": "FactionMatrix",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14104,7 +14242,7 @@
       "id": "component:apps/desktop/src/App.tsx:FactionReputationEditors",
       "kind": "component",
       "layer": "interface",
-      "line": 2388,
+      "line": 2420,
       "name": "FactionReputationEditors",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14112,7 +14250,7 @@
       "id": "component:apps/desktop/src/App.tsx:FactionReputationToolbar",
       "kind": "component",
       "layer": "interface",
-      "line": 2397,
+      "line": 2429,
       "name": "FactionReputationToolbar",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14120,7 +14258,7 @@
       "id": "component:apps/desktop/src/App.tsx:FactionStructureButton",
       "kind": "component",
       "layer": "interface",
-      "line": 2403,
+      "line": 2435,
       "name": "FactionStructureButton",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14128,7 +14266,7 @@
       "id": "component:apps/desktop/src/App.tsx:FactionStructureToolbar",
       "kind": "component",
       "layer": "interface",
-      "line": 2371,
+      "line": 2403,
       "name": "FactionStructureToolbar",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14144,7 +14282,7 @@
       "id": "component:apps/desktop/src/App.tsx:GlobalGraphView",
       "kind": "component",
       "layer": "interface",
-      "line": 2909,
+      "line": 2950,
       "name": "GlobalGraphView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14152,7 +14290,7 @@
       "id": "component:apps/desktop/src/App.tsx:ImagePreview",
       "kind": "component",
       "layer": "interface",
-      "line": 2764,
+      "line": 2796,
       "name": "ImagePreview",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14160,7 +14298,7 @@
       "id": "component:apps/desktop/src/App.tsx:JournalCategoryEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2321,
+      "line": 2353,
       "name": "JournalCategoryEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14168,7 +14306,7 @@
       "id": "component:apps/desktop/src/App.tsx:JournalEntryEditor",
       "kind": "component",
       "layer": "interface",
-      "line": 2331,
+      "line": 2363,
       "name": "JournalEntryEditor",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14176,7 +14314,7 @@
       "id": "component:apps/desktop/src/App.tsx:JournalStructureButton",
       "kind": "component",
       "layer": "interface",
-      "line": 2341,
+      "line": 2373,
       "name": "JournalStructureButton",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14184,7 +14322,7 @@
       "id": "component:apps/desktop/src/App.tsx:JournalStructureToolbar",
       "kind": "component",
       "layer": "interface",
-      "line": 2315,
+      "line": 2347,
       "name": "JournalStructureToolbar",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14192,7 +14330,7 @@
       "id": "component:apps/desktop/src/App.tsx:Metric",
       "kind": "component",
       "layer": "interface",
-      "line": 2947,
+      "line": 2988,
       "name": "Metric",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14200,7 +14338,7 @@
       "id": "component:apps/desktop/src/App.tsx:ModelPreview",
       "kind": "component",
       "layer": "interface",
-      "line": 2781,
+      "line": 2813,
       "name": "ModelPreview",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14208,7 +14346,7 @@
       "id": "component:apps/desktop/src/App.tsx:NarrativeView",
       "kind": "component",
       "layer": "interface",
-      "line": 2287,
+      "line": 2319,
       "name": "NarrativeView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14216,7 +14354,7 @@
       "id": "component:apps/desktop/src/App.tsx:NcsTechnicalView",
       "kind": "component",
       "layer": "interface",
-      "line": 2226,
+      "line": 2258,
       "name": "NcsTechnicalView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14224,7 +14362,7 @@
       "id": "component:apps/desktop/src/App.tsx:NewModuleCreator",
       "kind": "component",
       "layer": "interface",
-      "line": 2248,
+      "line": 2280,
       "name": "NewModuleCreator",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14240,7 +14378,7 @@
       "id": "component:apps/desktop/src/App.tsx:PhaseOneWorkspace",
       "kind": "component",
       "layer": "interface",
-      "line": 2265,
+      "line": 2297,
       "name": "PhaseOneWorkspace",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14248,7 +14386,7 @@
       "id": "component:apps/desktop/src/App.tsx:Property",
       "kind": "component",
       "layer": "interface",
-      "line": 2964,
+      "line": 3005,
       "name": "Property",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14280,7 +14418,7 @@
       "id": "component:apps/desktop/src/App.tsx:SceneView",
       "kind": "component",
       "layer": "interface",
-      "line": 2823,
+      "line": 2864,
       "name": "SceneView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14288,7 +14426,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptDocumentView",
       "kind": "component",
       "layer": "interface",
-      "line": 2133,
+      "line": 2165,
       "name": "ScriptDocumentView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14296,7 +14434,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptMetadata",
       "kind": "component",
       "layer": "interface",
-      "line": 2214,
+      "line": 2246,
       "name": "ScriptMetadata",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14304,7 +14442,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptSummaryView",
       "kind": "component",
       "layer": "interface",
-      "line": 2051,
+      "line": 2083,
       "name": "ScriptSummaryView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14312,7 +14450,7 @@
       "id": "component:apps/desktop/src/App.tsx:ScriptWorkspace",
       "kind": "component",
       "layer": "interface",
-      "line": 2076,
+      "line": 2108,
       "name": "ScriptWorkspace",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14320,7 +14458,7 @@
       "id": "component:apps/desktop/src/App.tsx:StructuredSummaryView",
       "kind": "component",
       "layer": "interface",
-      "line": 2919,
+      "line": 2960,
       "name": "StructuredSummaryView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14360,7 +14498,7 @@
       "id": "component:apps/desktop/src/App.tsx:WalkmeshWorkbench",
       "kind": "component",
       "layer": "interface",
-      "line": 2624,
+      "line": 2656,
       "name": "WalkmeshWorkbench",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14368,7 +14506,7 @@
       "id": "component:apps/desktop/src/App.tsx:WorldSummaryView",
       "kind": "component",
       "layer": "interface",
-      "line": 2241,
+      "line": 2273,
       "name": "WorldSummaryView",
       "path": "apps/desktop/src/App.tsx"
     },
@@ -14440,7 +14578,7 @@
       "id": "component:apps/desktop/src/components/HelpCenter.tsx:HelpCenter",
       "kind": "component",
       "layer": "interface",
-      "line": 421,
+      "line": 422,
       "name": "HelpCenter",
       "path": "apps/desktop/src/components/HelpCenter.tsx"
     },
@@ -14520,7 +14658,7 @@
       "id": "component:apps/desktop/src/components/UxEnhancements.tsx:UxEnhancements",
       "kind": "component",
       "layer": "interface",
-      "line": 36,
+      "line": 41,
       "name": "UxEnhancements",
       "path": "apps/desktop/src/components/UxEnhancements.tsx"
     },
@@ -15432,7 +15570,7 @@
       "id": "domain_type:apps/desktop/src-tauri/src/session.rs:SessionPaths",
       "kind": "domain_type",
       "layer": "tauri",
-      "line": 26,
+      "line": 27,
       "name": "SessionPaths",
       "path": "apps/desktop/src-tauri/src/session.rs"
     },
@@ -18336,7 +18474,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/session.rs:new",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 33,
+      "line": 34,
       "name": "new",
       "path": "apps/desktop/src-tauri/src/session.rs"
     },
@@ -18344,7 +18482,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/session.rs:restore_analysis_session",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 215,
+      "line": 216,
       "name": "restore_analysis_session",
       "path": "apps/desktop/src-tauri/src/session.rs"
     },
@@ -18352,7 +18490,7 @@
       "id": "rust_function:apps/desktop/src-tauri/src/session.rs:store_analysis_session",
       "kind": "rust_function",
       "layer": "tauri",
-      "line": 143,
+      "line": 144,
       "name": "store_analysis_session",
       "path": "apps/desktop/src-tauri/src/session.rs"
     },
@@ -20677,10 +20815,18 @@
       "path": "apps/desktop/src-tauri/src/jobs.rs"
     },
     {
+      "id": "test:apps/desktop/src-tauri/src/session.rs:reads_valid_cached_trees_beyond_serdes_default_json_envelope",
+      "kind": "test",
+      "layer": "tests",
+      "line": 464,
+      "name": "reads_valid_cached_trees_beyond_serdes_default_json_envelope",
+      "path": "apps/desktop/src-tauri/src/session.rs"
+    },
+    {
       "id": "test:apps/desktop/src-tauri/src/session.rs:restores_a_complete_analysis_until_the_module_changes",
       "kind": "test",
       "layer": "tests",
-      "line": 439,
+      "line": 515,
       "name": "restores_a_complete_analysis_until_the_module_changes",
       "path": "apps/desktop/src-tauri/src/session.rs"
     },
@@ -21496,7 +21642,7 @@
       "id": "test:crates/aurora-mdl/src/glb.rs:cyclic_ascii_parent_is_reported_and_not_exported",
       "kind": "test",
       "layer": "tests",
-      "line": 734,
+      "line": 848,
       "name": "cyclic_ascii_parent_is_reported_and_not_exported",
       "path": "crates/aurora-mdl/src/glb.rs"
     },
@@ -21504,7 +21650,7 @@
       "id": "test:crates/aurora-mdl/src/glb.rs:exports_deterministic_glb_with_triangle_mesh",
       "kind": "test",
       "layer": "tests",
-      "line": 694,
+      "line": 756,
       "name": "exports_deterministic_glb_with_triangle_mesh",
       "path": "crates/aurora-mdl/src/glb.rs"
     },
@@ -21512,8 +21658,16 @@
       "id": "test:crates/aurora-mdl/src/glb.rs:skin_remapping_deduplicates_joints_and_normalizes_weights",
       "kind": "test",
       "layer": "tests",
-      "line": 716,
+      "line": 830,
       "name": "skin_remapping_deduplicates_joints_and_normalizes_weights",
+      "path": "crates/aurora-mdl/src/glb.rs"
+    },
+    {
+      "id": "test:crates/aurora-mdl/src/glb.rs:textured_floor_keeps_upward_winding_after_axis_conversion",
+      "kind": "test",
+      "layer": "tests",
+      "line": 778,
+      "name": "textured_floor_keeps_upward_winding_after_axis_conversion",
       "path": "crates/aurora-mdl/src/glb.rs"
     },
     {

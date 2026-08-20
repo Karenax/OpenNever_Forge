@@ -130,6 +130,14 @@ Tous les changements notables du projet sont consignés ici.
 
 ### Fixed
 
+- Empêche l’atelier Dialogues de charger automatiquement le premier DLG, borne le navigateur de
+  lignes, rend les cibles de liens paresseuses et limite la resynchronisation UX aux hôtes utiles.
+- Recharge l'analyse complète du dernier module depuis le cache local au démarrage, y compris pour
+  les dialogues profonds qui dépassaient auparavant la limite d'enveloppe JSON de Serde.
+- Oriente les faces MDL→GLB du côté de leurs normales après la conversion Z-up→Y-up, invalide le
+  cache concerné et abaisse le plan technique Babylon afin qu'il ne masque plus les sols texturés.
+- Rétablit la porte de publication Windows en recalant ses budgets de confinement et en corrigeant
+  l'analyse PowerShell des scripts SBOM et de vérification de distribution.
 - Rend les transactions d'édition récupérables après interruption et interdit qu'une commande soit
   validée sans exactement les octets de ressources correspondants.
 - Préserve la branche redo lorsqu'une transaction est rejetée et distingue deux overlays ouverts

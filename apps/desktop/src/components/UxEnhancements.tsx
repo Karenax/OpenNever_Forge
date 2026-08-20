@@ -7,7 +7,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useUiStore } from "../store/uiStore";
-import { annotateWorkbench, countDiagnostics } from "./UxEnhancements.dom";
+import {
+  annotateWorkbench,
+  countDiagnostics,
+  mutationsAffectWorkbench,
+} from "./UxEnhancements.dom";
 import { CommandPalette, DomainNavigation } from "./UxEnhancements.navigation";
 import { DiagnosticsControls, MapStageControls, WorkspaceSplitters } from "./UxEnhancements.portals";
 import {
@@ -32,6 +36,7 @@ import {
 import "./UxEnhancements.css";
 
 export { densityLevel, domainForItem, filterNavigationCommands } from "./UxEnhancements.model";
+export { nodeAffectsWorkbench } from "./UxEnhancements.dom";
 export type { WorkbenchDomain } from "./UxEnhancements.model";
 
 export function UxEnhancements() {
@@ -149,8 +154,13 @@ export function UxEnhancements() {
       if (!frame) frame = requestAnimationFrame(synchronize);
     };
     schedule();
-    const observer = new MutationObserver(schedule);
-    observer.observe(document.body, { childList: true, subtree: true });
+    const observer = new MutationObserver((records) => {
+      if (mutationsAffectWorkbench(records)) schedule();
+    });
+    observer.observe(document.getElementById("root") ?? document.body, {
+      childList: true,
+      subtree: true,
+    });
     return () => {
       observer.disconnect();
       if (frame) cancelAnimationFrame(frame);

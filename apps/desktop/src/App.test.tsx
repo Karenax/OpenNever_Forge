@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App, { isTileOccluder, JobProgress, WalkmeshWorkbench } from "./App";
-import { applyAiChangeSet, applyAuroraWorkspaceSync, applyMapGeneration, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, draftMapWithAi, editAreaStructure, editBlueprintStructure, editDialogueField, editDialogueStructure, editFactionStructure, editWorkspaceModuleDependencies, moveAreaInstance, planAuroraWorkspaceSync, previewAiChangeSet, previewMapGeneration, requestAiChangeSet, restoreModuleSession, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
+import App, { isTileOccluder, JobProgress, sceneGroundElevation, WalkmeshWorkbench } from "./App";
+import { applyAiChangeSet, applyAuroraWorkspaceSync, applyMapGeneration, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, draftMapWithAi, editAreaStructure, editBlueprintStructure, editDialogueField, editDialogueStructure, editFactionStructure, editWorkspaceModuleDependencies, inspectDialogue, moveAreaInstance, planAuroraWorkspaceSync, previewAiChangeSet, previewMapGeneration, requestAiChangeSet, restoreModuleSession, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
+import type { DialogueGraph } from "./lib/tauri";
 import { LAST_EXPLORER_ITEM_STORAGE_KEY, PROJECT_PREFERENCES_STORAGE_KEY } from "./lib/projectPreferences";
 import { useUiStore } from "./store/uiStore";
 
@@ -238,7 +239,7 @@ vi.mock("./lib/tauri", () => ({
         diagnostics: [],
       },
       scriptIndexSummary: { scripts: 1, nss: 1, ncs: 1, paired: 1, missingSource: 0, includes: 0, symbols: 1, calls: 1, inboundReferences: 1, diagnostics: 0 },
-      dialogueIndexSummary: { dialogues: 1, nodes: 2, links: 2, sharedNodes: 1, cycles: 1, unreachableNodes: 0, brokenLinks: 0, scriptLinks: 2, references: 1, diagnostics: 1 },
+      dialogueIndexSummary: { dialogues: 1, nodes: 2, links: 3, sharedNodes: 1, cycles: 1, unreachableNodes: 0, brokenLinks: 0, scriptLinks: 3, references: 1, diagnostics: 1 },
       worldSummary: { journalCategories: 1, journalEntries: 1, factions: 1, factionRelations: 1, areas: 1, tiles: 1, instances: 1, transitions: 0, assets: 1, previewableAssets: 1, sceneObjects: 2, graphNodes: 3, graphEdges: 2, diagnostics: 1 },
     },
   }),
@@ -286,11 +287,11 @@ vi.mock("./lib/tauri", () => ({
     inboundReferences: [{ script: "start", resource: { resref: "module", resourceType: 2014 }, fieldPath: "root.OnModuleLoad", source: "C:/module.mod::module.ifo" }],
     diagnostics: [],
   }),
-  queryDialogues: vi.fn().mockResolvedValue({ items: [{ resref: "forge_dialogue", nodeCount: 2, linkCount: 2, cycleCount: 1, diagnosticCount: 1, preview: "Bonjour" }], offset: 0, limit: 50, total: 1 }),
+  queryDialogues: vi.fn().mockResolvedValue({ items: [{ resref: "forge_dialogue", nodeCount: 2, linkCount: 3, cycleCount: 1, diagnosticCount: 1, preview: "Bonjour" }], offset: 0, limit: 50, total: 1 }),
   inspectDialogue: vi.fn().mockResolvedValue({
     key: { resref: "forge_dialogue", resourceType: 2029 }, source: "C:/module.mod::forge_dialogue.dlg",
     nodes: [{ id: "entry:0", kind: "entry", index: 0, text: null, displayText: "Bonjour", speaker: "NPC", comment: "Accueil", animation: 1, animationLoop: true, sound: "hello", quest: null, actionScript: "start" }, { id: "reply:0", kind: "reply", index: 0, text: null, displayText: "Au revoir", speaker: null, comment: null, animation: null, animationLoop: null, sound: null, quest: null, actionScript: null }],
-    links: [{ id: "entry:0:reply:0:0", source: "entry:0", target: "reply:0", conditionScript: "check", actionScript: null, comment: null, isChild: false, broken: false }, { id: "reply:0:entry:0:0", source: "reply:0", target: "entry:0", conditionScript: null, actionScript: null, comment: null, isChild: true, broken: false }],
+    links: [{ id: "start:entry:0:0", source: null, target: "entry:0", conditionScript: "can_start", actionScript: "begin_scene", comment: null, isChild: false, broken: false }, { id: "entry:0:reply:0:0", source: "entry:0", target: "reply:0", conditionScript: "check", actionScript: null, comment: null, isChild: false, broken: false }, { id: "reply:0:entry:0:0", source: "reply:0", target: "entry:0", conditionScript: null, actionScript: null, comment: null, isChild: true, broken: false }],
     roots: ["entry:0"], sharedNodes: ["entry:0"], unreachableNodes: [], cycles: [["entry:0", "reply:0", "entry:0"]], diagnostics: [{ code: "DLG_CYCLE_DETECTED", message: "Cycle", nodeId: "entry:0", linkId: null }], references: [{ resource: { resref: "creature", resourceType: 2027 }, fieldPath: "root.Conversation", source: "C:/module.mod" }], tree: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: false, children: [{ nodeId: "reply:0", kind: "reply", displayText: "Au revoir", repeated: false, cycle: false, children: [{ nodeId: "entry:0", kind: "entry", displayText: "Bonjour", repeated: false, cycle: true, children: [] }] }] }], raw: { fileType: "DLG ", fileVersion: "V3.2", source: "forge_dialogue.dlg", structCount: 7, fieldCount: 12, root: { index: 0, structType: 4294967295, fields: [
       { label: "EntryList", fieldType: 15, value: { kind: "list", value: [{ index: 1, structType: 0, fields: [
         { label: "Text", fieldType: 12, value: { kind: "localized_string", value: { stringRef: null, values: [{ languageId: 0, text: "Bonjour" }] } } },
@@ -301,7 +302,7 @@ vi.mock("./lib/tauri", () => ({
         { label: "Text", fieldType: 12, value: { kind: "localized_string", value: { stringRef: null, values: [{ languageId: 0, text: "Au revoir" }] } } },
         { label: "EntriesList", fieldType: 15, value: { kind: "list", value: [{ index: 4, structType: 0, fields: [{ label: "Index", fieldType: 4, value: { kind: "dword", value: 0 } }] }] } },
       ] }] } },
-      { label: "StartingList", fieldType: 15, value: { kind: "list", value: [] } },
+      { label: "StartingList", fieldType: 15, value: { kind: "list", value: [{ index: 5, structType: 0, fields: [{ label: "Index", fieldType: 4, value: { kind: "dword", value: 0 } }, { label: "Active", fieldType: 11, value: { kind: "res_ref", value: "can_start" } }, { label: "Script", fieldType: 11, value: { kind: "res_ref", value: "begin_scene" } }] }] } },
     ] } },
   }),
   editDialogueField: vi.fn(),
@@ -420,6 +421,26 @@ function renderApp() {
   );
 }
 
+function largeDialogueGraph(): DialogueGraph {
+  const nodes = Array.from({ length: 500 }, (_, index) => [
+    { id: `entry:${index}`, kind: "entry" as const, index, text: null, displayText: `Réplique PNJ ${index}`, speaker: "Narrateur", comment: null, animation: null, animationLoop: null, sound: null, quest: null, actionScript: null },
+    { id: `reply:${index}`, kind: "reply" as const, index, text: null, displayText: `Réponse joueur ${index}`, speaker: null, comment: null, animation: null, animationLoop: null, sound: null, quest: null, actionScript: null },
+  ]).flat();
+  const links = Array.from({ length: 500 }, (_, index) => [
+    { id: `entry:${index}:reply:${index}:0`, source: `entry:${index}`, target: `reply:${index}`, conditionScript: null, actionScript: null, comment: null, isChild: false, broken: false },
+    { id: `reply:${index}:entry:${(index + 1) % 500}:0`, source: `reply:${index}`, target: `entry:${(index + 1) % 500}`, conditionScript: null, actionScript: null, comment: null, isChild: false, broken: false },
+  ]).flat();
+  return {
+    key: { resref: "forge_dialogue", resourceType: 2029 }, source: "synthetic::large.dlg", nodes, links,
+    roots: ["entry:0"], sharedNodes: [], unreachableNodes: [], cycles: [], diagnostics: [], references: [], tree: [],
+    raw: { fileType: "DLG ", fileVersion: "V3.2", source: "synthetic::large.dlg", structCount: 1, fieldCount: 3, root: { index: 0, structType: 4294967295, fields: [
+      { label: "EntryList", fieldType: 15, value: { kind: "list", value: [] } },
+      { label: "ReplyList", fieldType: 15, value: { kind: "list", value: [] } },
+      { label: "StartingList", fieldType: 15, value: { kind: "list", value: [] } },
+    ] } },
+  };
+}
+
 describe("OpenNever Forge shell", () => {
   it("hides Aurora tile-fade and black technical occluders without hiding textured floors", () => {
     expect(isTileOccluder("tile", { nwnTileFade: 1, nwnTextures: ["tin01_roof"] })).toBe(true);
@@ -427,6 +448,12 @@ describe("OpenNever Forge shell", () => {
     expect(isTileOccluder("tile", { nwnTileFade: 0, nwnTextures: ["tin01_black"] })).toBe(true);
     expect(isTileOccluder("tile", { nwnTileFade: 0, nwnTextures: ["tin01_floor"] })).toBe(false);
     expect(isTileOccluder("placeable", { nwnTextures: ["plc_black"] })).toBe(false);
+  });
+
+  it("keeps the technical ground below the textured tile floors", () => {
+    expect(sceneGroundElevation([{ kind: "tile", y: 0 }])).toBeCloseTo(-0.05);
+    expect(sceneGroundElevation([{ kind: "tile", y: 2 }, { kind: "tile", y: 1 }])).toBeCloseTo(0.95);
+    expect(sceneGroundElevation([{ kind: "placeable", y: -3 }])).toBeCloseTo(-0.05);
   });
 
   beforeEach(() => {
@@ -692,10 +719,16 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Dialogues (1)" }));
     expect(await screen.findByRole("region", { name: "Explorateur de dialogues" })).toBeInTheDocument();
+    expect(inspectDialogue).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Choisissez un dialogue" })).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Ouvrir le dialogue forge_dialogue" }));
     expect(await screen.findByRole("button", { name: "Lignes" })).toHaveClass("active");
     expect(screen.getByRole("article", { name: "Ligne entry:0" })).toHaveTextContent("Bonjour");
     expect(screen.getByRole("article", { name: "Ligne entry:0" })).toHaveTextContent("Déclencheur · check");
-    fireEvent.change(screen.getByLabelText("Rechercher dans les lignes"), { target: { value: "au revoir" } });
+    expect(screen.getByRole("article", { name: "Ligne entry:0" })).toHaveTextContent("Condition · can_start");
+    expect(screen.queryByRole("article", { name: "Ligne reply:0" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Rechercher une ligne"), { target: { value: "au revoir" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir la ligne reply:0" }));
     expect(screen.queryByRole("article", { name: "Ligne entry:0" })).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Ligne reply:0" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Graphe (avancé)" }));
@@ -711,6 +744,7 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
     fireEvent.click(await screen.findByRole("button", { name: "Dialogues (1)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ouvrir le dialogue forge_dialogue" }));
 
     const line = await screen.findByRole("article", { name: "Ligne entry:0" });
     const text = within(line).getByRole("textbox", { name: "Langue/genre 0" });
@@ -741,10 +775,30 @@ describe("OpenNever Forge shell", () => {
       },
     })));
 
+    expect(within(line).queryByRole("textbox", { name: /Rechercher une cible/ })).not.toBeInTheDocument();
+    fireEvent.click(within(line).getByRole("button", { name: /Associer une réponse joueur/ }));
+    expect(within(line).getByRole("textbox", { name: "Rechercher une cible pour Associer une réponse joueur" })).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "+ Réplique PNJ" }));
     await waitFor(() => expect(editDialogueStructure).toHaveBeenCalledWith(expect.objectContaining({ action: { kind: "add_node", nodeKind: "entry" } })));
     fireEvent.click(within(line).getByRole("button", { name: "Supprimer la ligne" }));
+    fireEvent.click(within(line).getByRole("button", { name: "Confirmer" }));
     await waitFor(() => expect(editDialogueStructure).toHaveBeenCalledWith(expect.objectContaining({ action: { kind: "remove_node", node: { kind: "entry", index: 0 } } })));
+  });
+
+  it("keeps a 1,000-line dialogue bounded to one editor and one navigator page", async () => {
+    vi.mocked(inspectDialogue).mockResolvedValueOnce(largeDialogueGraph());
+    const { container } = renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Dialogues (1)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Ouvrir le dialogue forge_dialogue" }));
+
+    expect(await screen.findByRole("article", { name: "Ligne entry:0" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".dialogue-line-card")).toHaveLength(1);
+    expect(container.querySelectorAll(".dialogue-node-list > button")).toHaveLength(60);
+    expect(container.querySelectorAll(".dialogue-target-picker")).toHaveLength(0);
+    expect(screen.getByText(/1.000 lignes/)).toBeInTheDocument();
   });
 
   it("navigates the narrative, 2D map, assets and targeted global graph", async () => {

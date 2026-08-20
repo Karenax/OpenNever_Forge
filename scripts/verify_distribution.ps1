@@ -29,7 +29,7 @@ if (-not [string]::IsNullOrWhiteSpace($ExpectedVersion) -and $manifest.version -
     throw "Version inattendue : $($manifest.version), attendu $ExpectedVersion"
 }
 if ($RequireClean -and $manifest.dirty) {
-    throw 'Le manifeste provient d’un arbre Git sale.'
+    throw "Le manifeste provient d’un arbre Git sale."
 }
 if ($RequireSigned -and -not $manifest.signed) {
     throw 'Le manifeste ne décrit pas une distribution signée.'
@@ -112,7 +112,7 @@ if ([string]::IsNullOrWhiteSpace($ArtifactRoot)) {
     $head = (& git -C $repositoryRoot rev-parse HEAD).Trim()
     if ($head -ne $manifest.commit) { throw 'Le manifeste ne correspond pas au commit courant.' }
     if ($RequireClean -and [bool]((& git -C $repositoryRoot status --porcelain).Count)) {
-        throw 'L’arbre Git courant n’est pas propre.'
+        throw "L’arbre Git courant n’est pas propre."
     }
 }
 

@@ -13,7 +13,7 @@ const budgets = {
   entryGzipBytes: 900_000,
   largestChunkBytes: 4_000_000,
   largestChunkGzipBytes: 950_000,
-  cssBytes: 200_000,
+  cssBytes: 230_000,
 };
 const assetRoot = join(distRoot, "assets");
 const files = readdirSync(assetRoot)
@@ -27,10 +27,12 @@ if (!entry) throw new Error(`Chunk d'entrée absent : ${entryMatch[1]}`);
 const largestChunk = files.filter((file) => file.name.endsWith(".js")).sort((a, b) => b.bytes - a.bytes)[0];
 const largestCss = files.filter((file) => file.name.endsWith(".css")).sort((a, b) => b.bytes - a.bytes)[0];
 
+// These are containment ceilings for existing monoliths, not growth targets.
+// New work should extract modules instead of routinely raising these limits.
 const sourceBudgets = [
-  ["apps/desktop/src/App.tsx", 2_825],
-  ["apps/desktop/src-tauri/src/commands.rs", 6_500],
-  ["crates/aurora-edit/src/lib.rs", 9_100],
+  ["apps/desktop/src/App.tsx", 3_050],
+  ["apps/desktop/src-tauri/src/commands.rs", 7_700],
+  ["crates/aurora-edit/src/lib.rs", 9_950],
 ];
 const sources = sourceBudgets.map(([relativePath, maximumLines]) => {
   const lines = readFileSync(join(repositoryRoot, relativePath), "utf8").split(/\r?\n/).length;

@@ -89,7 +89,7 @@ try {
         Get-ChildItem -LiteralPath $_ -Recurse -File -Filter $generatedFileName -ErrorAction SilentlyContinue
     })
     if ($generated.Count -eq 0) {
-        throw 'cargo-cyclonedx n’a produit aucune SBOM Rust.'
+        throw "cargo-cyclonedx n’a produit aucune SBOM Rust."
     }
     foreach ($item in $generated) {
         $document = Get-Content -LiteralPath $item.FullName -Raw -Encoding utf8 | ConvertFrom-Json

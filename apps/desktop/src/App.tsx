@@ -1844,31 +1844,35 @@ function DialogueSummaryView({ summary }: { summary: DialogueIndexSummary }) {
 }
 
 function DialogueWorkspace({ jobId, summary, filter, editWorkspace, onWorkspace, onOpenScript }: { jobId: string; summary: DialogueIndexSummary; filter: string; editWorkspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void; onOpenScript: (script: string) => void }) {
-  const [page, setPage] = useState(0); const [selected, setSelected] = useState<string>(); const pageSize=50;
-  useEffect(()=>setPage(0),[filter]);
-  const pageQuery=useQuery({queryKey:["dialogues",jobId,filter,page],queryFn:()=>queryDialogues({jobId,query:filter,offset:page*pageSize,limit:pageSize})});
+  const [page, setPage] = useState(0); const [selected, setSelected] = useState<string>(); const [query,setQuery]=useState(filter); const pageSize=50;
+  useEffect(()=>setQuery(filter),[filter]);
+  useEffect(()=>setPage(0),[query]);
+  const pageQuery=useQuery({queryKey:["dialogues",jobId,query,page],queryFn:()=>queryDialogues({jobId,query,offset:page*pageSize,limit:pageSize})});
   const items=pageQuery.data?.items??[];
-  useEffect(()=>{if(!selected&&items[0])setSelected(items[0].resref);if(selected&&items.length&&!items.some(value=>value.resref===selected))setSelected(items[0].resref)},[items,selected]);
   const graphQuery=useQuery({queryKey:["dialogue",jobId,selected,editWorkspace?.workspaceId,editWorkspace?.cursor],queryFn:()=>inspectDialogue({jobId,resref:selected as string,workspaceId:editWorkspace?.workspaceId}),enabled:Boolean(selected)});
   const total=pageQuery.data?.total??0; const pages=Math.max(1,Math.ceil(total/pageSize));
   return <section className="inventory-card dialogue-workspace" aria-label="Explorateur de dialogues">
-    <div className="inventory-heading"><div><span className="eyebrow">STRUCTURE COMPLÈTE · PROVENANCE GFF</span><h2>Dialogues</h2></div><span className="format-badge">{total} résultat(s)</span></div>
-    <div className="dialogue-layout"><div className="dialogue-list">{items.map(item=><button type="button" key={item.resref} className={selected===item.resref?"dialogue-list-item selected":"dialogue-list-item"} onClick={()=>setSelected(item.resref)}><span><MessageSquareText size={13}/><code>{item.resref}</code></span><small>{item.nodeCount} nœuds · {item.linkCount} liens · {item.cycleCount} cycles</small>{item.preview&&<em>{item.preview}</em>}</button>)}
-      {!items.length&&<p className="resource-empty">{pageQuery.isLoading?"Indexation…":"Aucun dialogue ne correspond."}</p>}
-      <div className="catalog-pagination compact"><button type="button" disabled={page===0} onClick={()=>setPage(value=>Math.max(0,value-1))}>‹</button><span>{page+1}/{pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setPage(value=>value+1)}>›</button></div>
-    </div><DialogueGraphView jobId={jobId} graph={graphQuery.data} loading={graphQuery.isLoading} editWorkspace={editWorkspace} onWorkspace={onWorkspace} onOpenScript={onOpenScript}/></div>
+    <div className="inventory-heading dialogue-workspace-heading"><div><span className="eyebrow">ATELIER DE CONVERSATION</span><h2>Dialogues</h2><p>Choisissez un dialogue, puis travaillez sur une seule ligne à la fois.</p></div><span className="format-badge">{summary.dialogues.toLocaleString("fr-FR")} DLG</span></div>
+    <div className="dialogue-layout"><aside className="dialogue-list" aria-label="Liste des dialogues"><label className="dialogue-list-search"><Search size={16}/><input aria-label="Rechercher un dialogue" value={query} onChange={event=>setQuery(event.currentTarget.value)} placeholder="Nom, texte ou ResRef…"/></label><div className="dialogue-list-results">{items.map(item=><button type="button" aria-label={`Ouvrir le dialogue ${item.resref}`} key={item.resref} className={selected===item.resref?"dialogue-list-item selected":"dialogue-list-item"} onClick={()=>setSelected(item.resref)}><span><MessageSquareText size={15}/><code>{item.resref}</code></span><small>{item.nodeCount.toLocaleString("fr-FR")} lignes · {item.linkCount.toLocaleString("fr-FR")} liens{item.cycleCount?` · ${item.cycleCount} cycle(s)`:""}</small>{item.preview&&<em>{item.preview}</em>}</button>)}</div>
+      {!items.length&&<p className="resource-empty">{pageQuery.isLoading?"Recherche des dialogues…":"Aucun dialogue ne correspond."}</p>}
+      <div className="catalog-pagination compact"><button type="button" aria-label="Page précédente des dialogues" disabled={page===0} onClick={()=>setPage(value=>Math.max(0,value-1))}>‹</button><span>{total.toLocaleString("fr-FR")} résultat(s) · page {page+1}/{pages}</span><button type="button" aria-label="Page suivante des dialogues" disabled={page+1>=pages} onClick={()=>setPage(value=>value+1)}>›</button></div>
+    </aside><DialogueGraphView jobId={jobId} resref={selected} graph={graphQuery.data} loading={graphQuery.isLoading} error={graphQuery.error} editWorkspace={editWorkspace} onWorkspace={onWorkspace} onOpenScript={onOpenScript} onClose={()=>setSelected(undefined)}/></div>
     <span className="script-total-hidden">{summary.nodes}</span>
   </section>;
 }
 
-function DialogueGraphView({ jobId, graph, loading, editWorkspace, onWorkspace, onOpenScript }: { jobId: string; graph?: DialogueGraph; loading: boolean; editWorkspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void; onOpenScript: (script: string)=>void }) {
+function DialogueGraphView({ jobId, resref, graph, loading, error, editWorkspace, onWorkspace, onOpenScript, onClose }: { jobId: string; resref?: string; graph?: DialogueGraph; loading: boolean; error: unknown; editWorkspace?: WorkspaceSnapshot; onWorkspace: (workspace: WorkspaceSnapshot) => void; onOpenScript: (script: string)=>void; onClose:()=>void }) {
   const [tab,setTab]=useState<"lines"|"graph"|"raw">("lines"); const [selectedNode,setSelectedNode]=useState<string>();
   const [editedGraph,setEditedGraph]=useState<DialogueGraph>();
   const [structureBusy,setStructureBusy]=useState(false);const [structureMessage,setStructureMessage]=useState("");
-  useEffect(()=>{if(graph)setEditedGraph(graph)},[graph]);
+  useEffect(()=>{setEditedGraph(undefined);setSelectedNode(undefined);setStructureMessage("");setTab("lines")},[resref]);
+  useEffect(()=>{if(graph?.key.resref===resref)setEditedGraph(graph)},[graph,resref]);
   const currentGraph=editedGraph??graph;
   useEffect(()=>{if(currentGraph&&!currentGraph.nodes.some(node=>node.id===selectedNode))setSelectedNode(currentGraph.roots[0]??currentGraph.nodes[0]?.id)},[currentGraph,selectedNode]);
-  if(loading&&!currentGraph)return <div className="dialogue-empty">Ouverture du dialogue…</div>; if(!currentGraph)return <div className="dialogue-empty">Sélectionnez un dialogue.</div>;
+  if(!resref)return <div className="dialogue-empty dialogue-welcome"><MessageSquareText size={44}/><div><h2>Choisissez un dialogue</h2><p>Rien n’est chargé tant que vous n’avez pas sélectionné un DLG dans la liste.</p><span>La recherche et la pagination restent disponibles à gauche.</span></div></div>;
+  if(loading&&!currentGraph)return <div className="dialogue-empty dialogue-welcome"><LoaderCircle className="agent-spinner" size={28}/><div><h2>Ouverture de {resref}</h2><p>Lecture de sa structure de conversation…</p></div></div>;
+  if(error&&!currentGraph)return <div className="dialogue-empty dialogue-welcome warning"><AlertTriangle size={32}/><div><h2>Dialogue impossible à ouvrir</h2><p>{normalizeAppError(error).technicalMessage}</p><button type="button" onClick={onClose}>Revenir à la liste</button></div></div>;
+  if(!currentGraph)return <div className="dialogue-empty">Sélectionnez un dialogue.</div>;
   const node=currentGraph.nodes.find(value=>value.id===selectedNode);
   const commitField=async(path:string,before:GenericGffValue,after:GenericGffValue)=>{
     if(!editWorkspace)return;
@@ -1878,58 +1882,76 @@ function DialogueGraphView({ jobId, graph, loading, editWorkspace, onWorkspace, 
   const commitStructure=async(action:DialogueStructureAction)=>{
     if(!editWorkspace)return;
     setStructureBusy(true);setStructureMessage("Mise à jour de la structure…");
-    try{const result=await editDialogueStructure({jobId,workspaceId:editWorkspace.workspaceId,resref:currentGraph.key.resref,action});onWorkspace(result.workspace);setEditedGraph(result.graph);setStructureMessage("Structure enregistrée dans l'overlay.")}catch(error){setStructureMessage(normalizeAppError(error).technicalMessage);throw error}finally{setStructureBusy(false)}
+    try{const result=await editDialogueStructure({jobId,workspaceId:editWorkspace.workspaceId,resref:currentGraph.key.resref,action});onWorkspace(result.workspace);setEditedGraph(result.graph);if(action.kind==="add_node"){const added=result.graph.nodes.filter(value=>value.kind===action.nodeKind).at(-1);if(added)setSelectedNode(added.id)}setStructureMessage("Structure enregistrée dans l'overlay.")}catch(error){setStructureMessage(normalizeAppError(error).technicalMessage);throw error}finally{setStructureBusy(false)}
   };
   const connectNodes=async(sourceId:string,targetId:string)=>{const source=dialogueNodeRef(sourceId);const target=dialogueNodeRef(targetId);if(!source||!target)throw new Error("Nœud DLG invalide");await commitStructure({kind:"add_link",source,target})};
-  return <div className="dialogue-document"><div className="script-tabs"><button type="button" className={tab==="lines"?"active":""} onClick={()=>setTab("lines")}>Lignes</button><button type="button" className={tab==="graph"?"active":""} onClick={()=>setTab("graph")}>Graphe (avancé)</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>GFF (avancé)</button><strong>{currentGraph.key.resref}</strong></div>
-    {tab==="lines"?<DialogueLinesEditor graph={currentGraph} editWorkspace={editWorkspace} busy={structureBusy} message={structureMessage} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/>:tab==="graph"?<div className="dialogue-editor-surface"><div className="dialogue-content"><Suspense fallback={<div className="dialogue-empty">Chargement du graphe…</div>}><DialogueFlow graph={currentGraph} selectedId={selectedNode} onSelect={setSelectedNode} onConnect={editWorkspace?connectNodes:undefined}/></Suspense></div><DialogueInspector graph={currentGraph} node={node} editWorkspace={editWorkspace} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/></div>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}
+  return <div className="dialogue-document"><div className="script-tabs dialogue-tabs"><button type="button" className={tab==="lines"?"active":""} onClick={()=>setTab("lines")}>Lignes</button><button type="button" className={tab==="graph"?"active":""} onClick={()=>setTab("graph")}>Graphe (avancé)</button><button type="button" className={tab==="raw"?"active":""} onClick={()=>setTab("raw")}>GFF (avancé)</button><strong>{currentGraph.key.resref}</strong><button type="button" className="dialogue-close" aria-label="Fermer le dialogue" title="Fermer le dialogue" onClick={onClose}><X size={16}/></button></div>
+    {tab==="lines"?<DialogueLinesEditor graph={currentGraph} selectedId={selectedNode} onSelect={setSelectedNode} editWorkspace={editWorkspace} busy={structureBusy} message={structureMessage} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/>:tab==="graph"?<div className="dialogue-editor-surface"><div className="dialogue-content"><Suspense fallback={<div className="dialogue-empty">Chargement du graphe…</div>}><DialogueFlow graph={currentGraph} selectedId={selectedNode} onSelect={setSelectedNode} onConnect={editWorkspace?connectNodes:undefined}/></Suspense></div><DialogueInspector graph={currentGraph} node={node} editWorkspace={editWorkspace} onCommitField={commitField} onCommitStructure={commitStructure} onOpenScript={onOpenScript}/></div>:<pre className="dialogue-raw">{JSON.stringify(currentGraph.raw,null,2)}</pre>}
   </div>;
 }
 
-function DialogueLinesEditor({graph,editWorkspace,busy,message,onCommitField,onCommitStructure,onOpenScript}:{graph:DialogueGraph;editWorkspace?:WorkspaceSnapshot;busy:boolean;message:string;onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
-  const [query,setQuery]=useState("");
+const dialogueNodePageSize=60;
+
+function DialogueLinesEditor({graph,selectedId,onSelect,editWorkspace,busy,message,onCommitField,onCommitStructure,onOpenScript}:{graph:DialogueGraph;selectedId?:string;onSelect:(nodeId:string)=>void;editWorkspace?:WorkspaceSnapshot;busy:boolean;message:string;onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
+  const [query,setQuery]=useState("");const [page,setPage]=useState(0);
   const normalized=query.trim().toLocaleLowerCase();
-  const nodes=graph.nodes.filter(node=>!normalized||[node.id,node.displayText,node.speaker,node.comment,node.actionScript].some(value=>value?.toLocaleLowerCase().includes(normalized)));
+  const nodeById=useMemo(()=>new globalThis.Map(graph.nodes.map(node=>[node.id,node])),[graph.nodes]);
+  const outgoingBySource=useMemo(()=>{const result=new globalThis.Map<string,DialogueGraph["links"]>();for(const link of graph.links){if(link.source===null)continue;const values=result.get(link.source)??[];values.push(link);result.set(link.source,values)}return result},[graph.links]);
+  const incomingByTarget=useMemo(()=>{const result=new globalThis.Map<string,DialogueGraph["links"]>();for(const link of graph.links){const values=result.get(link.target)??[];values.push(link);result.set(link.target,values)}return result},[graph.links]);
+  const nodes=useMemo(()=>graph.nodes.filter(node=>!normalized||[node.id,node.displayText,node.speaker,node.comment,node.actionScript,node.quest].some(value=>value?.toLocaleLowerCase().includes(normalized))),[graph.nodes,normalized]);
+  useEffect(()=>setPage(0),[normalized]);
+  const pages=Math.max(1,Math.ceil(nodes.length/dialogueNodePageSize));
+  useEffect(()=>setPage(value=>Math.min(value,pages-1)),[pages]);
+  useEffect(()=>{if(!selectedId)return;const position=nodes.findIndex(node=>node.id===selectedId);if(position>=0)setPage(Math.floor(position/dialogueNodePageSize))},[nodes,selectedId]);
+  const visibleNodes=nodes.slice(page*dialogueNodePageSize,(page+1)*dialogueNodePageSize);
+  const selectedNode=selectedId?nodeById.get(selectedId):undefined;
   const starts=graph.links.filter(link=>link.source===null);
   return <div className="dialogue-lines-workspace">
-    <header className="dialogue-lines-toolbar">
-      <label><Search size={14}/><input aria-label="Rechercher dans les lignes" placeholder="Rechercher un texte, un locuteur ou un script…" value={query} onChange={event=>setQuery(event.currentTarget.value)}/></label>
-      <span>{nodes.length}/{graph.nodes.length} lignes</span>
-      {editWorkspace?<><button type="button" disabled={busy} onClick={()=>void onCommitStructure({kind:"add_node",nodeKind:"entry"}).catch(()=>undefined)}>+ Réplique PNJ</button><button type="button" disabled={busy} onClick={()=>void onCommitStructure({kind:"add_node",nodeKind:"reply"}).catch(()=>undefined)}>+ Réponse joueur</button></>:<small>Créez un espace d’édition pour modifier le dialogue.</small>}
-    </header>
-    {message&&<p className="dialogue-lines-status" role="status">{message}</p>}
-    <section className="dialogue-starts" aria-label="Départs du dialogue"><div><strong>Début du dialogue</strong><span>{starts.length?`${starts.length} ligne(s) de départ` : "Aucune ligne de départ"}</span></div>{starts.map(link=><DialogueLineLink key={link.id} graph={graph} link={link} editable={Boolean(editWorkspace)} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>)}{editWorkspace&&<DialogueAddLinkEditor graph={graph} source={null} label="Ajouter une ligne de départ" onAdd={onCommitStructure}/>}</section>
-    <div className="dialogue-lines-list">{nodes.map(node=><DialogueLineCard key={node.id} graph={graph} node={node} editable={Boolean(editWorkspace)} onCommitField={onCommitField} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>)}{nodes.length===0&&<p className="dialogue-empty">Aucune ligne ne correspond à la recherche.</p>}</div>
+    <aside className="dialogue-line-browser" aria-label="Lignes du dialogue">
+      <header><div><span>PARCOURS</span><strong>{graph.nodes.length.toLocaleString("fr-FR")} lignes</strong></div><small>{graph.links.length.toLocaleString("fr-FR")} liens</small></header>
+      <label className="dialogue-line-search"><Search size={15}/><input aria-label="Rechercher une ligne" placeholder="Texte, locuteur, script ou quête…" value={query} onChange={event=>setQuery(event.currentTarget.value)}/></label>
+      <section className="dialogue-starts" aria-label="Départs du dialogue"><div><strong>Début du dialogue</strong><span>{starts.length?`${starts.length} départ(s)`:"Aucun départ"}</span></div><div className="dialogue-root-list">{starts.slice(0,12).map(link=>{const target=nodeById.get(link.target);return <button type="button" key={link.id} className={selectedId===link.target?"selected":""} onClick={()=>onSelect(link.target)}><ChevronRight size={14}/><span>{target?.displayText??link.target}</span></button>})}{starts.length>12&&<small>+ {starts.length-12} autres départs</small>}</div>{editWorkspace&&<DialogueAddLinkEditor graph={graph} source={null} label="Ajouter une ligne de départ" onAdd={onCommitStructure}/>}</section>
+      <nav className="dialogue-node-list" aria-label="Résultats des lignes">{visibleNodes.map(node=><button type="button" key={node.id} aria-label={`Ouvrir la ligne ${node.id}`} className={selectedId===node.id?`selected ${node.kind}`:node.kind} onClick={()=>onSelect(node.id)}><span>{node.kind==="entry"?"PNJ":"Joueur"}</span><strong>{node.displayText??"Texte non résolu"}</strong><small>{node.speaker?`${node.speaker} · `:""}{node.id}</small></button>)}{nodes.length===0&&<p>Aucune ligne ne correspond à cette recherche.</p>}</nav>
+      <div className="catalog-pagination compact"><button type="button" aria-label="Page précédente des lignes" disabled={page===0} onClick={()=>setPage(value=>Math.max(0,value-1))}>‹</button><span>{nodes.length.toLocaleString("fr-FR")} résultat(s) · {page+1}/{pages}</span><button type="button" aria-label="Page suivante des lignes" disabled={page+1>=pages} onClick={()=>setPage(value=>value+1)}>›</button></div>
+    </aside>
+    <main className="dialogue-line-focus"><header className="dialogue-lines-toolbar"><div><span>ÉDITION DE LA CONVERSATION</span><strong>{selectedNode?selectedNode.kind==="entry"?"Réplique du PNJ":"Réponse du joueur":"Sélectionnez une ligne"}</strong></div>{editWorkspace?<div><button type="button" disabled={busy} onClick={()=>void onCommitStructure({kind:"add_node",nodeKind:"entry"}).catch(()=>undefined)}>+ Réplique PNJ</button><button type="button" disabled={busy} onClick={()=>void onCommitStructure({kind:"add_node",nodeKind:"reply"}).catch(()=>undefined)}>+ Réponse joueur</button></div>:<small>Lecture seule · créez un espace d’édition pour modifier.</small>}</header>
+      {message&&<p className="dialogue-lines-status" role="status">{message}</p>}
+      {selectedNode?<DialogueLineCard graph={graph} node={selectedNode} nodeById={nodeById} outgoing={outgoingBySource.get(selectedNode.id)??[]} incoming={incomingByTarget.get(selectedNode.id)??[]} editable={Boolean(editWorkspace)} onSelect={onSelect} onCommitField={onCommitField} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>:<div className="dialogue-empty dialogue-focus-empty"><MessageSquareText size={36}/><p>Choisissez une ligne à gauche pour lire son texte et parcourir ses réponses.</p></div>}
+    </main>
   </div>;
 }
 
-function DialogueLineCard({graph,node,editable,onCommitField,onCommitStructure,onOpenScript}:{graph:DialogueGraph;node:DialogueGraph["nodes"][number];editable:boolean;onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
+function DialogueLineCard({graph,node,nodeById,outgoing,incoming,editable,onSelect,onCommitField,onCommitStructure,onOpenScript}:{graph:DialogueGraph;node:DialogueGraph["nodes"][number];nodeById:ReadonlyMap<string,DialogueGraph["nodes"][number]>;outgoing:DialogueGraph["links"];incoming:DialogueGraph["links"];editable:boolean;onSelect:(nodeId:string)=>void;onCommitField:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
   const nodeRef={kind:node.kind,index:node.index} satisfies DialogueNodeRef;
-  const fields=dialogueNodeEditableFields(graph,node.id);
-  const textField=fields.find(field=>field.path.endsWith("/Text"));
-  const details=fields.filter(field=>field!==textField);
-  const outgoing=graph.links.filter(link=>link.source===node.id);
+  const fields=dialogueNodeEditableFields(graph,node.id);const textField=fields.find(field=>field.path.endsWith("/Text"));const details=fields.filter(field=>field!==textField);
+  const startLinks=incoming.filter(link=>link.source===null);
+  const [confirmDelete,setConfirmDelete]=useState(false);useEffect(()=>setConfirmDelete(false),[node.id]);
   return <article className={`dialogue-line-card ${node.kind}`} aria-label={`Ligne ${node.id}`}>
-    <header><div><span>{node.kind==="entry"?"PNJ":"Joueur"}</span><code>{node.id}</code>{node.speaker&&<strong>{node.speaker}</strong>}</div>{editable&&<button type="button" className="danger-button" onClick={()=>void onCommitStructure({kind:"remove_node",node:nodeRef}).catch(()=>undefined)}>Supprimer la ligne</button>}</header>
+    <header><div><span>{node.kind==="entry"?"PNJ":"Joueur"}</span><code>{node.id}</code>{node.speaker&&<strong>{node.speaker}</strong>}</div>{editable&&(confirmDelete?<div className="dialogue-delete-confirm"><span>Supprimer cette ligne et ses liens ?</span><button type="button" onClick={()=>setConfirmDelete(false)}>Annuler</button><button type="button" className="danger-button" onClick={()=>void onCommitStructure({kind:"remove_node",node:nodeRef}).catch(()=>undefined)}>Confirmer</button></div>:<button type="button" className="danger-button" onClick={()=>setConfirmDelete(true)}>Supprimer la ligne</button>)}</header>
+    {incoming.length>0&&<section className="dialogue-line-origin"><strong>{incoming.some(link=>link.source===null)?"Point de départ":"Arrive depuis"}</strong><div>{incoming.slice(0,20).map(link=>{const source=link.source?nodeById.get(link.source):undefined;return <button type="button" key={link.id} disabled={!link.source} onClick={()=>link.source&&onSelect(link.source)}><ChevronRight size={13}/><span>{link.source?source?.displayText??link.source:"Début du dialogue"}</span></button>})}{incoming.length>20&&<small>+ {incoming.length-20} autres liens entrants</small>}</div></section>}
+    {startLinks.length>0&&<DialogueStartRules links={startLinks} editable={editable} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>}
     <div className="dialogue-line-text">{editable&&textField?<EditableDialogueField field={{...textField,label:"Texte de la ligne"}} onCommit={onCommitField}/>:<p>{node.displayText??"Texte non résolu"}</p>}</div>
-    <div className="dialogue-line-links"><strong>{node.kind==="entry"?"Réponses proposées":"Suite du dialogue"}</strong>{outgoing.map(link=><DialogueLineLink key={link.id} graph={graph} link={link} editable={editable} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>)}{outgoing.length===0&&<span>Aucune ligne associée.</span>}{editable&&<DialogueAddLinkEditor graph={graph} source={nodeRef} label={node.kind==="entry"?"Associer une réponse joueur":"Associer la prochaine réplique PNJ"} onAdd={onCommitStructure}/>}</div>
-    {(details.length>0||node.actionScript||node.comment||node.quest)&&<details className="dialogue-line-details"><summary>Autres réglages de la ligne</summary>{editable&&details.map(field=><EditableDialogueField key={field.path} field={field} onCommit={onCommitField}/>)}{node.actionScript&&<button type="button" onClick={()=>onOpenScript(node.actionScript as string)}><Code2 size={12}/> Ouvrir l’action {node.actionScript}</button>}{node.comment&&<span>Commentaire · {node.comment}</span>}{node.quest&&<span>Quête · {node.quest}</span>}</details>}
+    <div className="dialogue-line-links"><strong>{node.kind==="entry"?"Réponses proposées":"Suite du dialogue"}</strong>{outgoing.map(link=><DialogueLineLink key={link.id} link={link} target={nodeById.get(link.target)} editable={editable} onSelect={onSelect} onCommitStructure={onCommitStructure} onOpenScript={onOpenScript}/>)}{outgoing.length===0&&<span>Aucune ligne associée.</span>}{editable&&<DialogueAddLinkEditor graph={graph} source={nodeRef} label={node.kind==="entry"?"Associer une réponse joueur":"Associer la prochaine réplique PNJ"} onAdd={onCommitStructure}/>}</div>
+    {(details.length>0||node.actionScript||node.comment||node.quest)&&<details className="dialogue-line-details"><summary>Autres réglages de la ligne</summary>{editable&&details.map(field=><EditableDialogueField key={field.path} field={field} onCommit={onCommitField}/>)}{node.actionScript&&<button type="button" onClick={()=>onOpenScript(node.actionScript as string)}><Code2 size={13}/> Ouvrir l’action {node.actionScript}</button>}{node.comment&&<span>Commentaire · {node.comment}</span>}{node.quest&&<span>Quête · {node.quest}</span>}</details>}
   </article>;
 }
 
-function DialogueLineLink({graph,link,editable,onCommitStructure,onOpenScript}:{graph:DialogueGraph;link:DialogueGraph["links"][number];editable:boolean;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
-  const target=graph.nodes.find(node=>node.id===link.target);
-  const source=dialogueNodeRefFromId(link.source);
-  const position=Number(link.id.split(":").at(-1));
-  return <div className="dialogue-line-link"><div className="dialogue-line-link-target"><span>→</span><strong>{target?.displayText??link.target}</strong><code>{link.target}</code>{link.broken&&<em>Lien cassé</em>}</div>{editable?<DialogueLinkTriggerEditor link={link} source={source} position={position} onCommit={onCommitStructure}/>:<div className="dialogue-link-scripts">{link.conditionScript&&<button type="button" onClick={()=>onOpenScript(link.conditionScript as string)}>Déclencheur · {link.conditionScript}</button>}{link.actionScript&&<button type="button" onClick={()=>onOpenScript(link.actionScript as string)}>Action · {link.actionScript}</button>}{!link.conditionScript&&!link.actionScript&&<span>Toujours disponible</span>}</div>}{editable&&<button type="button" className="danger-button compact" onClick={()=>void onCommitStructure({kind:"remove_link",source,position}).catch(()=>undefined)}>Dissocier</button>}</div>;
+function DialogueStartRules({links,editable,onCommitStructure,onOpenScript}:{links:DialogueGraph["links"];editable:boolean;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
+  return <section className="dialogue-start-rules"><strong>Conditions d’entrée</strong>{links.map(link=>{const position=Number(link.id.split(":").at(-1));return <div className="dialogue-start-rule" key={`${link.id}:rules`}><span>Départ {position+1}</span>{editable?<DialogueLinkTriggerEditor link={link} source={null} position={position} conditionLabel="Condition d’entrée" actionLabel="Action au démarrage" onCommit={onCommitStructure}/>:<div className="dialogue-link-scripts">{link.conditionScript&&<button type="button" onClick={()=>onOpenScript(link.conditionScript as string)}>Condition · {link.conditionScript}</button>}{link.actionScript&&<button type="button" onClick={()=>onOpenScript(link.actionScript as string)}>Action · {link.actionScript}</button>}{!link.conditionScript&&!link.actionScript&&<span>Toujours disponible</span>}</div>}{editable&&<button type="button" className="danger-button compact" onClick={()=>void onCommitStructure({kind:"remove_link",source:null,position}).catch(()=>undefined)}>Retirer ce départ</button>}</div>})}</section>;
 }
 
-function DialogueLinkTriggerEditor({link,source,position,onCommit}:{link:DialogueGraph["links"][number];source:DialogueNodeRef|null;position:number;onCommit:(action:DialogueStructureAction)=>Promise<void>}) {
+function DialogueLineLink({link,target,editable,onSelect,onCommitStructure,onOpenScript}:{link:DialogueGraph["links"][number];target?:DialogueGraph["nodes"][number];editable:boolean;onSelect:(nodeId:string)=>void;onCommitStructure:(action:DialogueStructureAction)=>Promise<void>;onOpenScript:(script:string)=>void}) {
+  const source=dialogueNodeRefFromId(link.source);
+  const position=Number(link.id.split(":").at(-1));
+  return <div className="dialogue-line-link"><button type="button" className="dialogue-line-link-target" onClick={()=>onSelect(link.target)}><span>→</span><strong>{target?.displayText??link.target}</strong><code>{link.target}</code>{link.broken&&<em>Lien cassé</em>}</button>{editable?<DialogueLinkTriggerEditor link={link} source={source} position={position} onCommit={onCommitStructure}/>:<div className="dialogue-link-scripts">{link.conditionScript&&<button type="button" onClick={()=>onOpenScript(link.conditionScript as string)}>Déclencheur · {link.conditionScript}</button>}{link.actionScript&&<button type="button" onClick={()=>onOpenScript(link.actionScript as string)}>Action · {link.actionScript}</button>}{!link.conditionScript&&!link.actionScript&&<span>Toujours disponible</span>}</div>}{editable&&<button type="button" className="danger-button compact" onClick={()=>void onCommitStructure({kind:"remove_link",source,position}).catch(()=>undefined)}>Dissocier</button>}</div>;
+}
+
+function DialogueLinkTriggerEditor({link,source,position,conditionLabel="Déclencheur (condition)",actionLabel="Action après la ligne",onCommit}:{link:DialogueGraph["links"][number];source:DialogueNodeRef|null;position:number;conditionLabel?:string;actionLabel?:string;onCommit:(action:DialogueStructureAction)=>Promise<void>}) {
   const condition=link.conditionScript??"";const action=link.actionScript??"";
   const [conditionDraft,setConditionDraft]=useState(condition);const [actionDraft,setActionDraft]=useState(action);const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
   useEffect(()=>{setConditionDraft(condition);setActionDraft(action);setMessage("")},[condition,action,link.id]);
   const commit=async()=>{setBusy(true);setMessage("Enregistrement…");try{await onCommit({kind:"set_link_scripts",source,position,conditionScript:conditionDraft.trim()||null,actionScript:actionDraft.trim()||null});setMessage("Déclencheurs enregistrés.")}catch(error){setMessage(normalizeAppError(error).technicalMessage)}finally{setBusy(false)}};
-  return <div className="dialogue-trigger-editor"><label><span>Déclencheur (condition)</span><input aria-label={`Déclencheur de ${link.id}`} placeholder="script_condition" maxLength={16} value={conditionDraft} onChange={event=>setConditionDraft(event.currentTarget.value.toLocaleLowerCase())}/></label><label><span>Action après la ligne</span><input aria-label={`Action de ${link.id}`} placeholder="script_action" maxLength={16} value={actionDraft} onChange={event=>setActionDraft(event.currentTarget.value.toLocaleLowerCase())}/></label><button type="button" disabled={busy||(conditionDraft===condition&&actionDraft===action)} onClick={()=>void commit()}>{busy?"…":"Enregistrer"}</button>{message&&<small>{message}</small>}</div>;
+  return <div className="dialogue-trigger-editor"><label><span>{conditionLabel}</span><input aria-label={`Déclencheur de ${link.id}`} placeholder="script_condition" maxLength={16} value={conditionDraft} onChange={event=>setConditionDraft(event.currentTarget.value.toLocaleLowerCase())}/></label><label><span>{actionLabel}</span><input aria-label={`Action de ${link.id}`} placeholder="script_action" maxLength={16} value={actionDraft} onChange={event=>setActionDraft(event.currentTarget.value.toLocaleLowerCase())}/></label><button type="button" disabled={busy||(conditionDraft===condition&&actionDraft===action)} onClick={()=>void commit()}>{busy?"…":"Enregistrer"}</button>{message&&<small>{message}</small>}</div>;
 }
 
 function dialogueNodeRef(id:string):DialogueNodeRef|undefined {const [kind,indexText]=id.split(":");const index=Number(indexText);return (kind==="entry"||kind==="reply")&&Number.isInteger(index)&&index>=0?{kind,index}:undefined}
@@ -2002,13 +2024,22 @@ function EditableLocalizedDialogueField({field,onCommit}:{field:{label:string;pa
   return <div className="gff-field-row localized-dialogue-field"><span>{field.label}{draft.stringRef!==null?` · StrRef ${draft.stringRef}`:""}</span>{draft.values.map((entry,index)=><label key={`${entry.languageId}-${index}`}><small>Langue/genre {entry.languageId}</small><textarea value={entry.text} onChange={(event)=>update(index,event.currentTarget.value)}/></label>)}<div><button type="button" disabled={busy} onClick={addVariant}>Ajouter une variante</button><button type="button" disabled={busy||JSON.stringify(draft)===originalJson} onClick={()=>void commit()}>{busy?"…":"Appliquer"}</button></div>{message&&<small>{message}</small>}</div>;
 }
 
+const dialogueTargetResultLimit=40;
+
+function dialogueTargetMatches(nodes:DialogueGraph["nodes"],targetKind:"entry"|"reply",query:string){
+  const normalized=query.trim().toLocaleLowerCase();let total=0;const items:DialogueGraph["nodes"]=[];
+  for(const node of nodes){if(node.kind!==targetKind)continue;if(normalized&&![node.id,node.displayText,node.speaker,node.comment].some(value=>value?.toLocaleLowerCase().includes(normalized)))continue;total+=1;if(items.length<dialogueTargetResultLimit)items.push(node)}
+  return {items,total};
+}
+
 function DialogueAddLinkEditor({graph,source,label,onAdd}:{graph:DialogueGraph;source:DialogueNodeRef|null;label:string;onAdd:(action:DialogueStructureAction)=>Promise<void>}) {
-  const targetKind=source?.kind==="entry"?"reply":"entry";
-  const targets=graph.nodes.filter(node=>node.kind===targetKind);
-  const [targetIndex,setTargetIndex]=useState(targets[0]?.index??0);const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
-  useEffect(()=>{if(!targets.some(node=>node.index===targetIndex))setTargetIndex(targets[0]?.index??0)},[targets,targetIndex]);
-  const add=async()=>{setBusy(true);setMessage("Ajout…");try{await onAdd({kind:"add_link",source,target:{kind:targetKind,index:targetIndex}});setMessage("Lien ajouté dans l'overlay.")}catch(error){setMessage(normalizeAppError(error).technicalMessage)}finally{setBusy(false)}};
-  return <div className="dialogue-add-link"><label><span>{label}</span><select value={targetIndex} disabled={!targets.length||busy} onChange={event=>setTargetIndex(Number(event.currentTarget.value))}>{targets.map(node=><option key={node.id} value={node.index}>{node.id} · {node.displayText??"Texte non résolu"}</option>)}</select></label><button type="button" disabled={!targets.length||busy} onClick={()=>void add()}>{busy?"…":"Ajouter"}</button>{message&&<small>{message}</small>}</div>;
+  const targetKind=source?.kind==="entry"?"reply":"entry";const sourceKey=source?`${source.kind}:${source.index}`:"start";
+  const [open,setOpen]=useState(false);const [query,setQuery]=useState("");const [targetId,setTargetId]=useState<string>();const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
+  useEffect(()=>{setOpen(false);setQuery("");setTargetId(undefined);setMessage("")},[sourceKey]);
+  const matches=useMemo(()=>open?dialogueTargetMatches(graph.nodes,targetKind,query):{items:[],total:0},[graph.nodes,open,query,targetKind]);
+  const target=targetId?graph.nodes.find(node=>node.id===targetId):undefined;
+  const add=async()=>{if(!target)return;setBusy(true);setMessage("Ajout…");try{await onAdd({kind:"add_link",source,target:{kind:target.kind,index:target.index}});setOpen(false);setQuery("");setTargetId(undefined);setMessage("Lien ajouté dans l'overlay.")}catch(error){setMessage(normalizeAppError(error).technicalMessage)}finally{setBusy(false)}};
+  return <div className="dialogue-add-link"><button type="button" className="dialogue-add-link-toggle" aria-expanded={open} onClick={()=>{setOpen(value=>!value);setMessage("")}}>{open?"Annuler":`+ ${label}`}</button>{open&&<div className="dialogue-target-picker"><header><strong>{label}</strong><span>{targetKind==="entry"?"Réplique PNJ":"Réponse joueur"}</span></header><label><Search size={14}/><input aria-label={`Rechercher une cible pour ${label}`} autoFocus value={query} onChange={event=>{setQuery(event.currentTarget.value);setTargetId(undefined)}} placeholder="Rechercher le texte ou l’identifiant…"/></label><div className="dialogue-target-results">{matches.items.map(node=><button type="button" key={node.id} className={targetId===node.id?"selected":""} onClick={()=>setTargetId(node.id)}><strong>{node.displayText??"Texte non résolu"}</strong><small>{node.speaker?`${node.speaker} · `:""}{node.id}</small></button>)}{matches.total===0&&<span>Aucune ligne compatible.</span>}</div>{matches.total>matches.items.length&&<small>{matches.items.length} sur {matches.total} lignes affichées · précisez la recherche.</small>}<footer><span>{target?target.displayText??target.id:"Choisissez une ligne."}</span><button type="button" disabled={!target||busy} onClick={()=>void add()}>{busy?"Ajout…":"Associer cette ligne"}</button></footer></div>}{message&&<small role="status">{message}</small>}</div>;
 }
 
 function DialogueLinkFieldEditor({graph,link,onCommit,onRemove}:{graph:DialogueGraph;link:DialogueGraph["links"][number];onCommit:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>;onRemove:(action:DialogueStructureAction)=>Promise<void>}) {
@@ -2042,11 +2073,12 @@ function dialogueLinkEditContext(graph:DialogueGraph,link:DialogueGraph["links"]
 }
 
 function EditableDialogueTargetField({graph,path,value,targetKind,onCommit}:{graph:DialogueGraph;path:string;value:GenericGffValue;targetKind:"entry"|"reply";onCommit:(path:string,before:GenericGffValue,after:GenericGffValue)=>Promise<void>}) {
-  const original=Number(value.value);const [draft,setDraft]=useState(original);const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
-  useEffect(()=>{setDraft(original);setMessage("")},[original,path]);
-  const targets=graph.nodes.filter(node=>node.kind===targetKind);
+  const original=Number(value.value);const [draft,setDraft]=useState(original);const [open,setOpen]=useState(false);const [query,setQuery]=useState("");const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");
+  useEffect(()=>{setDraft(original);setOpen(false);setQuery("");setMessage("")},[original,path]);
+  const matches=useMemo(()=>open?dialogueTargetMatches(graph.nodes,targetKind,query):{items:[],total:0},[graph.nodes,open,query,targetKind]);
+  const current=graph.nodes.find(node=>node.kind===targetKind&&node.index===draft);
   const commit=async()=>{setBusy(true);setMessage("Enregistrement…");try{await onCommit(path,value,{kind:value.kind,value:draft});setMessage("Cible enregistrée dans l'overlay.")}catch(error){setMessage(normalizeAppError(error).technicalMessage)}finally{setBusy(false)}};
-  return <label className="gff-field-row"><span>Cible</span><select value={draft} onChange={(event)=>setDraft(Number(event.currentTarget.value))}>{targets.map(node=><option value={node.index} key={node.id}>{node.id} · {node.displayText??"Texte non résolu"}</option>)}</select><button type="button" disabled={busy||draft===original} onClick={()=>void commit()}>{busy?"…":"Appliquer"}</button>{message&&<small>{message}</small>}</label>;
+  return <div className="gff-field-row dialogue-target-field"><span>Cible</span><button type="button" onClick={()=>setOpen(value=>!value)}>{current?.displayText??current?.id??`Index ${draft}`}</button><button type="button" disabled={busy||draft===original} onClick={()=>void commit()}>{busy?"…":"Appliquer"}</button>{open&&<div className="dialogue-target-picker compact"><label><Search size={13}/><input aria-label="Rechercher une nouvelle cible" autoFocus value={query} onChange={event=>setQuery(event.currentTarget.value)} placeholder="Texte ou identifiant…"/></label><div className="dialogue-target-results">{matches.items.map(node=><button type="button" key={node.id} className={draft===node.index?"selected":""} onClick={()=>{setDraft(node.index);setOpen(false)}}><strong>{node.displayText??"Texte non résolu"}</strong><small>{node.id}</small></button>)}</div>{matches.total>matches.items.length&&<small>{matches.items.length} sur {matches.total} lignes · précisez la recherche.</small>}</div>}{message&&<small>{message}</small>}</div>;
 }
 
 function ScriptSummaryView({ summary }: { summary: ScriptIndexSummary }) {
@@ -2821,6 +2853,15 @@ export function isTileOccluder(kind: string, extras?: NwnMaterialExtras) {
   return Boolean(extras?.nwnTileFade) || Boolean(blackTechnicalTexture);
 }
 
+const SCENE_GROUND_CLEARANCE = 0.05;
+
+export function sceneGroundElevation(objects: ReadonlyArray<{ kind: string; y: number }>) {
+  const tileHeights = objects
+    .filter((value) => value.kind === "tile" && Number.isFinite(value.y))
+    .map((value) => value.y);
+  return (tileHeights.length > 0 ? Math.min(...tileHeights) : 0) - SCENE_GROUND_CLEARANCE;
+}
+
 function SceneView({ jobId, world, filter }: { jobId: string; world: WorldIndex; filter: string }) {
   const scenes = world.scenes.filter((value) => value.area.toLocaleLowerCase().includes(filter.toLocaleLowerCase())); const [selected, setSelected] = useState<string>();
   const [showOverlays, setShowOverlays] = useState(true); const [showWalkmeshes, setShowWalkmeshes] = useState(false); const [showTileFade, setShowTileFade] = useState(false); const [wireframe, setWireframe] = useState(false); const [cameraMode, setCameraMode] = useState<"orbit" | "aurora">("orbit");
@@ -2847,7 +2888,7 @@ function BabylonScene({ jobId, manifest, showOverlays, showWalkmeshes, showTileF
       const radius = Math.max(manifest.width, manifest.height) * 14 + 20; const target = new B.Vector3(manifest.width * 5, 0, manifest.height * 5);
       const camera = new B.ArcRotateCamera("camera", -Math.PI / 2, cameraMode === "aurora" ? 0.32 : Math.PI / 3, cameraMode === "aurora" ? radius * 0.82 : radius, target, scene); camera.attachControl(canvas, true); camera.wheelPrecision = 10; camera.panningSensibility = 70; camera.lowerRadiusLimit = 2;
       new B.HemisphericLight("light", new B.Vector3(0, 1, 0), scene).intensity = 0.85;
-      const ground = B.MeshBuilder.CreateGround("ground", { width: Math.max(10, manifest.width * 10), height: Math.max(10, manifest.height * 10) }, scene); const groundMaterial = new B.StandardMaterial("ground-material", scene); groundMaterial.diffuseColor = new B.Color3(0.12, 0.18, 0.22); ground.material = groundMaterial;
+      const ground = B.MeshBuilder.CreateGround("ground", { width: Math.max(10, manifest.width * 10), height: Math.max(10, manifest.height * 10) }, scene); ground.position.y = sceneGroundElevation(manifest.objects); const groundMaterial = new B.StandardMaterial("ground-material", scene); groundMaterial.diffuseColor = new B.Color3(0.12, 0.18, 0.22); ground.material = groundMaterial;
       engine.runRenderLoop(() => scene.render());
       const marker = (value: SceneManifest["objects"][number], failed = false) => { const mesh = B.MeshBuilder.CreateBox("marker:" + value.id, { size: value.kind === "tile" ? 9.7 : 1.4, height: value.kind === "tile" ? 0.18 : 2.2 }, scene); mesh.position = new B.Vector3(value.x, value.kind === "tile" ? -0.08 : value.y + 1, value.z); mesh.rotation.y = value.rotation; mesh.metadata = value; const material = new B.StandardMaterial("marker-material:" + value.id, scene); material.diffuseColor = failed || value.marker ? new B.Color3(0.83, 0.45, 0.19) : new B.Color3(0.25, 0.55, 0.68); material.alpha = value.kind === "tile" ? 0.45 : 0.72; material.wireframe = wireframe || value.kind !== "tile"; mesh.material = material; return mesh; };
       const visibleObjects = manifest.objects.slice(0, 1200); const technical = showOverlays ? manifest.overlays.slice(0, Math.max(0, 1200 - visibleObjects.length)) : [];

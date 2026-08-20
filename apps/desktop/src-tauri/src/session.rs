@@ -8,14 +8,15 @@ use aurora_project::{
     ResourceCatalogCacheSummary, ResourceCatalogSummary, ResourceManager,
     StructuredResourceSummary, WorldIndex, WorldSummary, hash_module_file,
 };
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs::{self, File};
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
-use std::time::UNIX_EPOCH;
+use std::time::{Instant, UNIX_EPOCH};
 
 const SESSION_CACHE_SCHEMA_VERSION: u32 = 1;
 const MAX_SESSION_CACHE_BYTES: u64 = 512 * 1024 * 1024;
@@ -218,6 +219,7 @@ pub fn restore_analysis_session(
     paths: &SessionPaths,
 ) -> AppResult<Option<ModuleAnalysis>> {
     let cache_path = cache_path(root, &paths.module_path);
+    let restore_started = Instant::now();
     let metadata = match fs::metadata(&cache_path) {
         Ok(metadata) => metadata,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
@@ -239,7 +241,7 @@ pub fn restore_analysis_session(
             &error,
         ))
     })?;
-    let cached = match serde_json::from_reader::<_, AnalysisSessionRead>(BufReader::new(file)) {
+    let cached: AnalysisSessionRead = match deserialize_session_json(BufReader::new(file)) {
         Ok(cached) => cached,
         Err(error) => {
             tracing::warn!(path = %cache_path.display(), %error, "ignoring invalid analysis session cache");
@@ -262,7 +264,25 @@ pub fn restore_analysis_session(
     if source_signature(paths, &analysis)? != cached.source_signature {
         return Ok(None);
     }
+    tracing::info!(
+        path = %cache_path.display(),
+        elapsed_ms = restore_started.elapsed().as_millis(),
+        resources = analysis.resource_catalog_summary.resource_count,
+        dialogues = analysis.dialogue_index_summary.dialogues,
+        "analysis session restored from local cache"
+    );
     Ok(Some(analysis))
+}
+
+fn deserialize_session_json<T: DeserializeOwned>(reader: impl Read) -> serde_json::Result<T> {
+    // OpenNever writes this file itself from models whose recursive structures
+    // are already bounded by the GFF and dialogue readers. Serde's default JSON
+    // limit also counts the surrounding structs and Vec values, so a valid
+    // dialogue tree can exceed that envelope limit even though the source data
+    // stayed within the product's own bounds.
+    let mut deserializer = serde_json::Deserializer::from_reader(reader);
+    deserializer.disable_recursion_limit();
+    T::deserialize(&mut deserializer)
 }
 
 fn source_signature(paths: &SessionPaths, analysis: &ModuleAnalysis) -> AppResult<String> {
@@ -435,6 +455,62 @@ mod tests {
     use super::*;
     use serde_json::json;
     use tempfile::tempdir;
+
+    #[derive(Debug, Deserialize)]
+    struct NestedCacheValue {
+        children: Vec<NestedCacheValue>,
+    }
+
+    #[test]
+    fn reads_valid_cached_trees_beyond_serdes_default_json_envelope() {
+        let mut json = String::from(r#"{"children":[]}"#);
+        for _ in 0..160 {
+            json = format!(r#"{{"children":[{json}]}}"#);
+        }
+
+        let default_error = serde_json::from_str::<NestedCacheValue>(&json)
+            .expect_err("the default JSON envelope should reject this valid bounded tree");
+        assert!(
+            default_error
+                .to_string()
+                .contains("recursion limit exceeded")
+        );
+
+        let restored = deserialize_session_json::<NestedCacheValue>(json.as_bytes())
+            .expect("the session reader accepts product-bounded recursive trees");
+        let mut depth = 0;
+        let mut cursor = &restored;
+        while let Some(child) = cursor.children.first() {
+            depth += 1;
+            cursor = child;
+        }
+        assert_eq!(depth, 160);
+    }
+
+    #[test]
+    #[ignore = "requires an explicit local OpenNever analysis session cache"]
+    fn restores_opt_in_local_analysis_session() {
+        let root = PathBuf::from(
+            std::env::var("OPENNEVER_SESSION_ROOT").expect("OPENNEVER_SESSION_ROOT is required"),
+        );
+        let module = std::env::var("OPENNEVER_SESSION_MODULE")
+            .expect("OPENNEVER_SESSION_MODULE is required");
+        let game = std::env::var_os("OPENNEVER_SESSION_GAME").map(PathBuf::from);
+        let user = std::env::var_os("OPENNEVER_SESSION_USER").map(PathBuf::from);
+        let paths = SessionPaths::new(module, game, user);
+        let started = Instant::now();
+
+        let restored = restore_analysis_session(&root, &paths)
+            .expect("restore local analysis session")
+            .expect("local analysis session is current");
+
+        eprintln!(
+            "restored {} resources and {} dialogues in {:?}",
+            restored.resource_catalog_summary.resource_count,
+            restored.dialogue_index_summary.dialogues,
+            started.elapsed()
+        );
+    }
 
     #[test]
     fn restores_a_complete_analysis_until_the_module_changes() {

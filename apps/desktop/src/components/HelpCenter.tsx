@@ -224,9 +224,10 @@ const topics: GuideTopic[] = [
     icon: ScrollText,
     prerequisites: ["Le module est analysé.", "L’atelier transactionnel est requis pour enregistrer."],
     steps: [
-      { title: "Trouver le DLG", instruction: "Ouvrez Dialogues et utilisez le filtre global pour réduire la liste. Sélectionnez le ResRef voulu dans la colonne gauche.", expected: "La vue Lignes s’ouvre avec le début du dialogue, les répliques PNJ et les réponses joueur." },
-      { title: "Rechercher la réplique", instruction: "Dans Rechercher dans les lignes, saisissez une phrase, un locuteur, un commentaire ou un script.", control: "Rechercher dans les lignes", expected: "Seules les lignes correspondantes restent affichées, sans réduire leur texte." },
-      { title: "Modifier et organiser", instruction: "Modifiez directement le texte d’une ligne. Utilisez + Réplique PNJ, + Réponse joueur, Supprimer la ligne et les boutons Associer pour construire le dialogue.", expected: "Chaque ligne et ses réponses restent regroupées au même endroit." },
+      { title: "Trouver le DLG", instruction: "Ouvrez Dialogues puis recherchez son nom, son texte ou son ResRef dans la colonne gauche. Aucun DLG n’est chargé avant votre sélection.", expected: "Le dialogue choisi s’ouvre sans bloquer la liste ni charger automatiquement un autre document." },
+      { title: "Rechercher la réplique", instruction: "Dans Rechercher une ligne, saisissez une phrase, un locuteur, une quête ou un script, puis sélectionnez le résultat utile.", control: "Rechercher une ligne", expected: "Le navigateur reste borné et une seule ligne complète est affichée au centre." },
+      { title: "Modifier et parcourir", instruction: "Modifiez directement le texte central. Cliquez une réponse ou un lien entrant pour avancer ou revenir dans la conversation sans perdre la sélection.", expected: "Le texte, ses origines et ses suites restent visibles dans la même fiche." },
+      { title: "Construire les liens", instruction: "Utilisez Associer sous la ligne, recherchez la cible puis confirmez. Le sélecteur de cibles n’est chargé qu’à l’ouverture.", expected: "Seules les premières cibles correspondantes sont proposées ; une recherche précise retrouve les autres." },
       { title: "Associer les déclencheurs", instruction: "Sous une réponse, renseignez le script de condition dans Déclencheur et le script exécuté dans Action, puis enregistrez.", expected: "Le lien DLG contient les scripts Active et Script et reste visible sous la ligne source." },
       { title: "Contrôler la structure", instruction: "Ouvrez Graphe (avancé) seulement pour diagnostiquer les cycles, liens partagés ou branches inaccessibles.", expected: "Le graphe reste disponible sans être nécessaire pour l’édition courante." },
     ],

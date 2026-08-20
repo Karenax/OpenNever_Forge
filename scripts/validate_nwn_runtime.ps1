@@ -154,7 +154,7 @@ $overlayManifest = @()
 $overlay = [pscustomobject]@{
     Label = 'walkmesh-overlay'
     Passed = $false
-    Detail = 'Contrôle non exécuté : le témoin doit atteindre l’écoute en premier.'
+    Detail = "Contrôle non exécuté : le témoin doit atteindre l’écoute en premier."
 }
 if ($baseline.Passed) {
     if ($null -ne $resolvedModule) {
