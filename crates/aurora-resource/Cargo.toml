@@ -1,5 +1,6 @@
 [package]
 name = "aurora-resource"
+description = "Resource Manager : priorités et résolution MOD/HAK/override/KEY-BIF."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

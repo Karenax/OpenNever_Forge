@@ -1,0 +1,21 @@
+[package]
+name = "aurora-migration"
+description = "Audit et export déterministe d'une zone en bundle Area Migration v1."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aurora-core = { path = "../aurora-core" }
+aurora-mdl = { path = "../aurora-mdl" }
+aurora-project = { path = "../aurora-project" }
+aurora-resource = { path = "../aurora-resource" }
+aurora-world = { path = "../aurora-world" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+
+[dev-dependencies]
+hex.workspace = true

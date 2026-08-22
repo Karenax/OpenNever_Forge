@@ -1,4 +1,5 @@
 use crate::jobs::JobRegistry;
+use aurora_core::AppError;
 use aurora_edit::EditWorkspace;
 use aurora_index::DatabaseInfo;
 use std::collections::HashMap;
@@ -15,6 +16,7 @@ pub struct AppState {
     pub edit_workspace_root: PathBuf,
     pub edit_workspaces: Mutex<HashMap<String, EditWorkspace>>,
     pub agent_cancellations: Mutex<HashMap<String, Arc<AtomicBool>>>,
+    pub prepared_model_previews: Arc<Mutex<HashMap<(String, String), PreparedModelCacheEntry>>>,
     _log_guard: WorkerGuard,
 }
 
@@ -31,9 +33,16 @@ impl AppState {
             edit_workspace_root,
             edit_workspaces: Mutex::new(HashMap::new()),
             agent_cancellations: Mutex::new(HashMap::new()),
+            prepared_model_previews: Arc::new(Mutex::new(HashMap::new())),
             _log_guard: log_guard,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum PreparedModelCacheEntry {
+    Ready(PathBuf),
+    Failed(AppError),
 }
 
 fn database_path_parent(database: &DatabaseInfo) -> PathBuf {

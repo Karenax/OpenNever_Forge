@@ -1,5 +1,6 @@
 [package]
 name = "aurora-2da"
+description = "Lecture et écriture déterministe des tables 2DA."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

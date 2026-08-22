@@ -134,7 +134,14 @@ pub struct AreaInstance {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    /// Legacy Bearing is an angle in radians and takes precedence when present.
     pub bearing: Option<f32>,
+    /// NWN GIT orientation vector components. The migration exporter computes atan2(Y, X)
+    /// only when Bearing is absent.
+    #[serde(default)]
+    pub x_orientation: Option<f32>,
+    #[serde(default)]
+    pub y_orientation: Option<f32>,
     pub appearance: Option<u32>,
     pub transition_destination: Option<String>,
     pub transition_flags: Option<u32>,
@@ -454,7 +461,9 @@ pub fn adapt_area(
                     x,
                     y,
                     z,
-                    bearing: float(value, &["Bearing", "XOrientation"]),
+                    bearing: float(value, &["Bearing"]),
+                    x_orientation: float(value, &["XOrientation"]),
+                    y_orientation: float(value, &["YOrientation"]),
                     appearance: unsigned(
                         value,
                         &[
@@ -742,7 +751,13 @@ pub fn scene_manifest(area: &AreaMap, assets: &SceneAssetMap) -> SceneManifest {
             x: tile.x as f32 * 10.0 + 5.0,
             y: 0.0,
             z: tile.y as f32 * 10.0 + 5.0,
-            rotation: tile.orientation as f32 * std::f32::consts::FRAC_PI_2,
+            // The GLB exporter keeps glTF right-handed with [x, z, -y].
+            // Babylon's AUTO loader then converts that GLB into this
+            // left-handed scene with a 180-degree Y rotation plus a Z flip.
+            // Compensate that importer half-turn before applying NWN's
+            // counterclockwise quarter turns.
+            rotation: std::f32::consts::PI
+                - (tile.orientation % 4) as f32 * std::f32::consts::FRAC_PI_2,
             marker: !available,
             walkmesh_available: model_resref
                 .as_ref()
@@ -1396,6 +1411,77 @@ mod tests {
     }
 
     #[test]
+    fn real_gff_roundtrip_preserves_bearing_priority_and_orientation_vector() {
+        use aurora_gff::{parse_gff, write_gff};
+
+        fn field(label: &str, field_type: u32, value: GenericValue) -> GenericField {
+            GenericField {
+                label: label.to_owned(),
+                field_type,
+                value,
+            }
+        }
+        fn typed_struct(fields: Vec<GenericField>) -> GenericStruct {
+            GenericStruct {
+                index: 0,
+                struct_type: 0,
+                fields,
+            }
+        }
+        let tile = typed_struct(vec![field("Tile_ID", 4, GenericValue::Dword(1))]);
+        let bearing_instance = typed_struct(vec![
+            field("XPosition", 8, GenericValue::Float(1.0)),
+            field("YPosition", 8, GenericValue::Float(2.0)),
+            field("Bearing", 8, GenericValue::Float(0.25)),
+            field("XOrientation", 8, GenericValue::Float(0.0)),
+            field("YOrientation", 8, GenericValue::Float(1.0)),
+        ]);
+        let vector_instance = typed_struct(vec![
+            field("XPosition", 8, GenericValue::Float(3.0)),
+            field("YPosition", 8, GenericValue::Float(4.0)),
+            field("XOrientation", 8, GenericValue::Float(0.0)),
+            field("YOrientation", 8, GenericValue::Float(-1.0)),
+        ]);
+        let are_bytes = write_gff(&GenericGff {
+            file_type: "ARE ".to_owned(),
+            file_version: "V3.2".to_owned(),
+            source: "fixture.are".to_owned(),
+            struct_count: 1,
+            field_count: 3,
+            root: typed_struct(vec![
+                field("Width", 4, GenericValue::Dword(1)),
+                field("Height", 4, GenericValue::Dword(1)),
+                field("Tile_List", 15, GenericValue::List(vec![tile])),
+            ]),
+        })
+        .expect("real ARE bytes");
+        let git_bytes = write_gff(&GenericGff {
+            file_type: "GIT ".to_owned(),
+            file_version: "V3.2".to_owned(),
+            source: "fixture.git".to_owned(),
+            struct_count: 1,
+            field_count: 1,
+            root: typed_struct(vec![field(
+                "Creature List",
+                15,
+                GenericValue::List(vec![bearing_instance, vector_instance]),
+            )]),
+        })
+        .expect("real GIT bytes");
+        let are = parse_gff(&are_bytes, "fixture.are").expect("parse ARE bytes");
+        let git = parse_gff(&git_bytes, "fixture.git").expect("parse GIT bytes");
+        let area = adapt_area("town", &are, Some(&git), None);
+        let bearing = &area.instances[0];
+        assert_eq!(bearing.bearing, Some(0.25));
+        assert_eq!(bearing.x_orientation, Some(0.0));
+        assert_eq!(bearing.y_orientation, Some(1.0));
+        let vector = &area.instances[1];
+        assert_eq!(vector.bearing, None);
+        assert_eq!(vector.x_orientation, Some(0.0));
+        assert_eq!(vector.y_orientation, Some(-1.0));
+    }
+
+    #[test]
     fn area_projection_exposes_geometry_spawns_transitions_and_inventory() {
         let are = document(
             "ARE ",
@@ -1486,6 +1572,56 @@ mod tests {
         assert!(scene.objects[0].walkmesh_available);
         assert!(!scene.objects[0].marker);
         assert!(scene.objects[1].marker);
+    }
+
+    #[test]
+    fn scene_manifest_compensates_babylon_glb_handedness_for_nwn_tile_orientations() {
+        let are = document(
+            "ARE ",
+            structure(vec![
+                ("Width", GenericValue::Dword(4)),
+                ("Height", GenericValue::Dword(1)),
+                (
+                    "Tile_List",
+                    GenericValue::List(
+                        (0..4)
+                            .map(|orientation| {
+                                structure(vec![
+                                    ("Tile_ID", GenericValue::Dword(0)),
+                                    ("Tile_Orientation", GenericValue::Byte(orientation)),
+                                ])
+                            })
+                            .collect(),
+                    ),
+                ),
+            ]),
+        );
+        let area = adapt_area("asymmetric", &are, None, None);
+        let assets = SceneAssetMap {
+            tile_models: BTreeMap::from([(0, "asymmetric_tile".to_owned())]),
+            known_models: BTreeSet::from(["asymmetric_tile".to_owned()]),
+            ..SceneAssetMap::default()
+        };
+
+        let rotations = scene_manifest(&area, &assets)
+            .objects
+            .into_iter()
+            .map(|object| object.rotation)
+            .collect::<Vec<_>>();
+
+        let expected = [
+            std::f32::consts::PI,
+            std::f32::consts::FRAC_PI_2,
+            0.0,
+            -std::f32::consts::FRAC_PI_2,
+        ];
+        assert_eq!(rotations.len(), expected.len());
+        assert!(
+            rotations
+                .iter()
+                .zip(expected)
+                .all(|(actual, expected)| (actual - expected).abs() <= f32::EPSILON)
+        );
     }
 
     #[test]

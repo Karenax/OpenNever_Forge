@@ -91,6 +91,62 @@ réunit les parcours, l'architecture, les formats NWN, la sécurité IA et MCP. 
 condensé est décrit dans [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) et la politique de compatibilité
 dans [`docs/MIGRATIONS.md`](docs/MIGRATIONS.md).
 
+## Ouvrir directement une carte `.are`
+
+Le sélecteur de source accepte un module `.mod` complet ou une carte `.are` autonome. Pour une
+carte, OpenNever charge automatiquement les fichiers `.git` et `.gic` portant le même ResRef dans
+le même dossier, puis utilise les racines NWN indiquées pour résoudre tilesets, modèles et textures.
+
+Ce parcours reste volontairement en lecture seule : il donne accès aux cartes 2D/3D, aux instances,
+aux diagnostics et aux exportateurs locaux, mais ne crée pas d’espace d’édition. Il faut ouvrir un
+module `.mod` pour produire des modifications transactionnelles ou construire un nouveau MOD.
+
+## Exporter une carte vers un bundle local
+
+L’atelier **Exporter une carte** audite une zone de l’analyse active puis produit un
+[`Area Migration Bundle v1`](docs/AREA_MIGRATION_BUNDLE_V1.md) déterministe sans modifier le MOD,
+les HAK, le TLK ou l’installation. Le bundle reste local : convertir ou préserver une ressource
+NWN ne lui accorde aucun droit de redistribution. Les WOK/PWK/DWK disponibles sont conservés mais
+ne sont pas convertis en navigation.
+
+Le même moteur est disponible sans interface :
+
+```powershell
+cargo run -p opennever-migrate -- area-audit --module C:\modules\source.mod --area startarea
+cargo run -p opennever-migrate -- area-export --module C:\modules\source.mod --area startarea --output C:\exports\startarea.area-migration-v1
+```
+
+Ajoutez `--game-install` et `--user-data` lorsque la fermeture de ressources dépend de
+l’installation, des HAK, du TLK ou des overrides. La CLI n’effectue aucune découverte implicite de
+ces racines et retourne un code non nul lorsque le résultat n’est pas complet.
+
+## Exporter un asset statique ou animé
+
+Le menu supérieur **Export** contient aussi l’atelier **Exporter des assets**, immédiatement après
+**Exporter une carte**. À partir de l’analyse active, il résout un modèle Aurora et ses dépendances,
+puis crée un nouveau dossier local contenant un GLB, ses textures PNG et un `manifest.json` avec
+tailles et SHA-256. Les animations réellement écrites dans le GLB, y compris celles héritées d’un
+supermodel résolu, sont affichées avant l’export ; un modèle sans clip exporté reste explicitement
+qualifié de statique.
+
+L’export ne modifie jamais les MOD, HAK, KEY/BIF, overrides ni fichiers autonomes analysés. La
+destination doit être neuve, hors des racines protégées, et l’utilisateur doit confirmer que le
+résultat reste local sauf s’il possède séparément les droits de redistribution. Le format est décrit
+dans [`docs/ASSET_EXPORT_V1.md`](docs/ASSET_EXPORT_V1.md).
+
+## Exporter un dialogue
+
+Le troisième atelier du menu **Export**, **Exporter des dialogues**, privilégie la version modifiée
+du workspace lorsqu’elle existe, sinon la version analysée. Il crée un dossier local contenant le
+DLG exact sélectionné, un `dialogue.json` portable sans chemins sources, un `transcript.md` lisible
+et un manifeste SHA-256. Les cycles, liens cassés, nœuds partagés ou inaccessibles, scripts et
+références restent explicitement inventoriés.
+
+Les dialogues nouvellement créés dans le workspace sont également exportables tant que cet espace
+d’édition reste ouvert. La destination est neuve et extérieure aux racines NWN protégées ; aucun
+MOD, HAK, TLK ou DLG source n’est réécrit. Le contrat est décrit dans
+[`docs/DIALOGUE_EXPORT_V1.md`](docs/DIALOGUE_EXPORT_V1.md).
+
 ## Prérequis Windows
 
 - Windows 10 ou 11 avec Microsoft Edge WebView2 ;

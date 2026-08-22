@@ -1,5 +1,6 @@
 [package]
 name = "aurora-dialogue"
+description = "Modèle métier et diagnostics des dialogues DLG."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,3 +11,5 @@ aurora-core = { path = "../aurora-core" }
 aurora-gff = { path = "../aurora-gff" }
 serde.workspace = true
 
+[dev-dependencies]
+serde_json.workspace = true

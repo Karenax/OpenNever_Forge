@@ -1,5 +1,6 @@
 [package]
 name = "aurora-gff"
+description = "Lecteur générique GFF et préservation fidèle des structures."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

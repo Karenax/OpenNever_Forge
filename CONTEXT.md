@@ -1,9 +1,9 @@
 # CONTEXTE GLOBAL — ÉDITEUR TIERS COMPLET POUR NEVERWINTER NIGHTS
 
 **Nom de travail :** NWN Editor
-**Version du contexte :** 0.2
-**Date :** 10 août 2026
-**Statut :** refondation d’utilisabilité après qualification technique des Lots 0 à 40
+**Version du contexte :** 0.3
+**Date :** 22 août 2026
+**Statut :** refondation d’utilisabilité et refactoring transversal qualifiés localement ; promotion publique toujours soumise aux portes externes
 **Cible initiale :** Neverwinter Nights: Enhanced Edition sur Windows 10/11
 **But à long terme :** remplacer complètement l’Aurora Toolset pour la lecture, la création, la modification, la validation, la compilation et l’export de modules NWN.
 
@@ -2181,3 +2181,83 @@ Toolset, puis une autorisation distincte de publication. Aucun certificat, mot d
 contenu NWN n’entre dans le dépôt ou les logs.
 Le plan est dans `docs/LOT40_RELEASE_ACCEPTANCE_PLAN.md` et les preuves dans
 `docs/validation/lot40-exit-review.md`.
+
+### 36.15 Export local d’une zone
+
+OpenNever peut auditer puis exporter une zone de l’analyse active vers un
+`Area Migration Bundle v1` local. Le moteur vit dans le crate séparé `aurora-migration` et la CLI
+headless `opennever-migrate` réutilise le même service après une analyse read-only explicite. Les
+commandes Tauri sont isolées dans `migration.rs`; l’atelier **Exporter une carte** fournit choix de
+zone, compteurs, diagnostics, destination neuve, consentement local-only, progression, annulation
+et rapport final.
+
+Le bundle est déterministe et publié par renommage atomique d’un dossier temporaire adjacent. Il
+contient manifeste, zone canonique, identités stables, diagnostics JSONL, rapport, GLB dédupliqués,
+textures PNG résolubles et sources WOK/PWK/DWK disponibles. Chaque payload est inventorié par
+taille et SHA-256, tandis que les sources NWN demeurent immuables.
+
+La convention v1 est NWN `[x,y,z]` vers le repère droitier Y-up `[x,z,-y]`. Les ressources
+inconnues, manquantes ou non convertibles gardent un statut et un diagnostic. La navigation
+WOK/PWK/DWK est seulement `preserved-not-converted`; scripts, règles, animations, navigation fidèle
+et import dans un moteur cible restent hors de cet incrément.
+
+### 36.16 Export local d’un asset statique ou animé
+
+Le menu supérieur **Export** expose maintenant **Exporter des assets** comme deuxième atelier,
+après l’exportateur de cartes. Le service séparé `aurora-asset-export` reçoit une photographie du
+catalogue déjà analysé, résout le MDL demandé avec ses modèles référencés et ses supermodels, puis
+réutilise le convertisseur Aurora vers GLB et le pipeline borné de textures.
+
+L’aperçu ne se contente pas des métadonnées du catalogue : il construit le GLB en mémoire afin de
+confirmer le nombre de clips réellement sérialisés. L’export final contient `<resref>.glb`, les PNG
+résolus sous `textures/` et un `manifest.json` versionné avec tailles et SHA-256. La destination doit
+être absolue, inexistante et extérieure aux racines NWN protégées ; la publication s’effectue par
+renommage atomique d’un dossier temporaire adjacent et ne réécrit aucune ressource source.
+
+Les résultats restent `local-only` par défaut. La conversion technique d’un asset ne confère aucun
+droit de redistribution sur les modèles, textures ou animations provenant de NWN ou de contenus
+personnalisés tiers.
+
+### 36.17 Export local d’un dialogue
+
+Le troisième atelier du menu **Export**, **Exporter des dialogues**, s’appuie sur le service séparé
+`aurora-dialogue-export`. Il liste les DLG de l’analyse active ainsi que ceux créés dans le workspace
+ouvert. Lorsqu’une ressource staged existe, ses octets et sa structure sont prioritaires ; sinon
+l’export utilise la révision indexée avec ses textes déjà résolus par les TLK disponibles.
+
+Le bundle `opennever-dialogue-export@1.0.0` contient le DLG exact, un `dialogue.json` portable, un
+`transcript.md` arborescent et un `manifest.json`. Le JSON omet la structure GFF brute et les chemins
+locaux, tout en conservant lignes, liens, racines, nœuds partagés ou inaccessibles, cycles,
+diagnostics, scripts et références. Chaque payload est inventorié par taille et SHA-256.
+
+La destination est absolue, inexistante et hors des racines NWN protégées. Elle est publiée par
+renommage atomique d’un dossier temporaire adjacent. Le DLG source, le module, les HAK, TLK et
+l’installation restent immuables ; le résultat est `local-only` sans droits de redistribution
+implicites.
+
+### 36.18 Carte ARE autonome, refactoring transversal et qualification courante
+
+Le sélecteur de source accepte désormais un fichier `.are` autonome en plus d’un module `.mod`.
+OpenNever charge le `.git` et le `.gic` de même ResRef lorsqu’ils existent dans le dossier voisin,
+puis résout les ressources connues avec les racines NWN explicitement fournies. Le fichier ARE
+sélectionné reste prioritaire sur une ressource homonyme de `development`. Ce parcours est
+strictement en lecture seule : il n’ouvre pas d’espace d’édition et ne réécrit aucun fichier voisin.
+
+Le plan transversal du 21 août a été exécuté sans modifier les API publiques des ateliers. Les
+bindings Tauri TypeScript sont répartis par domaine derrière `lib/tauri/index.ts`, les composants
+React vivent sous `features/`, les DTO Tauri sont isolés dans `commands/dto.rs` et le cœur
+transactionnel d’`aurora-edit` est réparti entre `types.rs`, `walkmesh.rs`, `workspace_io.rs` et
+`workspace.rs`. Les plafonds bloquants sont maintenant de 2 950 lignes pour `App.tsx`, 7 200 pour
+`commands.rs` et 7 000 pour `aurora-edit/lib.rs`.
+
+La CI s’exécute sur les pushes de `main` et les pull requests. La couverture frontend est bloquante
+à 45 % de statements, 50 % de branches, 38 % de fonctions et 50 % de lignes ; la CI produit aussi
+le rapport LCOV Rust. Une fixture synthétique déterministe couvre un dialogue de 1 001 nœuds et une
+zone 16×15 de 444 instances sans inclure de ressource propriétaire.
+
+La qualification locale du 22 août 2026 couvre 63 tests frontend, 218 tests Rust réussis avec un
+test local optionnel ignoré, 13 tests Python, Clippy strict, formatage, audits de dépendances,
+budgets, couverture frontend, build Tauri release, compagnons MCP/migration et installateur NSIS.
+La vérification de distribution porte sur trois exécutables et 21 SBOM, soit 24 fichiers vérifiés.
+La candidate reste non signée ; une release publique exige toujours un arbre propre, une signature
+Authenticode valide et les qualifications externes décrites au Lot 40.

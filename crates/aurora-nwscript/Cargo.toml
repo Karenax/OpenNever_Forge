@@ -1,5 +1,6 @@
 [package]
 name = "aurora-nwscript"
+description = "Édition NSS et compilation NCS liée aux includes exacts."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

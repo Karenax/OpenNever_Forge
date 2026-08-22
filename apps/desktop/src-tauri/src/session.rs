@@ -18,7 +18,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::time::{Instant, UNIX_EPOCH};
 
-const SESSION_CACHE_SCHEMA_VERSION: u32 = 1;
+// Version 3 invalidates persisted scene manifests created before tile yaw
+// compensated Babylon's automatic glTF handedness conversion.
+const SESSION_CACHE_SCHEMA_VERSION: u32 = 3;
 const MAX_SESSION_CACHE_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_WATCHED_DIRECTORIES: usize = 100_000;
 
@@ -544,6 +546,24 @@ mod tests {
             .expect("restore session")
             .expect("cached analysis");
         assert_eq!(restored.fingerprint, analysis.fingerprint);
+
+        let stored_path = cache_path(root.path(), &paths.module_path);
+        let mut stale_schema: serde_json::Value =
+            serde_json::from_slice(&fs::read(&stored_path).expect("read stored session"))
+                .expect("decode stored session");
+        stale_schema["schemaVersion"] = json!(2);
+        fs::write(
+            &stored_path,
+            serde_json::to_vec(&stale_schema).expect("encode stale session"),
+        )
+        .expect("write stale session");
+        assert!(
+            restore_analysis_session(root.path(), &paths)
+                .expect("old schema is ignored")
+                .is_none()
+        );
+
+        store_analysis_session(root.path(), &paths, &analysis).expect("refresh session");
 
         fs::write(&module, b"module-v2").expect("change module");
         assert!(

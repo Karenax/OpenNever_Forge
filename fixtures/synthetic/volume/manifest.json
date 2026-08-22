@@ -1,0 +1,15 @@
+{
+ "counts": {
+  "areaInstances": 444,
+  "areaTiles": 240,
+  "dialogueEntries": 399,
+  "dialogueNodes": 1001,
+  "dialogueReplies": 602
+ },
+ "files": {
+  "area_dense.json": "c8a4024d84a904ce53c1348e6dba920a88f3231bda5911d9539e37e8304ac4a2",
+  "dialogue_narrative.json": "f63d5bee90516c016fd3fd7b3e96af41cd6f11c0db3775f0a3ac110ce634c9fa"
+ },
+ "schema": "opennever-volume-fixture@1",
+ "seed": 20260821
+}

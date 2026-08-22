@@ -98,6 +98,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurora-asset-export"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-mdl",
+ "aurora-project",
+ "aurora-resource",
+ "aurora-world",
+ "png 0.18.1",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+]
+
+[[package]]
 name = "aurora-core"
 version = "0.1.0"
 dependencies = [
@@ -112,6 +128,20 @@ dependencies = [
  "aurora-core",
  "aurora-gff",
  "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "aurora-dialogue-export"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-dialogue",
+ "aurora-gff",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]
@@ -169,6 +199,22 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "aurora-migration"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-mdl",
+ "aurora-project",
+ "aurora-resource",
+ "aurora-world",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]
@@ -2317,12 +2363,15 @@ version = "0.1.0"
 dependencies = [
  "aurora-2da",
  "aurora-agent",
+ "aurora-asset-export",
  "aurora-core",
  "aurora-dialogue",
+ "aurora-dialogue-export",
  "aurora-edit",
  "aurora-erf",
  "aurora-gff",
  "aurora-index",
+ "aurora-migration",
  "aurora-nwscript",
  "aurora-project",
  "aurora-tlk",
@@ -2361,6 +2410,16 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempfile",
+]
+
+[[package]]
+name = "opennever-migrate"
+version = "0.1.0"
+dependencies = [
+ "aurora-core",
+ "aurora-migration",
+ "aurora-project",
+ "serde_json",
 ]
 
 [[package]]

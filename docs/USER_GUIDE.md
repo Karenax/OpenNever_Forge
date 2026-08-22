@@ -15,7 +15,7 @@ l’overlay, puis peut être annulée, validée, construite ou déployée pour t
 Le statut complet et les scénarios bloquants sont décrits dans
 [`UX_REFONDATION.md`](UX_REFONDATION.md).
 
-Version du guide : 4 août 2026
+Version du guide : 22 août 2026
 
 ## Principes de sécurité
 
@@ -40,6 +40,18 @@ pas être ajoutés au dépôt Git.
 5. Modifier les ressources. Chaque opération est prévisualisée, validée et ajoutée à l’historique
    undo/redo du workspace.
 6. Construire un nouveau MOD ou déployer l’overlay dans `development`.
+
+## Ouvrir une carte `.are` seule
+
+1. Dans **Module ou carte NWN**, choisir le fichier `.are` à examiner.
+2. Laisser dans le même dossier les fichiers `.git` et `.gic` de même ResRef lorsqu’ils existent.
+3. Indiquer la racine du jeu et le dossier utilisateur pour résoudre les tilesets, modèles, textures
+   et autres ressources externes.
+4. Cliquer **Analyser la copie**, puis utiliser les ateliers Zones, Vue 3D, Assets et Export.
+
+Une carte autonome reste en lecture seule. OpenNever ne crée pas d’espace d’édition, ne réécrit ni
+le `.are` ni ses fichiers voisins et signale `STANDALONE_AREA_READ_ONLY`. Pour modifier une zone ou
+construire un nouveau MOD, ouvrir un module `.mod` complet.
 
 ## NWScript : règle compiler puis sauvegarder
 
@@ -87,6 +99,61 @@ Un profil fixe le nom du MOD, les HAK, le TLK, la politique d’avertissements e
 optionnel. **Vérifier ×2** produit deux builds indépendants et compare leurs SHA-256. Les profils
 `nwmain.exe` et `nwserver.exe` sont lancés directement, sans shell, avec arguments bornés et journaux
 dans le workspace.
+
+## Exporter une carte vers un bundle local
+
+L’atelier **Exporter une carte** devient utilisable après l’analyse d’un module ou d’une carte
+autonome. Il exporte une zone vers un **Area Migration Bundle v1** neutre sans écrire dans les
+sources NWN.
+
+1. Sélectionner la zone et attendre l’audit des tuiles, instances, modèles, textures et navigations.
+2. Examiner les diagnostics : une erreur bloque l’export ; avertissements et placeholders restent
+   consignés dans `diagnostics.jsonl` et `migration-report.json`.
+3. Choisir un dossier parent. OpenNever crée un nouveau sous-dossier
+   `<resref>.area-migration-v1` et refuse d’écraser une destination existante.
+4. Accepter l’avertissement local-only, puis lancer ou annuler le job.
+5. Contrôler `manifest.json`, `area.json`, `identity-map.json` et le rapport final.
+
+Les modèles GLB et textures PNG résolus sont dédupliqués. Les WOK/PWK/DWK disponibles sont
+préservés, mais pas convertis en navigation. Les coordonnées suivent
+`[x,y,z] NWN -> [x,z,-y]`. Le bundle reste non redistribuable sans droits séparés sur son contenu.
+
+## Exporter un asset statique ou animé
+
+Dans le menu supérieur **Export**, ouvrir **Exporter des assets** après avoir analysé un module ou
+une carte autonome.
+
+1. Rechercher puis sélectionner le ResRef du modèle.
+2. Contrôler l’aperçu résolu : type statique ou animé, géométrie, skins, clips, événements et
+   textures. Un clip n’est annoncé comme exporté que s’il est effectivement présent dans le GLB.
+3. Choisir un dossier parent. OpenNever crée un nouveau sous-dossier
+   `<resref>.asset-export-v1` et refuse toute destination existante ou protégée.
+4. Accepter l’avertissement local-only, puis lancer l’export.
+5. Contrôler `<resref>.glb`, le dossier `textures/` et `manifest.json`.
+
+Les animations propres au modèle et celles d’un supermodel résolu sont conservées avec leurs
+pistes de translation, rotation et échelle prises en charge. Les textures résolubles sont converties
+en PNG et référencées par URI relative depuis le GLB. Les sources NWN restent strictement en lecture
+seule. Voir [ASSET_EXPORT_V1.md](ASSET_EXPORT_V1.md) pour les limites et le contrat du bundle.
+
+## Exporter un dialogue
+
+Dans le menu supérieur **Export**, ouvrir **Exporter des dialogues** après l’analyse.
+
+1. Rechercher le dialogue par ResRef ou par un extrait de texte.
+2. Vérifier si l’aperçu annonce la version analysée ou la version modifiée du workspace. Un DLG
+   créé dans le workspace apparaît aussi dans la liste.
+3. Examiner le transcript, les scripts et les diagnostics structurels. Les cycles, liens cassés et
+   nœuds inaccessibles restent conservés.
+4. Choisir un dossier parent. OpenNever crée `<resref>.dialogue-export-v1` et refuse toute
+   destination existante ou protégée.
+5. Accepter l’avertissement local-only, lancer l’export puis contrôler `<resref>.dlg`,
+   `dialogue.json`, `transcript.md` et `manifest.json`.
+
+Le DLG est copié octet pour octet depuis la révision choisie. Le JSON reprend les lignes, liens,
+racines, diagnostics et références sans exposer les chemins locaux ; le transcript utilise les
+textes déjà résolus par le TLK lorsqu’ils sont disponibles. Les sources NWN demeurent immuables.
+Voir [DIALOGUE_EXPORT_V1.md](DIALOGUE_EXPORT_V1.md).
 
 ## Récupération et migrations
 

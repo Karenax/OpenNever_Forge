@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opennever.local/schemas/area-migration-bundle-v1.schema.json",
+  "title": "Area Migration Bundle v1 manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "exporter", "moduleSha256", "moduleSizeBytes", "areaResref",
+    "classification", "redistribution", "coordinateSystem", "resolutionPolicy",
+    "dependencies", "resources", "counts", "files", "integrityScope"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "area-migration-bundle@1.0.0" },
+    "exporter": { "type": "string", "minLength": 1 },
+    "moduleSha256": { "$ref": "#/$defs/sha256" },
+    "moduleSizeBytes": { "type": "integer", "minimum": 0 },
+    "areaResref": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "classification": { "const": "local_only_proprietary" },
+    "redistribution": { "const": "not_redistributable_without_separate_rights" },
+    "coordinateSystem": {
+      "type": "object",
+      "required": ["version", "source", "canonical", "mapping", "handedness", "basisRows"],
+      "properties": {
+        "version": { "const": "nwn-to-canonical@1" },
+        "source": { "type": "string" },
+        "canonical": { "type": "string" },
+        "mapping": { "const": "[x,y,z] -> [x,z,-y]" },
+        "handedness": { "type": "string" },
+        "basisRows": {
+          "const": [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
+        }
+      }
+    },
+    "resolutionPolicy": { "type": "string", "minLength": 1 },
+    "dependencies": { "type": "array", "items": { "type": "object" } },
+    "resources": { "type": "array", "items": { "type": "object" } },
+    "counts": { "type": "object" },
+    "files": {
+      "type": "array",
+      "maxItems": 50000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sizeBytes", "sha256", "role"],
+        "properties": {
+          "path": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+" },
+          "sizeBytes": { "type": "integer", "minimum": 0 },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "role": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "integrityScope": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

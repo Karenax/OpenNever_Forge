@@ -1,0 +1,18 @@
+[package]
+name = "aurora-dialogue-export"
+description = "Export local déterministe des dialogues en bundle portable."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aurora-core = { path = "../aurora-core" }
+aurora-dialogue = { path = "../aurora-dialogue" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+
+[dev-dependencies]
+aurora-gff = { path = "../aurora-gff" }

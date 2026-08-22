@@ -1,0 +1,13 @@
+[package]
+name = "opennever-migrate"
+description = "CLI headless d'audit et d'export de zones."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aurora-core = { path = "../../crates/aurora-core" }
+aurora-migration = { path = "../../crates/aurora-migration" }
+aurora-project = { path = "../../crates/aurora-project" }
+serde_json.workspace = true

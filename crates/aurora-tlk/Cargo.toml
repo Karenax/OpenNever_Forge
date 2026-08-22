@@ -1,5 +1,6 @@
 [package]
 name = "aurora-tlk"
+description = "Lecture et écriture des tables de chaînes localisées TLK."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

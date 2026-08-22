@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
-import { UxEnhancements } from "./components/UxEnhancements";
+import { UxEnhancements } from "./features/shared/UxEnhancements";
 import "./lib/monaco";
 import "@xyflow/react/dist/style.css";
 

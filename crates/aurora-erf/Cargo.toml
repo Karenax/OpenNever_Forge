@@ -1,5 +1,6 @@
 [package]
 name = "aurora-erf"
+description = "Lecture défensive des archives ERF/MOD/HAK d'Aurora."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

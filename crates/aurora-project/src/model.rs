@@ -8,13 +8,89 @@ use std::collections::{BTreeSet, VecDeque};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 #[derive(Debug)]
 pub struct ModelCacheEntry {
     pub artifact: GlbArtifact,
     pub cache_path: PathBuf,
     pub cache_hit: bool,
+}
+
+#[derive(Debug)]
+pub struct ResolvedModelExport {
+    pub model: MdlModel,
+    /// Normalized MDL ResRefs whose selected bytes participated in resolution, including the
+    /// requested model, supermodels, and recursively expanded reference models.
+    pub resource_resrefs: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct PreparedModelPreview {
+    pub resref: String,
+    pub cache_path: Option<PathBuf>,
+    pub cache_hit: bool,
+    pub byte_length: usize,
+    pub error: Option<AppError>,
+}
+
+pub fn prepare_model_previews(
+    catalog: &ResourceCatalog,
+    resrefs: &[String],
+    cache_root: &Path,
+    max_workers: usize,
+    cancelled: &AtomicBool,
+) -> Vec<PreparedModelPreview> {
+    if resrefs.is_empty() {
+        return Vec::new();
+    }
+    let next = AtomicUsize::new(0);
+    let results = Mutex::new(
+        (0..resrefs.len())
+            .map(|_| None)
+            .collect::<Vec<Option<PreparedModelPreview>>>(),
+    );
+    let workers = max_workers.clamp(1, 8).min(resrefs.len());
+    std::thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| {
+                loop {
+                    if cancelled.load(Ordering::Relaxed) {
+                        break;
+                    }
+                    let index = next.fetch_add(1, Ordering::Relaxed);
+                    let Some(resref) = resrefs.get(index) else {
+                        break;
+                    };
+                    let prepared =
+                        match cached_model_preview(catalog, resref, cache_root, cancelled) {
+                            Ok(entry) => PreparedModelPreview {
+                                resref: resref.clone(),
+                                cache_path: Some(entry.cache_path),
+                                cache_hit: entry.cache_hit,
+                                byte_length: entry.artifact.byte_length,
+                                error: None,
+                            },
+                            Err(error) => PreparedModelPreview {
+                                resref: resref.clone(),
+                                cache_path: None,
+                                cache_hit: false,
+                                byte_length: 0,
+                                error: Some(*error),
+                            },
+                        };
+                    results.lock().expect("model preparation poisoned")[index] = Some(prepared);
+                }
+            });
+        }
+    });
+    results
+        .into_inner()
+        .expect("model preparation poisoned")
+        .into_iter()
+        .flatten()
+        .collect()
 }
 
 pub fn build_model_preview(
@@ -24,6 +100,24 @@ pub fn build_model_preview(
 ) -> AppResult<GlbArtifact> {
     let model = resolve_model(catalog, resref, cancelled)?;
     export_model(&model, resref)
+}
+
+/// Resolves a model together with its supermodels and referenced models without writing a cache.
+/// Migration/export callers can then choose their own deterministic GLB texture URI mapping.
+pub fn resolve_model_for_export(
+    catalog: &ResourceCatalog,
+    resref: &str,
+    cancelled: &AtomicBool,
+) -> AppResult<MdlModel> {
+    resolve_model(catalog, resref, cancelled)
+}
+
+pub fn resolve_model_for_export_with_dependencies(
+    catalog: &ResourceCatalog,
+    resref: &str,
+    cancelled: &AtomicBool,
+) -> AppResult<ResolvedModelExport> {
+    resolve_model_with_dependencies(catalog, resref, cancelled)
 }
 
 pub fn cached_model_preview(
@@ -87,6 +181,14 @@ fn resolve_model(
     resref: &str,
     cancelled: &AtomicBool,
 ) -> AppResult<MdlModel> {
+    Ok(resolve_model_with_dependencies(catalog, resref, cancelled)?.model)
+}
+
+fn resolve_model_with_dependencies(
+    catalog: &ResourceCatalog,
+    resref: &str,
+    cancelled: &AtomicBool,
+) -> AppResult<ResolvedModelExport> {
     let mut current = resref.to_ascii_lowercase();
     let mut visited = BTreeSet::new();
     let mut hashed_dependencies = BTreeSet::new();
@@ -193,7 +295,10 @@ fn resolve_model(
         &mut hashed_dependencies,
     )?;
     model.source_sha256 = format!("{:x}", dependency_hash.finalize());
-    Ok(model)
+    Ok(ResolvedModelExport {
+        model,
+        resource_resrefs: hashed_dependencies.into_iter().collect(),
+    })
 }
 
 fn expand_reference_models(
@@ -453,6 +558,11 @@ mod tests {
             shadowed_count: 0,
             diagnostics: Vec::new(),
         };
+        let resolved =
+            resolve_model_for_export_with_dependencies(&catalog, "base", &AtomicBool::new(false))
+                .expect("resolved export closure");
+        assert_eq!(resolved.resource_resrefs, ["base", "part", "super"]);
+        assert!(resolved.model.nodes.len() >= 2);
         let cache = root.path().join("cache");
         let first = cached_model_preview(&catalog, "base", &cache, &AtomicBool::new(false))
             .expect("expanded preview");
@@ -468,6 +578,44 @@ mod tests {
         assert!(!second.cache_hit);
         assert_ne!(first.artifact.source_sha256, second.artifact.source_sha256);
         assert_ne!(first.cache_path, second.cache_path);
+    }
+
+    #[test]
+    fn prepares_multiple_model_previews_and_reuses_their_cache() {
+        let root = tempfile::tempdir().expect("tempdir");
+        let mut entries = Vec::new();
+        let mut resrefs = Vec::new();
+        for index in 0..6 {
+            let resref = format!("tile_{index}");
+            let path = root.path().join(format!("{resref}.mdl"));
+            fs::write(
+                &path,
+                format!("newmodel {resref}\nnode trimesh body\nverts 3\n0 0 0\n1 0 0\n0 1 0\nfaces 1\n0 1 2 0 0 1 2 0\nendnode\n"),
+            )
+            .expect("model");
+            entries.push(loose_model(&resref, &path));
+            resrefs.push(resref);
+        }
+        let catalog = ResourceCatalog {
+            entries,
+            version_count: 6,
+            shadowed_count: 0,
+            diagnostics: Vec::new(),
+        };
+        let cache = root.path().join("cache");
+
+        let first = prepare_model_previews(&catalog, &resrefs, &cache, 4, &AtomicBool::new(false));
+        let second = prepare_model_previews(&catalog, &resrefs, &cache, 4, &AtomicBool::new(false));
+
+        assert_eq!(first.len(), 6);
+        assert!(first.iter().all(|entry| entry.error.is_none()));
+        assert!(first.iter().all(|entry| !entry.cache_hit));
+        assert!(second.iter().all(|entry| entry.cache_hit));
+        assert!(
+            second
+                .iter()
+                .all(|entry| entry.cache_path.as_ref().is_some_and(|path| path.is_file()))
+        );
     }
 
     fn loose_model(resref: &str, path: &Path) -> ResolvedResource {

@@ -1,5 +1,6 @@
 [package]
 name = "aurora-index"
+description = "Index SQLite : ressources, références croisées et recherche."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

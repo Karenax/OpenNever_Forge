@@ -1,7 +1,10 @@
+mod asset_export;
 mod blueprint_options;
 mod commands;
+mod dialogue_export;
 mod jobs;
 mod logging;
+mod migration;
 mod session;
 mod state;
 
@@ -31,6 +34,12 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            asset_export::list_asset_export_candidates,
+            asset_export::preview_asset_export,
+            asset_export::export_asset_bundle,
+            dialogue_export::list_dialogue_export_candidates,
+            dialogue_export::preview_dialogue_export,
+            dialogue_export::export_dialogue_bundle,
             commands::get_app_status,
             commands::restore_module_session,
             commands::start_module_analysis,
@@ -51,6 +60,7 @@ pub fn run() {
             commands::edit_faction_structure_command,
             commands::edit_blueprint_structure_command,
             commands::inspect_scene,
+            commands::prepare_scene_models,
             commands::model_preview_glb,
             commands::resolve_texture,
             commands::asset_preview_bytes,
@@ -112,6 +122,10 @@ pub fn run() {
             commands::delete_workspace_area,
             commands::add_workspace_area_instance,
             commands::remove_workspace_area_instance,
+            migration::list_area_migration_candidates,
+            migration::preview_area_migration,
+            migration::get_area_migration_job,
+            migration::start_area_migration_export,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenNever Forge");

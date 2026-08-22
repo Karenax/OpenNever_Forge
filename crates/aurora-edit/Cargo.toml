@@ -1,5 +1,6 @@
 [package]
 name = "aurora-edit"
+description = "Espace transactionnel d'édition : overlay, writers et commandes réversibles."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

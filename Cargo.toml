@@ -2,6 +2,7 @@
 members = [
   "apps/desktop/src-tauri",
   "apps/opennever-mcp",
+  "apps/opennever-migrate",
   "crates/aurora-core",
   "crates/aurora-erf",
   "crates/aurora-gff",
@@ -10,10 +11,13 @@ members = [
   "crates/aurora-2da",
   "crates/aurora-nwscript",
   "crates/aurora-dialogue",
+  "crates/aurora-dialogue-export",
   "crates/aurora-mdl",
   "crates/aurora-world",
   "crates/aurora-edit",
   "crates/aurora-project",
+  "crates/aurora-asset-export",
+  "crates/aurora-migration",
   "crates/aurora-index",
   "crates/aurora-agent",
 ]

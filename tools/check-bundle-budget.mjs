@@ -30,9 +30,9 @@ const largestCss = files.filter((file) => file.name.endsWith(".css")).sort((a, b
 // These are containment ceilings for existing monoliths, not growth targets.
 // New work should extract modules instead of routinely raising these limits.
 const sourceBudgets = [
-  ["apps/desktop/src/App.tsx", 3_050],
-  ["apps/desktop/src-tauri/src/commands.rs", 7_700],
-  ["crates/aurora-edit/src/lib.rs", 9_950],
+  ["apps/desktop/src/App.tsx", 2_950],
+  ["apps/desktop/src-tauri/src/commands.rs", 7_200],
+  ["crates/aurora-edit/src/lib.rs", 7_000],
 ];
 const sources = sourceBudgets.map(([relativePath, maximumLines]) => {
   const lines = readFileSync(join(repositoryRoot, relativePath), "utf8").split(/\r?\n/).length;

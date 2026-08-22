@@ -1,5 +1,6 @@
 [package]
 name = "aurora-project"
+description = "Projets locaux, analyse incrémentale et catalogue d'installation persistant."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

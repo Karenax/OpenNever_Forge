@@ -1,0 +1,64 @@
+/* Migration de zone : sélection, plan humain et rapport. */
+.migration-workspace { display:grid; grid-template-columns:270px minmax(0,1fr) 340px; min-height:0; height:100%; overflow:hidden; background:#0a0f13; }
+.migration-workspace-locked { grid-template-columns:1fr; place-items:center; padding:28px; }
+.migration-locked-state { display:grid; justify-items:center; gap:8px; width:min(560px,100%); padding:34px; border:1px solid var(--border); background:#10171d; text-align:center; }
+.migration-locked-state>svg { color:#c18a4c; }
+.migration-locked-state h1,.migration-locked-state p,.migration-locked-state small { margin:0; }
+.migration-locked-state p,.migration-locked-state small { color:var(--muted); line-height:1.5; }
+.migration-area-panel,.migration-report-panel { min-height:0; overflow:auto; padding:15px; background:#0d1419; }
+.migration-area-panel { border-right:1px solid var(--border); }
+.migration-report-panel { border-left:1px solid var(--border); }
+.migration-area-panel header,.migration-report-panel header { display:grid; gap:4px; margin-bottom:14px; }
+.migration-area-panel h2,.migration-report-panel h2 { margin:0; font:500 20px Georgia,"Times New Roman",serif; }
+.migration-area-panel p,.migration-report-panel p { margin:0; color:var(--muted); font-size:11px; line-height:1.5; }
+.migration-loading,.migration-audit-loading { display:flex; align-items:center; gap:8px; color:var(--muted); }
+.migration-loading svg,.migration-audit-loading svg,.migration-actions .lucide-loader-circle { animation:spin 1s linear infinite; }
+.migration-area-list { display:grid; gap:6px; }
+.migration-area-list button { display:grid; gap:3px; padding:11px; border:1px solid #293640; background:#10171d; color:var(--text); text-align:left; }
+.migration-area-list button.selected { border-color:#9b7040; box-shadow:inset 3px 0 #c28a4b; background:#1b1712; }
+.migration-area-list code { color:#c99c64; font-size:11px; }
+.migration-area-list small { color:var(--muted); }
+.migration-plan-panel { min-width:0; min-height:0; overflow:hidden; }
+.migration-plan-panel>.workspace-page-header { min-height:92px; }
+.migration-plan-scroll { display:grid; gap:12px; height:calc(100% - 92px); overflow:auto; padding:16px; }
+.migration-readiness,.migration-content-preview,.migration-destination,.migration-legal-warning,.migration-launch { padding:14px; border:1px solid var(--border); background:#10171d; }
+.migration-readiness>div:first-child,.migration-content-preview>div:first-child,.migration-destination>div:first-child,.migration-launch>div:first-child { display:flex; align-items:center; gap:10px; }
+.migration-readiness>div:first-child svg { color:#70b98a; }
+.migration-readiness span,.migration-content-preview div div,.migration-destination div div,.migration-launch div div { display:grid; gap:3px; }
+.migration-readiness small,.migration-content-preview p,.migration-destination p,.migration-launch p { margin:0; color:var(--muted); font-size:11px; }
+.migration-content-preview ul { display:grid; gap:7px; margin:12px 0 0; padding-left:18px; color:#b8c5cc; font-size:11px; line-height:1.5; }
+.migration-content-preview code { color:#d0a66c; }
+.migration-counts { display:grid; grid-template-columns:repeat(3,minmax(100px,1fr)); gap:7px; margin-top:13px; }
+.migration-counts>div { display:grid; gap:3px; padding:9px; border:1px solid #28343d; background:#0b1116; }
+.migration-counts span { color:var(--muted); font-size:11px; text-transform:uppercase; }
+.migration-counts strong { font-size:17px; }
+.migration-counts .warning { border-color:#7c5530; color:#f0b66f; }
+.migration-step { display:grid; place-items:center; flex:0 0 27px; width:27px; height:27px; border:1px solid #80603b; border-radius:50%; color:#f0bd78; }
+.migration-destination>button { margin:12px 0 8px; }
+.migration-destination>code,.migration-result-success>code { display:block; padding:9px; overflow-wrap:anywhere; border:1px solid #27343d; background:#090e12; color:#a9bcc8; font-size:11px; }
+.migration-legal-warning { display:flex; gap:12px; border-color:#73502d; background:#1a140e; }
+.migration-legal-warning>svg { flex:0 0 auto; color:#e4a85f; }
+.migration-legal-warning h3,.migration-legal-warning p { margin:0 0 7px; }
+.migration-legal-warning p { color:#c9ad89; font-size:11px; line-height:1.55; }
+.migration-legal-warning label { display:flex; align-items:flex-start; gap:8px; color:#e5cfb3; font-size:11px; line-height:1.45; }
+.migration-legal-warning input { margin-top:2px; accent-color:var(--accent); }
+.migration-actions { display:flex; gap:8px; margin-top:12px; }
+.migration-progress { display:grid; gap:6px; margin-top:12px; padding:10px; border:1px solid #30414b; background:#0a1116; }
+.migration-progress>div { display:flex; justify-content:space-between; }
+.migration-progress progress { width:100%; accent-color:#bd8143; }
+.migration-progress small { color:var(--muted); }
+.migration-error { display:flex; align-items:center; gap:7px; margin:12px 16px; padding:10px; border:1px solid #7c3e38; background:#241310; color:#ef9b91; }
+.migration-result-success,.migration-result-failure,.migration-result-cancelled { display:grid; gap:8px; margin-bottom:13px; padding:12px; border:1px solid #365b43; background:#101b15; }
+.migration-result-failure { border-color:#733f3a; background:#211210; }
+.migration-result-cancelled { border-color:#6c5738; background:#1c1811; }
+.migration-result-success h3,.migration-result-failure h3,.migration-result-cancelled h3 { margin:0; }
+.migration-result-success small { color:#94b9a1; }
+.migration-report-empty { padding:12px; border:1px dashed #34414a; }
+.migration-diagnostics { display:grid; gap:6px; }
+.migration-diagnostics article { display:grid; gap:4px; padding:9px; border-left:2px solid #50798c; background:#10171d; }
+.migration-diagnostics article.warning { border-color:#b1783d; }
+.migration-diagnostics article.error { border-color:#b6564d; }
+.migration-diagnostics article span { font-size:11px; line-height:1.45; }
+.migration-diagnostics article small { color:var(--muted); overflow-wrap:anywhere; }
+@media (max-width:1200px) { .migration-workspace { grid-template-columns:230px minmax(0,1fr) 300px; } }
+@media (max-width:900px) { .migration-workspace { grid-template-columns:1fr; height:auto; overflow:auto; } .migration-area-panel,.migration-report-panel { max-height:none; border:0; border-bottom:1px solid var(--border); } .migration-plan-scroll { height:auto; } }

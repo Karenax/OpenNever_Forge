@@ -1,0 +1,4013 @@
+{
+ "height": 15,
+ "instances": [
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_000",
+   "x": 0.5,
+   "y": 0.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_001",
+   "x": 2.25,
+   "y": 3.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_002",
+   "x": 4.0,
+   "y": 7.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_003",
+   "x": 5.75,
+   "y": 10.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_004",
+   "x": 7.5,
+   "y": 13.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_005",
+   "x": 9.25,
+   "y": 16.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_006",
+   "x": 11.0,
+   "y": 20.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_007",
+   "x": 12.75,
+   "y": 23.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_008",
+   "x": 14.5,
+   "y": 26.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_009",
+   "x": 16.25,
+   "y": 29.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_010",
+   "x": 18.0,
+   "y": 33.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_011",
+   "x": 19.75,
+   "y": 36.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_012",
+   "x": 21.5,
+   "y": 2.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_013",
+   "x": 23.25,
+   "y": 5.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_014",
+   "x": 25.0,
+   "y": 8.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_015",
+   "x": 26.75,
+   "y": 11.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_016",
+   "x": 28.5,
+   "y": 15.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_017",
+   "x": 30.25,
+   "y": 18.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_018",
+   "x": 32.0,
+   "y": 21.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_019",
+   "x": 33.75,
+   "y": 24.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_020",
+   "x": 35.5,
+   "y": 28.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_021",
+   "x": 37.25,
+   "y": 31.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_022",
+   "x": 39.0,
+   "y": 34.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_023",
+   "x": 0.75,
+   "y": 37.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_024",
+   "x": 2.5,
+   "y": 3.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_025",
+   "x": 4.25,
+   "y": 6.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_026",
+   "x": 6.0,
+   "y": 10.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_027",
+   "x": 7.75,
+   "y": 13.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_028",
+   "x": 9.5,
+   "y": 16.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_029",
+   "x": 11.25,
+   "y": 19.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_030",
+   "x": 13.0,
+   "y": 23.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_031",
+   "x": 14.75,
+   "y": 26.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_032",
+   "x": 16.5,
+   "y": 29.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_033",
+   "x": 18.25,
+   "y": 32.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_034",
+   "x": 20.0,
+   "y": 36.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_035",
+   "x": 21.75,
+   "y": 1.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_036",
+   "x": 23.5,
+   "y": 5.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_037",
+   "x": 25.25,
+   "y": 8.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_038",
+   "x": 27.0,
+   "y": 11.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_039",
+   "x": 28.75,
+   "y": 14.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_040",
+   "x": 30.5,
+   "y": 18.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_041",
+   "x": 32.25,
+   "y": 21.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_042",
+   "x": 34.0,
+   "y": 24.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_043",
+   "x": 35.75,
+   "y": 27.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_044",
+   "x": 37.5,
+   "y": 31.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_045",
+   "x": 39.25,
+   "y": 34.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_046",
+   "x": 1.0,
+   "y": 37.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_047",
+   "x": 2.75,
+   "y": 3.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_048",
+   "x": 4.5,
+   "y": 6.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_049",
+   "x": 6.25,
+   "y": 9.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_050",
+   "x": 8.0,
+   "y": 13.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_051",
+   "x": 9.75,
+   "y": 16.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_052",
+   "x": 11.5,
+   "y": 19.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_053",
+   "x": 13.25,
+   "y": 22.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_054",
+   "x": 15.0,
+   "y": 26.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_055",
+   "x": 16.75,
+   "y": 29.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_056",
+   "x": 18.5,
+   "y": 32.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_057",
+   "x": 20.25,
+   "y": 35.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_058",
+   "x": 22.0,
+   "y": 1.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_059",
+   "x": 23.75,
+   "y": 4.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_060",
+   "x": 25.5,
+   "y": 8.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_061",
+   "x": 27.25,
+   "y": 11.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_062",
+   "x": 29.0,
+   "y": 14.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_063",
+   "x": 30.75,
+   "y": 17.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_064",
+   "x": 32.5,
+   "y": 21.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_065",
+   "x": 34.25,
+   "y": 24.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_066",
+   "x": 36.0,
+   "y": 27.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_067",
+   "x": 37.75,
+   "y": 30.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_068",
+   "x": 39.5,
+   "y": 34.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_069",
+   "x": 1.25,
+   "y": 37.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_070",
+   "x": 3.0,
+   "y": 3.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_071",
+   "x": 4.75,
+   "y": 6.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_072",
+   "x": 6.5,
+   "y": 9.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_073",
+   "x": 8.25,
+   "y": 12.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_074",
+   "x": 10.0,
+   "y": 16.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_075",
+   "x": 11.75,
+   "y": 19.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_076",
+   "x": 13.5,
+   "y": 22.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_077",
+   "x": 15.25,
+   "y": 25.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_078",
+   "x": 17.0,
+   "y": 29.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_079",
+   "x": 18.75,
+   "y": 32.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_080",
+   "x": 20.5,
+   "y": 35.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_081",
+   "x": 22.25,
+   "y": 1.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_082",
+   "x": 24.0,
+   "y": 4.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_083",
+   "x": 25.75,
+   "y": 7.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_084",
+   "x": 27.5,
+   "y": 11.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_085",
+   "x": 29.25,
+   "y": 14.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_086",
+   "x": 31.0,
+   "y": 17.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_087",
+   "x": 32.75,
+   "y": 20.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_088",
+   "x": 34.5,
+   "y": 24.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_089",
+   "x": 36.25,
+   "y": 27.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_090",
+   "x": 38.0,
+   "y": 30.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_091",
+   "x": 39.75,
+   "y": 33.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_092",
+   "x": 1.5,
+   "y": 37.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_093",
+   "x": 3.25,
+   "y": 2.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_094",
+   "x": 5.0,
+   "y": 6.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_095",
+   "x": 6.75,
+   "y": 9.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_096",
+   "x": 8.5,
+   "y": 12.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_097",
+   "x": 10.25,
+   "y": 15.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_098",
+   "x": 12.0,
+   "y": 19.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_099",
+   "x": 13.75,
+   "y": 22.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_100",
+   "x": 15.5,
+   "y": 25.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_101",
+   "x": 17.25,
+   "y": 28.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_102",
+   "x": 19.0,
+   "y": 32.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_103",
+   "x": 20.75,
+   "y": 35.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_104",
+   "x": 22.5,
+   "y": 1.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_105",
+   "x": 24.25,
+   "y": 4.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_106",
+   "x": 26.0,
+   "y": 7.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_107",
+   "x": 27.75,
+   "y": 10.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_108",
+   "x": 29.5,
+   "y": 14.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_109",
+   "x": 31.25,
+   "y": 17.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_110",
+   "x": 33.0,
+   "y": 20.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_111",
+   "x": 34.75,
+   "y": 23.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_112",
+   "x": 36.5,
+   "y": 27.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_113",
+   "x": 38.25,
+   "y": 30.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_114",
+   "x": 40.0,
+   "y": 33.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_115",
+   "x": 1.75,
+   "y": 36.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_116",
+   "x": 3.5,
+   "y": 2.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_117",
+   "x": 5.25,
+   "y": 5.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_118",
+   "x": 7.0,
+   "y": 9.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_119",
+   "x": 8.75,
+   "y": 12.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_120",
+   "x": 10.5,
+   "y": 15.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_121",
+   "x": 12.25,
+   "y": 18.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_122",
+   "x": 14.0,
+   "y": 22.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_123",
+   "x": 15.75,
+   "y": 25.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_124",
+   "x": 17.5,
+   "y": 28.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_125",
+   "x": 19.25,
+   "y": 31.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_126",
+   "x": 21.0,
+   "y": 35.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_127",
+   "x": 22.75,
+   "y": 0.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_128",
+   "x": 24.5,
+   "y": 4.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_129",
+   "x": 26.25,
+   "y": 7.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_130",
+   "x": 28.0,
+   "y": 10.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_131",
+   "x": 29.75,
+   "y": 13.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_132",
+   "x": 31.5,
+   "y": 17.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_133",
+   "x": 33.25,
+   "y": 20.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_134",
+   "x": 35.0,
+   "y": 23.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_135",
+   "x": 36.75,
+   "y": 26.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_136",
+   "x": 38.5,
+   "y": 30.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_137",
+   "x": 40.25,
+   "y": 33.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_138",
+   "x": 2.0,
+   "y": 36.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "placeable",
+   "resref": "vol_placeable",
+   "tag": "vol_placeable_139",
+   "x": 3.75,
+   "y": 2.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_000",
+   "x": 5.5,
+   "y": 5.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_001",
+   "x": 7.25,
+   "y": 8.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_002",
+   "x": 9.0,
+   "y": 12.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_003",
+   "x": 10.75,
+   "y": 15.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_004",
+   "x": 12.5,
+   "y": 18.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_005",
+   "x": 14.25,
+   "y": 21.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_006",
+   "x": 16.0,
+   "y": 25.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_007",
+   "x": 17.75,
+   "y": 28.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_008",
+   "x": 19.5,
+   "y": 31.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_009",
+   "x": 21.25,
+   "y": 34.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_010",
+   "x": 23.0,
+   "y": 0.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_011",
+   "x": 24.75,
+   "y": 3.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_012",
+   "x": 26.5,
+   "y": 7.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_013",
+   "x": 28.25,
+   "y": 10.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_014",
+   "x": 30.0,
+   "y": 13.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_015",
+   "x": 31.75,
+   "y": 16.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_016",
+   "x": 33.5,
+   "y": 20.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_017",
+   "x": 35.25,
+   "y": 23.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_018",
+   "x": 37.0,
+   "y": 26.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_019",
+   "x": 38.75,
+   "y": 29.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_020",
+   "x": 0.5,
+   "y": 33.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_021",
+   "x": 2.25,
+   "y": 36.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_022",
+   "x": 4.0,
+   "y": 2.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_023",
+   "x": 5.75,
+   "y": 5.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_024",
+   "x": 7.5,
+   "y": 8.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_025",
+   "x": 9.25,
+   "y": 11.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_026",
+   "x": 11.0,
+   "y": 15.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_027",
+   "x": 12.75,
+   "y": 18.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_028",
+   "x": 14.5,
+   "y": 21.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_029",
+   "x": 16.25,
+   "y": 24.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_030",
+   "x": 18.0,
+   "y": 28.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_031",
+   "x": 19.75,
+   "y": 31.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_032",
+   "x": 21.5,
+   "y": 34.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_033",
+   "x": 23.25,
+   "y": 37.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_034",
+   "x": 25.0,
+   "y": 3.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_035",
+   "x": 26.75,
+   "y": 6.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_036",
+   "x": 28.5,
+   "y": 10.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_037",
+   "x": 30.25,
+   "y": 13.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_038",
+   "x": 32.0,
+   "y": 16.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_039",
+   "x": 33.75,
+   "y": 19.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_040",
+   "x": 35.5,
+   "y": 23.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_041",
+   "x": 37.25,
+   "y": 26.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_042",
+   "x": 39.0,
+   "y": 29.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_043",
+   "x": 0.75,
+   "y": 32.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_044",
+   "x": 2.5,
+   "y": 36.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_045",
+   "x": 4.25,
+   "y": 1.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_046",
+   "x": 6.0,
+   "y": 5.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_047",
+   "x": 7.75,
+   "y": 8.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_048",
+   "x": 9.5,
+   "y": 11.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_049",
+   "x": 11.25,
+   "y": 14.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_050",
+   "x": 13.0,
+   "y": 18.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_051",
+   "x": 14.75,
+   "y": 21.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_052",
+   "x": 16.5,
+   "y": 24.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_053",
+   "x": 18.25,
+   "y": 27.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_054",
+   "x": 20.0,
+   "y": 31.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_055",
+   "x": 21.75,
+   "y": 34.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_056",
+   "x": 23.5,
+   "y": 37.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_057",
+   "x": 25.25,
+   "y": 3.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_058",
+   "x": 27.0,
+   "y": 6.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_059",
+   "x": 28.75,
+   "y": 9.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_060",
+   "x": 30.5,
+   "y": 13.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_061",
+   "x": 32.25,
+   "y": 16.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_062",
+   "x": 34.0,
+   "y": 19.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_063",
+   "x": 35.75,
+   "y": 22.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_064",
+   "x": 37.5,
+   "y": 26.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_065",
+   "x": 39.25,
+   "y": 29.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_066",
+   "x": 1.0,
+   "y": 32.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_067",
+   "x": 2.75,
+   "y": 35.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_068",
+   "x": 4.5,
+   "y": 1.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_069",
+   "x": 6.25,
+   "y": 4.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_070",
+   "x": 8.0,
+   "y": 8.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_071",
+   "x": 9.75,
+   "y": 11.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_072",
+   "x": 11.5,
+   "y": 14.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_073",
+   "x": 13.25,
+   "y": 17.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_074",
+   "x": 15.0,
+   "y": 21.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_075",
+   "x": 16.75,
+   "y": 24.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_076",
+   "x": 18.5,
+   "y": 27.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_077",
+   "x": 20.25,
+   "y": 30.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_078",
+   "x": 22.0,
+   "y": 34.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_079",
+   "x": 23.75,
+   "y": 37.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_080",
+   "x": 25.5,
+   "y": 3.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_081",
+   "x": 27.25,
+   "y": 6.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_082",
+   "x": 29.0,
+   "y": 9.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_083",
+   "x": 30.75,
+   "y": 12.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_084",
+   "x": 32.5,
+   "y": 16.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_085",
+   "x": 34.25,
+   "y": 19.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_086",
+   "x": 36.0,
+   "y": 22.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_087",
+   "x": 37.75,
+   "y": 25.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_088",
+   "x": 39.5,
+   "y": 29.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_089",
+   "x": 1.25,
+   "y": 32.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_090",
+   "x": 3.0,
+   "y": 35.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_091",
+   "x": 4.75,
+   "y": 1.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_092",
+   "x": 6.5,
+   "y": 4.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_093",
+   "x": 8.25,
+   "y": 7.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_094",
+   "x": 10.0,
+   "y": 11.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_095",
+   "x": 11.75,
+   "y": 14.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_096",
+   "x": 13.5,
+   "y": 17.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_097",
+   "x": 15.25,
+   "y": 20.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_098",
+   "x": 17.0,
+   "y": 24.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_099",
+   "x": 18.75,
+   "y": 27.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_100",
+   "x": 20.5,
+   "y": 30.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_101",
+   "x": 22.25,
+   "y": 33.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_102",
+   "x": 24.0,
+   "y": 37.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_103",
+   "x": 25.75,
+   "y": 2.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_104",
+   "x": 27.5,
+   "y": 6.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_105",
+   "x": 29.25,
+   "y": 9.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_106",
+   "x": 31.0,
+   "y": 12.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_107",
+   "x": 32.75,
+   "y": 15.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_108",
+   "x": 34.5,
+   "y": 19.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_109",
+   "x": 36.25,
+   "y": 22.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_110",
+   "x": 38.0,
+   "y": 25.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_111",
+   "x": 39.75,
+   "y": 28.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_112",
+   "x": 1.5,
+   "y": 32.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_113",
+   "x": 3.25,
+   "y": 35.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_114",
+   "x": 5.0,
+   "y": 1.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_115",
+   "x": 6.75,
+   "y": 4.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_116",
+   "x": 8.5,
+   "y": 7.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_117",
+   "x": 10.25,
+   "y": 10.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_118",
+   "x": 12.0,
+   "y": 14.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "creature",
+   "resref": "vol_creature",
+   "tag": "vol_creature_119",
+   "x": 13.75,
+   "y": 17.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_000",
+   "x": 15.5,
+   "y": 20.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_001",
+   "x": 17.25,
+   "y": 23.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_002",
+   "x": 19.0,
+   "y": 27.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_003",
+   "x": 20.75,
+   "y": 30.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_004",
+   "x": 22.5,
+   "y": 33.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_005",
+   "x": 24.25,
+   "y": 36.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_006",
+   "x": 26.0,
+   "y": 2.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_007",
+   "x": 27.75,
+   "y": 5.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_008",
+   "x": 29.5,
+   "y": 9.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_009",
+   "x": 31.25,
+   "y": 12.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_010",
+   "x": 33.0,
+   "y": 15.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_011",
+   "x": 34.75,
+   "y": 18.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_012",
+   "x": 36.5,
+   "y": 22.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_013",
+   "x": 38.25,
+   "y": 25.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_014",
+   "x": 40.0,
+   "y": 28.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_015",
+   "x": 1.75,
+   "y": 31.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_016",
+   "x": 3.5,
+   "y": 35.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_017",
+   "x": 5.25,
+   "y": 0.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_018",
+   "x": 7.0,
+   "y": 4.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_019",
+   "x": 8.75,
+   "y": 7.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_020",
+   "x": 10.5,
+   "y": 10.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_021",
+   "x": 12.25,
+   "y": 13.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_022",
+   "x": 14.0,
+   "y": 17.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_023",
+   "x": 15.75,
+   "y": 20.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_024",
+   "x": 17.5,
+   "y": 23.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_025",
+   "x": 19.25,
+   "y": 26.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_026",
+   "x": 21.0,
+   "y": 30.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_027",
+   "x": 22.75,
+   "y": 33.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_028",
+   "x": 24.5,
+   "y": 36.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_029",
+   "x": 26.25,
+   "y": 2.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_030",
+   "x": 28.0,
+   "y": 5.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_031",
+   "x": 29.75,
+   "y": 8.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_032",
+   "x": 31.5,
+   "y": 12.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_033",
+   "x": 33.25,
+   "y": 15.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_034",
+   "x": 35.0,
+   "y": 18.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_035",
+   "x": 36.75,
+   "y": 21.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_036",
+   "x": 38.5,
+   "y": 25.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_037",
+   "x": 40.25,
+   "y": 28.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_038",
+   "x": 2.0,
+   "y": 31.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "sound",
+   "resref": "vol_sound",
+   "tag": "vol_sound_039",
+   "x": 3.75,
+   "y": 34.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_000",
+   "x": 5.5,
+   "y": 0.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_001",
+   "x": 7.25,
+   "y": 3.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_002",
+   "x": 9.0,
+   "y": 7.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_003",
+   "x": 10.75,
+   "y": 10.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_004",
+   "x": 12.5,
+   "y": 13.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_005",
+   "x": 14.25,
+   "y": 16.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_006",
+   "x": 16.0,
+   "y": 20.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_007",
+   "x": 17.75,
+   "y": 23.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_008",
+   "x": 19.5,
+   "y": 26.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_009",
+   "x": 21.25,
+   "y": 29.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_010",
+   "x": 23.0,
+   "y": 33.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_011",
+   "x": 24.75,
+   "y": 36.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_012",
+   "x": 26.5,
+   "y": 2.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_013",
+   "x": 28.25,
+   "y": 5.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_014",
+   "x": 30.0,
+   "y": 8.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_015",
+   "x": 31.75,
+   "y": 11.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_016",
+   "x": 33.5,
+   "y": 15.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_017",
+   "x": 35.25,
+   "y": 18.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_018",
+   "x": 37.0,
+   "y": 21.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_019",
+   "x": 38.75,
+   "y": 24.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_020",
+   "x": 0.5,
+   "y": 28.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_021",
+   "x": 2.25,
+   "y": 31.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_022",
+   "x": 4.0,
+   "y": 34.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_023",
+   "x": 5.75,
+   "y": 37.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_024",
+   "x": 7.5,
+   "y": 3.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_025",
+   "x": 9.25,
+   "y": 6.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_026",
+   "x": 11.0,
+   "y": 10.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_027",
+   "x": 12.75,
+   "y": 13.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_028",
+   "x": 14.5,
+   "y": 16.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "trigger",
+   "resref": "vol_trigger",
+   "tag": "vol_trigger_029",
+   "x": 16.25,
+   "y": 19.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_000",
+   "x": 18.0,
+   "y": 23.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_001",
+   "x": 19.75,
+   "y": 26.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_002",
+   "x": 21.5,
+   "y": 29.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_003",
+   "x": 23.25,
+   "y": 32.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_004",
+   "x": 25.0,
+   "y": 36.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_005",
+   "x": 26.75,
+   "y": 1.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_006",
+   "x": 28.5,
+   "y": 5.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_007",
+   "x": 30.25,
+   "y": 8.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_008",
+   "x": 32.0,
+   "y": 11.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_009",
+   "x": 33.75,
+   "y": 14.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_010",
+   "x": 35.5,
+   "y": 18.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_011",
+   "x": 37.25,
+   "y": 21.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_012",
+   "x": 39.0,
+   "y": 24.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_013",
+   "x": 0.75,
+   "y": 27.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_014",
+   "x": 2.5,
+   "y": 31.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_015",
+   "x": 4.25,
+   "y": 34.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_016",
+   "x": 6.0,
+   "y": 37.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_017",
+   "x": 7.75,
+   "y": 3.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_018",
+   "x": 9.5,
+   "y": 6.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_019",
+   "x": 11.25,
+   "y": 9.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_020",
+   "x": 13.0,
+   "y": 13.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_021",
+   "x": 14.75,
+   "y": 16.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_022",
+   "x": 16.5,
+   "y": 19.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_023",
+   "x": 18.25,
+   "y": 22.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_024",
+   "x": 20.0,
+   "y": 26.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_025",
+   "x": 21.75,
+   "y": 29.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_026",
+   "x": 23.5,
+   "y": 32.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_027",
+   "x": 25.25,
+   "y": 35.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_028",
+   "x": 27.0,
+   "y": 1.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "waypoint",
+   "resref": "vol_waypoint",
+   "tag": "vol_waypoint_029",
+   "x": 28.75,
+   "y": 4.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_000",
+   "transitionDestination": "vol_zone_0",
+   "transitionFlags": 0,
+   "x": 30.5,
+   "y": 8.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_001",
+   "transitionDestination": "vol_zone_1",
+   "transitionFlags": 0,
+   "x": 32.25,
+   "y": 11.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_002",
+   "transitionDestination": "vol_zone_2",
+   "transitionFlags": 0,
+   "x": 34.0,
+   "y": 14.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_003",
+   "transitionDestination": "vol_zone_3",
+   "transitionFlags": 0,
+   "x": 35.75,
+   "y": 17.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_004",
+   "x": 37.5,
+   "y": 21.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_005",
+   "x": 39.25,
+   "y": 24.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_006",
+   "x": 1.0,
+   "y": 27.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_007",
+   "x": 2.75,
+   "y": 30.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_008",
+   "x": 4.5,
+   "y": 34.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_009",
+   "x": 6.25,
+   "y": 37.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_010",
+   "x": 8.0,
+   "y": 3.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_011",
+   "x": 9.75,
+   "y": 6.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_012",
+   "x": 11.5,
+   "y": 9.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_013",
+   "x": 13.25,
+   "y": 12.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_014",
+   "x": 15.0,
+   "y": 16.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_015",
+   "x": 16.75,
+   "y": 19.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_016",
+   "x": 18.5,
+   "y": 22.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_017",
+   "x": 20.25,
+   "y": 25.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_018",
+   "x": 22.0,
+   "y": 29.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_019",
+   "x": 23.75,
+   "y": 32.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_020",
+   "x": 25.5,
+   "y": 35.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_021",
+   "x": 27.25,
+   "y": 1.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_022",
+   "x": 29.0,
+   "y": 4.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "door",
+   "resref": "vol_door",
+   "tag": "vol_door_023",
+   "x": 30.75,
+   "y": 7.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_000",
+   "x": 32.5,
+   "y": 11.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_001",
+   "x": 34.25,
+   "y": 14.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_002",
+   "x": 36.0,
+   "y": 17.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_003",
+   "x": 37.75,
+   "y": 20.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_004",
+   "x": 39.5,
+   "y": 24.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_005",
+   "x": 1.25,
+   "y": 27.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_006",
+   "x": 3.0,
+   "y": 30.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_007",
+   "x": 4.75,
+   "y": 33.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_008",
+   "x": 6.5,
+   "y": 37.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_009",
+   "x": 8.25,
+   "y": 2.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_010",
+   "x": 10.0,
+   "y": 6.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_011",
+   "x": 11.75,
+   "y": 9.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_012",
+   "x": 13.5,
+   "y": 12.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_013",
+   "x": 15.25,
+   "y": 15.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_014",
+   "x": 17.0,
+   "y": 19.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_015",
+   "x": 18.75,
+   "y": 22.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_016",
+   "x": 20.5,
+   "y": 25.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_017",
+   "x": 22.25,
+   "y": 28.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_018",
+   "x": 24.0,
+   "y": 32.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "encounter",
+   "resref": "vol_encounter",
+   "tag": "vol_encounter_019",
+   "x": 25.75,
+   "y": 35.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_000",
+   "x": 27.5,
+   "y": 1.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_001",
+   "x": 29.25,
+   "y": 4.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_002",
+   "x": 31.0,
+   "y": 7.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_003",
+   "x": 32.75,
+   "y": 10.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_004",
+   "x": 34.5,
+   "y": 14.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_005",
+   "x": 36.25,
+   "y": 17.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_006",
+   "x": 38.0,
+   "y": 20.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_007",
+   "x": 39.75,
+   "y": 23.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_008",
+   "x": 1.5,
+   "y": 27.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_009",
+   "x": 3.25,
+   "y": 30.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_010",
+   "x": 5.0,
+   "y": 33.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_011",
+   "x": 6.75,
+   "y": 36.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_012",
+   "x": 8.5,
+   "y": 2.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_013",
+   "x": 10.25,
+   "y": 5.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_014",
+   "x": 12.0,
+   "y": 9.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_015",
+   "x": 13.75,
+   "y": 12.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_016",
+   "x": 15.5,
+   "y": 15.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_017",
+   "x": 17.25,
+   "y": 18.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_018",
+   "x": 19.0,
+   "y": 22.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "store",
+   "resref": "vol_store",
+   "tag": "vol_store_019",
+   "x": 20.75,
+   "y": 25.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_000",
+   "x": 22.5,
+   "y": 28.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_001",
+   "x": 24.25,
+   "y": 31.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_002",
+   "x": 26.0,
+   "y": 35.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_003",
+   "x": 27.75,
+   "y": 0.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_004",
+   "x": 29.5,
+   "y": 4.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_005",
+   "x": 31.25,
+   "y": 7.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_006",
+   "x": 33.0,
+   "y": 10.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_007",
+   "x": 34.75,
+   "y": 13.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_008",
+   "x": 36.5,
+   "y": 17.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_009",
+   "x": 38.25,
+   "y": 20.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_010",
+   "x": 40.0,
+   "y": 23.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_011",
+   "x": 1.75,
+   "y": 26.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_012",
+   "x": 3.5,
+   "y": 30.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_013",
+   "x": 5.25,
+   "y": 33.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_014",
+   "x": 7.0,
+   "y": 36.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_015",
+   "x": 8.75,
+   "y": 2.25,
+   "z": 0.0
+  },
+  {
+   "bearing": 0.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_016",
+   "x": 10.5,
+   "y": 5.5,
+   "z": 0.0
+  },
+  {
+   "bearing": 90.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_017",
+   "x": 12.25,
+   "y": 8.75,
+   "z": 0.0
+  },
+  {
+   "bearing": 180.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_018",
+   "x": 14.0,
+   "y": 12.0,
+   "z": 0.0
+  },
+  {
+   "bearing": 270.0,
+   "category": "item",
+   "resref": "vol_item",
+   "tag": "vol_item_019",
+   "x": 15.75,
+   "y": 15.25,
+   "z": 0.0
+  }
+ ],
+ "resref": "market_district",
+ "tileCount": 240,
+ "tileset": "tcn01",
+ "width": 16
+}

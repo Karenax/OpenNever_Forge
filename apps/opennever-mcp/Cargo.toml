@@ -1,5 +1,6 @@
 [package]
 name = "opennever-mcp"
+description = "Compagnon MCP stdio partageant politique et registre des outils."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

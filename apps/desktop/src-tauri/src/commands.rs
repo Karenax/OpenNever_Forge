@@ -3,55 +3,52 @@ use crate::blueprint_options::{
 };
 use crate::jobs::JobSnapshot;
 use crate::session::{SessionPaths, restore_analysis_session, store_analysis_session};
-use crate::state::AppState;
-use aurora_2da::{TwoDaEditAction, TwoDaTable, apply_2da_edit, parse_2da, write_2da};
+use crate::state::{AppState, PreparedModelCacheEntry};
+use aurora_2da::{TwoDaTable, apply_2da_edit, parse_2da, write_2da};
 use aurora_agent::{
-    AgentEventKind, AgentPolicy, AgentRun, AgentRunStatus, AgentWorkspaceStore, ApprovalRequest,
-    ApprovalStatus, CapabilityRegistry, CapabilitySideEffect, EffectiveCapability, ModuleBlueprint,
-    PolicyDecision, ProviderKind, ProviderProfile, ProviderRequestContext, ProviderToolOutput,
-    SecurityLevel, ToolCallRecord, ToolCallStatus, build_provider_request, built_in_policy,
-    compile_module_blueprint, context_allows_capability, decode_provider_response,
-    evaluate_capability, sanitize_context_value, validate_agent_policy, validate_module_blueprint,
-    validate_tool_scope,
+    AgentEventKind, AgentRun, AgentRunStatus, AgentWorkspaceStore, ApprovalRequest, ApprovalStatus,
+    CapabilityRegistry, CapabilitySideEffect, ModuleBlueprint, PolicyDecision, ProviderKind,
+    ProviderRequestContext, ProviderToolOutput, SecurityLevel, ToolCallRecord, ToolCallStatus,
+    build_provider_request, built_in_policy, compile_module_blueprint, context_allows_capability,
+    decode_provider_response, evaluate_capability, sanitize_context_value, validate_agent_policy,
+    validate_module_blueprint, validate_tool_scope,
 };
 use aurora_core::{AppError, AppResult, ResourceKey, decode_nwn_text};
 use aurora_dialogue::adapt_dialogue;
 use aurora_edit::{
-    AiApplyReport, AiChangeSet, AiChangeSetPreview, AreaAudioPatch, AreaEnvironmentPatch,
-    AreaStructureAction, AuroraSyncAction, AuroraSyncAppliedFile, AuroraSyncDirection,
-    AuroraSyncManifest, AuroraSyncPlan, AuroraSyncReport, AuroraSyncState, AuroraSyncWorkspaceFile,
-    BlueprintStructureAction, DevelopmentCleanupReport, DevelopmentDeployment,
-    DialogueStructureAction, EditCommand, EditWorkspace, FactionStructureAction,
-    GitWorkspaceStatus, InstancePlacement, JournalStructureAction, MAP_MAX_BLUEPRINTS_PER_RULE,
+    AiApplyReport, AiChangeSet, AiChangeSetPreview, AreaStructureAction, AuroraSyncAppliedFile,
+    AuroraSyncDirection, AuroraSyncManifest, AuroraSyncPlan, AuroraSyncReport, AuroraSyncState,
+    AuroraSyncWorkspaceFile, DevelopmentCleanupReport, DevelopmentDeployment, EditCommand,
+    EditWorkspace, GitWorkspaceStatus, InstancePlacement, MAP_MAX_BLUEPRINTS_PER_RULE,
     MAP_MAX_DENSITY_RULES, MAP_MAX_HEIGHT, MAP_MAX_PLACEMENTS, MAP_MAX_TILES, MAP_MAX_WIDTH,
     MapCompatibilityReport, MapGenerationPlan, MapGenerationSpec, ModuleBuildProfile,
     ModuleBuildReport, ModuleManifestDefinition, NewModuleDefinition, NwnLaunchMode,
     NwnLaunchProfile, NwnLaunchReport, PaletteManifest, ReproducibleBuildVerification,
-    ResourceContentDigest, TileState, Transform, WalkmeshDocument, WalkmeshDraft, WalkmeshKind,
-    WalkmeshOperation, WalkmeshValidation, WorkspaceExportManifest, WorkspaceSnapshot,
-    add_area_instance, ai_change_set_sha256, apply_walkmesh_operation, baseline_from_plan,
-    compare_aurora_sync, create_area_resources, create_dialogue_resource, create_empty_module,
-    create_generated_map_resources, edit_area_audio, edit_area_environment, edit_area_instance,
-    edit_area_instance_by_id, edit_area_structure, edit_area_tile, edit_area_tile_at,
-    edit_blueprint_structure, edit_dialogue_structure, edit_faction_structure, edit_gff_field,
-    edit_journal_structure, edit_module_dependencies, edit_module_manifest,
-    generate_map_plan_with_compatibility, inspect_area_audio, inspect_area_environment,
-    inspect_git_repository, inspect_walkmesh, read_aurora_workspace_file, remove_area_instance,
-    resource_key_from_aurora_path, scan_aurora_workspace, serialize_walkmesh_ascii,
-    validate_build_profile, validate_walkmesh_for_kind, verify_sync_action,
-    write_aurora_workspace_file,
+    ResourceContentDigest, WalkmeshDocument, WalkmeshKind, WalkmeshValidation,
+    WorkspaceExportManifest, WorkspaceSnapshot, add_area_instance, ai_change_set_sha256,
+    apply_walkmesh_operation, baseline_from_plan, compare_aurora_sync, create_area_resources,
+    create_dialogue_resource, create_empty_module, create_generated_map_resources, edit_area_audio,
+    edit_area_environment, edit_area_instance, edit_area_instance_by_id, edit_area_structure,
+    edit_area_tile, edit_area_tile_at, edit_blueprint_structure, edit_dialogue_structure,
+    edit_faction_structure, edit_gff_field, edit_journal_structure, edit_module_dependencies,
+    edit_module_manifest, generate_map_plan_with_compatibility, inspect_area_audio,
+    inspect_area_environment, inspect_git_repository, inspect_walkmesh, read_aurora_workspace_file,
+    remove_area_instance, resource_key_from_aurora_path, scan_aurora_workspace,
+    serialize_walkmesh_ascii, validate_build_profile, validate_walkmesh_for_kind,
+    verify_sync_action, write_aurora_workspace_file,
 };
 use aurora_erf::ErfResourceInput;
 use aurora_gff::{GenericGff, parse_gff};
 use aurora_index::{CatalogPersistence, load_dependency_baseline, replace_resource_catalog};
-use aurora_nwscript::{CompileResult, CompilerConfig, NssDocument, compile_nss, parse_nss};
+use aurora_nwscript::{CompilerConfig, compile_nss, parse_nss};
 use aurora_project::{
     AnalysisPhase, DependencyRoots, DiagnosticReport, DialogueGraph, DialoguePage, HashProgress,
-    ModuleDependencyReport, NarrativeModel, ResourceManager, ResourcePage, ResourceSourceKind,
-    SceneManifest, ScriptDocument, ScriptPage, WorldIndex, analyze_module_file_with_cache,
-    build_asset_preview, cached_model_preview, compare_dependency_reports,
+    ModuleDependencyReport, NarrativeModel, ResourceManager, ResourcePage, SceneManifest,
+    ScriptDocument, ScriptPage, WorldIndex, analyze_module_file_with_cache,
+    analyze_standalone_area_file_with_cache, build_asset_preview, cached_model_preview,
+    compare_dependency_reports, prepare_model_previews,
 };
-use aurora_tlk::{TalkTable, TlkEditAction, apply_tlk_edit, parse_tlk, write_tlk};
+use aurora_tlk::{TalkTable, apply_tlk_edit, parse_tlk, write_tlk};
 use aurora_world::{
     AreaMap, adapt_area, adapt_narrative, parse_set_tile_models, render_area_atlas_svg,
 };
@@ -67,969 +64,11 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, State, ipc::Response};
 
+mod dto;
+
+use dto::*;
+
 const JOB_PROGRESS_EVENT: &str = "job-progress";
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AppStatus {
-    pub app_version: &'static str,
-    pub read_only: bool,
-    pub editing_available: bool,
-    pub database_schema_version: u32,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModuleAnalysisRequest {
-    pub module_path: String,
-    pub game_install_path: Option<String>,
-    pub user_data_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RestoredModuleSession {
-    pub job: JobSnapshot,
-    pub workspace: Option<WorkspaceSnapshot>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResourceQueryRequest {
-    pub job_id: String,
-    #[serde(default)]
-    pub query: String,
-    #[serde(default)]
-    pub resource_types: Vec<u16>,
-    pub source: Option<ResourceSourceKind>,
-    #[serde(default)]
-    pub offset: usize,
-    pub limit: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResourceInspectionRequest {
-    pub job_id: String,
-    pub resref: String,
-    pub resource_type: u16,
-    pub workspace_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScriptQueryRequest {
-    pub job_id: String,
-    #[serde(default)]
-    pub query: String,
-    #[serde(default)]
-    pub offset: usize,
-    pub limit: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScriptInspectionRequest {
-    pub job_id: String,
-    pub resref: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DialogueQueryRequest {
-    pub job_id: String,
-    #[serde(default)]
-    pub query: String,
-    #[serde(default)]
-    pub offset: usize,
-    pub limit: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DialogueInspectionRequest {
-    pub job_id: String,
-    pub resref: String,
-    pub workspace_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DialogueEditRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-    pub path: String,
-    pub before: serde_json::Value,
-    pub after: serde_json::Value,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DialogueEditResult {
-    pub workspace: WorkspaceSnapshot,
-    pub graph: DialogueGraph,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DialogueStructureRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-    pub action: DialogueStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WorldRequest {
-    pub job_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NarrativeInspectionRequest {
-    pub job_id: String,
-    pub workspace_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NarrativeDocument {
-    pub resource: ResourceKey,
-    pub raw: GenericGff,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NarrativeInspection {
-    pub model: NarrativeModel,
-    pub journal: Option<NarrativeDocument>,
-    pub factions: Option<NarrativeDocument>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct JournalStructureRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resource: ResourceKey,
-    pub action: JournalStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FactionStructureRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resource: ResourceKey,
-    pub action: FactionStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BlueprintStructureRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resource: ResourceKey,
-    pub action: BlueprintStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AreaInspectionRequest {
-    pub job_id: String,
-    pub resref: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelPreviewRequest {
-    pub job_id: String,
-    pub resref: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AssetPreviewRequest {
-    pub job_id: String,
-    pub resref: String,
-    pub resource_type: u16,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateEditWorkspaceRequest {
-    pub job_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ListWorkspaceAreasRequest {
-    pub workspace_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EditWorkspaceRequest {
-    pub workspace_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GffEditRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resource: ResourceKey,
-    pub path: String,
-    pub before: serde_json::Value,
-    pub after: serde_json::Value,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GffEditResult {
-    pub workspace: WorkspaceSnapshot,
-    pub document: GenericGff,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScriptEditRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-    pub before: String,
-    pub after: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScriptEditResult {
-    pub workspace: WorkspaceSnapshot,
-    pub document: NssDocument,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CompileScriptRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-    pub compiler_path: String,
-    pub game_install_path: String,
-    #[serde(default)]
-    pub include_paths: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CompileScriptResult {
-    pub workspace: WorkspaceSnapshot,
-    pub compilation: CompileResult,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MoveAreaInstanceRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub area: String,
-    pub instance_id: String,
-    pub before: Transform,
-    pub after: Transform,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SetAreaTileRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub area: String,
-    pub x: u32,
-    pub y: u32,
-    pub before: TileState,
-    pub after: TileState,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EditAreaStructureRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub area: String,
-    pub action: AreaStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WorkspaceAreaInspectionRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub area: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BuildModuleRequest {
-    pub workspace_id: String,
-    pub output_path: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DevelopmentRequest {
-    pub workspace_id: String,
-    pub user_data_path: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WorkspaceOutputRequest {
-    pub workspace_id: String,
-    pub output_path: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TwoDaEditRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resource: ResourceKey,
-    pub action: TwoDaEditAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TlkEditRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resource: ResourceKey,
-    pub action: TlkEditAction,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TableEditResult<T> {
-    pub workspace: WorkspaceSnapshot,
-    pub document: T,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModuleDependencyEditRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub hak_files: Vec<String>,
-    pub custom_tlk: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModuleDependencyEditResult {
-    pub workspace: WorkspaceSnapshot,
-    pub document: GenericGff,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BuildProfileRequest {
-    pub workspace_id: String,
-    pub profile: ModuleBuildProfile,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RunBuildProfileRequest {
-    pub workspace_id: String,
-    pub profile: ModuleBuildProfile,
-    pub output_directory: String,
-    pub user_data_path: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BuildProfileRunReport {
-    pub profile: ModuleBuildProfile,
-    pub build: ModuleBuildReport,
-    pub deployment: Option<DevelopmentDeployment>,
-    pub warnings: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GitWorkspaceRequest {
-    pub root: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LaunchProfileRequest {
-    pub workspace_id: String,
-    pub profile: NwnLaunchProfile,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AuroraSyncRequest {
-    pub root: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AuroraSyncPlanRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub root: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AuroraSyncApplyRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub root: String,
-    pub actions: Vec<AuroraSyncAction>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WalkmeshValidationRequest {
-    pub draft: WalkmeshDraft,
-    pub kind: WalkmeshKind,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WalkmeshTransformRequest {
-    pub draft: WalkmeshDraft,
-    pub operation: WalkmeshOperation,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WalkmeshTransformResult {
-    pub draft: WalkmeshDraft,
-    pub validation: WalkmeshValidation,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WalkmeshInspectionRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-    pub kind: WalkmeshKind,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SaveWalkmeshRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-    pub kind: WalkmeshKind,
-    pub draft: WalkmeshDraft,
-    #[serde(default)]
-    pub replace_existing: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WalkmeshEditResult {
-    pub workspace: WorkspaceSnapshot,
-    pub document: WalkmeshDocument,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AiChangeSetRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub change_set: AiChangeSet,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AiConsent {
-    #[serde(default)]
-    pub include_module_metadata: bool,
-    #[serde(default)]
-    pub include_resource_contents: bool,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AiProviderRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub endpoint: String,
-    pub model: String,
-    pub api_key: Option<String>,
-    pub prompt: String,
-    #[serde(default)]
-    pub selected_resources: Vec<ResourceKey>,
-    pub consent: AiConsent,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AiProviderProposal {
-    pub endpoint_origin: String,
-    pub model: String,
-    pub proposal_sha256: String,
-    pub change_set: AiChangeSet,
-    pub preview: AiChangeSetPreview,
-    pub shared_resources: usize,
-    pub warnings: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApplyAiChangeSetRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub proposal_sha256: String,
-    pub change_set: AiChangeSet,
-    #[serde(default)]
-    pub confirmed: bool,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentWorkspaceRequest {
-    pub workspace_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SaveAgentPolicyRequest {
-    pub workspace_id: String,
-    pub policy: AgentPolicy,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentStudioState {
-    pub policy: AgentPolicy,
-    pub presets: Vec<AgentPolicy>,
-    pub registry: CapabilityRegistry,
-    pub effective_capabilities: Vec<EffectiveCapability>,
-    pub runs: Vec<AgentRun>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateAgentRunRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub objective: String,
-    pub provider: ProviderProfile,
-    pub policy: Option<AgentPolicy>,
-    pub blueprint: Option<ModuleBlueprint>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ValidateBlueprintRequest {
-    pub blueprint: ModuleBlueprint,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AdvanceAgentRunRequest {
-    pub workspace_id: String,
-    pub run_id: String,
-    pub api_key: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TestAgentProviderRequest {
-    pub provider: ProviderProfile,
-    pub policy: AgentPolicy,
-    pub api_key: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentProviderTestReport {
-    pub endpoint_origin: String,
-    pub model: String,
-    pub latency_ms: u64,
-    pub reply: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResolveAgentApprovalRequest {
-    pub workspace_id: String,
-    pub run_id: String,
-    pub approval_id: String,
-    pub approved: bool,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CancelAgentRunRequest {
-    pub workspace_id: String,
-    pub run_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentResourceSearchArguments {
-    query: String,
-    limit: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentSetFieldArguments {
-    resource: ResourceKey,
-    path: String,
-    before: serde_json::Value,
-    after: serde_json::Value,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentReplaceScriptArguments {
-    resource: ResourceKey,
-    before: String,
-    after: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentAreaCreateArguments {
-    resref: String,
-    name: String,
-    width: u32,
-    height: u32,
-    tileset: String,
-    #[serde(default)]
-    tile_id: u32,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentScriptCreateArguments {
-    resref: String,
-    event: String,
-    purpose: String,
-    source: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentScriptCompileArguments {
-    resref: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentUndoBatchArguments {
-    checkpoint_id: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentModuleBuildArguments {
-    output_path: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentDialogueEditArguments {
-    resref: String,
-    action: DialogueStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentJournalEditArguments {
-    resource: ResourceKey,
-    action: JournalStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentFactionEditArguments {
-    resource: ResourceKey,
-    action: FactionStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentBlueprintEditArguments {
-    resource: ResourceKey,
-    action: BlueprintStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentToolsetSyncArguments {
-    actions: Vec<AuroraSyncAction>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentModuleDependenciesArguments {
-    hak_files: Vec<String>,
-    custom_tlk: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentModuleCreateArguments {
-    output_path: String,
-    name: String,
-    tag: String,
-    entry_area: String,
-    tileset: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentTwoDaEditArguments {
-    resource: ResourceKey,
-    action: TwoDaEditAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentTlkEditArguments {
-    resource: ResourceKey,
-    action: TlkEditAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentAreaInstanceArguments {
-    area: String,
-    placement: InstancePlacement,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapContextArguments {
-    tileset: Option<String>,
-    query: String,
-    limit: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapAreaArguments {
-    area: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapPreviewArguments {
-    spec: MapGenerationSpec,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapApplyArguments {
-    spec: MapGenerationSpec,
-    expected_plan_sha256: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapEnvironmentArguments {
-    area: String,
-    expected_sha256: String,
-    patch: AreaEnvironmentPatch,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapAudioArguments {
-    area: String,
-    expected_sha256: String,
-    patch: AreaAudioPatch,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapTileArguments {
-    area: String,
-    x: u32,
-    y: u32,
-    expected_sha256: String,
-    before: TileState,
-    after: TileState,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapInstanceAddArguments {
-    area: String,
-    expected_sha256: String,
-    placement: InstancePlacement,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapInstanceMoveArguments {
-    area: String,
-    instance_id: String,
-    expected_sha256: String,
-    before: Transform,
-    after: Transform,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapInstanceRemoveArguments {
-    area: String,
-    instance_id: String,
-    expected_sha256: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentMapStructureArguments {
-    area: String,
-    expected_sha256: String,
-    action: AreaStructureAction,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AgentWalkmeshEditArguments {
-    resref: String,
-    kind: WalkmeshKind,
-    operation: WalkmeshOperation,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-struct AgentArchitectureQueryArguments {
-    query: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateNewModuleRequest {
-    pub output_path: String,
-    pub name: String,
-    pub tag: String,
-    pub entry_area: String,
-    pub tileset: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateAreaRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-    pub name: String,
-    pub tileset: String,
-    pub width: u32,
-    pub height: u32,
-    pub tile_id: u32,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeleteAreaRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub resref: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateAreaResult {
-    pub workspace: WorkspaceSnapshot,
-    pub area: AreaMap,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PreviewMapGenerationRequest {
-    pub job_id: String,
-    pub spec: MapGenerationSpec,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GetMapAuthoringContextRequest {
-    pub job_id: String,
-    pub tileset: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MapKnownLimits {
-    pub max_width: u32,
-    pub max_height: u32,
-    pub max_tiles: usize,
-    pub max_resref_length: usize,
-    pub max_density_rules: usize,
-    pub max_blueprints_per_rule: usize,
-    pub max_placements: usize,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MapTilesetContext {
-    pub resref: String,
-    pub sha256: String,
-    pub tile_count: usize,
-    pub tile_ids: Vec<u32>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MapAuthoringContext {
-    pub limits: MapKnownLimits,
-    pub available_tilesets: Vec<String>,
-    pub selected_tileset: Option<MapTilesetContext>,
-    pub blueprint_counts: BTreeMap<String, usize>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DraftMapWithAiRequest {
-    pub job_id: String,
-    pub current_spec: MapGenerationSpec,
-    pub provider: ProviderProfile,
-    pub api_key: Option<String>,
-    #[serde(default)]
-    pub include_blueprint_resrefs: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AiMapDraftResult {
-    pub endpoint_origin: String,
-    pub model: String,
-    pub plan: MapGenerationPlan,
-    pub shared_blueprint_count: usize,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApplyMapGenerationRequest {
-    pub job_id: String,
-    pub workspace_id: String,
-    pub spec: MapGenerationSpec,
-    pub expected_plan_sha256: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApplyMapGenerationResult {
-    pub workspace: WorkspaceSnapshot,
-    pub area: AreaMap,
-    pub plan: MapGenerationPlan,
-}
 
 fn map_known_limits() -> MapKnownLimits {
     MapKnownLimits {
@@ -6524,7 +5563,7 @@ fn unix_time_ms() -> u64 {
         .as_millis() as u64
 }
 
-fn resolved_resource_bytes(
+pub(crate) fn resolved_resource_bytes(
     state: &AppState,
     job_id: &str,
     resource: &ResourceKey,
@@ -6742,12 +5781,7 @@ pub fn restore_module_session(
     request: ModuleAnalysisRequest,
 ) -> AppResult<Option<RestoredModuleSession>> {
     let module_path = PathBuf::from(&request.module_path);
-    if !module_path.is_file()
-        || !module_path
-            .extension()
-            .and_then(|value| value.to_str())
-            .is_some_and(|value| value.eq_ignore_ascii_case("mod"))
-    {
+    if !module_path.is_file() || source_kind(&module_path).is_none() {
         return Ok(None);
     }
     let paths = SessionPaths::new(
@@ -6764,7 +5798,11 @@ pub fn restore_module_session(
     let Some(analysis) = restore_analysis_session(&state.analysis_session_root, &paths)? else {
         return Ok(None);
     };
-    let workspace = restore_persisted_edit_workspace(&state, &analysis)?;
+    let workspace = if source_kind(&module_path) == Some(AnalysisSourceKind::Module) {
+        restore_persisted_edit_workspace(&state, &analysis)?
+    } else {
+        None
+    };
     let job = state
         .jobs
         .restore_completed_analysis(module_path.display().to_string(), analysis);
@@ -6781,17 +5819,12 @@ pub fn start_module_analysis(
     if !module_path.is_file() {
         return Err(AppError::module_not_found(request.module_path).into());
     }
-    if !module_path
-        .extension()
-        .and_then(|value| value.to_str())
-        .is_some_and(|value| value.eq_ignore_ascii_case("mod"))
-    {
-        return Err(AppError::invalid_path(
+    let source_kind = source_kind(&module_path).ok_or_else(|| {
+        AppError::invalid_path(
             module_path.display().to_string(),
-            "Module analysis accepts only .mod files",
+            "Analysis accepts only .mod modules or standalone .are areas",
         )
-        .into());
-    }
+    })?;
     let roots = DependencyRoots {
         game_install_path: optional_directory(request.game_install_path, "game_install_path")?,
         user_data_path: optional_directory(request.user_data_path, "user_data_path")?,
@@ -6817,7 +5850,15 @@ pub fn start_module_analysis(
         .transpose()?;
 
     let registry = state.jobs.clone();
-    let (job, cancellation) = registry.create_analysis_job(module_path.display().to_string());
+    let protected_roots = [
+        roots.game_install_path.clone(),
+        roots.user_data_path.clone(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+    let (job, cancellation) =
+        registry.create_analysis_job_with_roots(module_path.display().to_string(), protected_roots);
     let job_id = job.id.clone();
     let app_handle = app.clone();
 
@@ -6826,17 +5867,27 @@ pub fn start_module_analysis(
             emit_snapshot(&app_handle, &snapshot);
         }
 
-        let result = analyze_module_file_with_cache(
-            &module_path,
-            &roots,
-            Some(&catalog_cache_path),
-            &cancellation,
-            |progress| {
-                if let Some(snapshot) = registry.set_progress(&job_id, progress) {
-                    emit_snapshot(&app_handle, &snapshot);
-                }
-            },
-        )
+        let progress = |progress| {
+            if let Some(snapshot) = registry.set_progress(&job_id, progress) {
+                emit_snapshot(&app_handle, &snapshot);
+            }
+        };
+        let result = match source_kind {
+            AnalysisSourceKind::Module => analyze_module_file_with_cache(
+                &module_path,
+                &roots,
+                Some(&catalog_cache_path),
+                &cancellation,
+                progress,
+            ),
+            AnalysisSourceKind::StandaloneArea => analyze_standalone_area_file_with_cache(
+                &module_path,
+                &roots,
+                Some(&catalog_cache_path),
+                &cancellation,
+                progress,
+            ),
+        }
         .and_then(|mut analysis| {
             if let Some(snapshot) = registry.set_progress(
                 &job_id,
@@ -6893,6 +5944,22 @@ pub fn start_module_analysis(
     });
 
     Ok(job)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AnalysisSourceKind {
+    Module,
+    StandaloneArea,
+}
+
+fn source_kind(path: &Path) -> Option<AnalysisSourceKind> {
+    match path.extension()?.to_str()? {
+        extension if extension.eq_ignore_ascii_case("mod") => Some(AnalysisSourceKind::Module),
+        extension if extension.eq_ignore_ascii_case("are") => {
+            Some(AnalysisSourceKind::StandaloneArea)
+        }
+        _ => None,
+    }
 }
 
 fn optional_directory(path: Option<String>, field: &str) -> AppResult<Option<PathBuf>> {
@@ -7433,10 +6500,136 @@ pub fn inspect_scene(
 }
 
 #[tauri::command]
+pub async fn prepare_scene_models(
+    state: State<'_, AppState>,
+    request: PrepareSceneModelsRequest,
+) -> AppResult<PrepareSceneModelsReport> {
+    let jobs = Arc::clone(&state.jobs);
+    let cache_root = state.asset_cache_root.clone();
+    let prepared_model_previews = Arc::clone(&state.prepared_model_previews);
+    tauri::async_runtime::spawn_blocking(move || {
+        prepare_scene_models_blocking(&jobs, &prepared_model_previews, &cache_root, request)
+    })
+    .await
+    .map_err(|error| {
+        Box::new(
+            AppError::new(
+                "SCENE_MODEL_PREPARATION_TASK_FAILED",
+                "La préparation parallèle des modèles 3D a échoué.",
+                error.to_string(),
+                aurora_core::ErrorSeverity::Error,
+            )
+            .with_import_stage("scene_model_preparation"),
+        )
+    })?
+}
+
+fn prepare_scene_models_blocking(
+    jobs: &crate::jobs::JobRegistry,
+    prepared_model_previews: &Mutex<HashMap<(String, String), PreparedModelCacheEntry>>,
+    cache_root: &Path,
+    request: PrepareSceneModelsRequest,
+) -> AppResult<PrepareSceneModelsReport> {
+    const MAX_MODELS_PER_BATCH: usize = 64;
+    let resrefs = request
+        .resrefs
+        .into_iter()
+        .map(|value| value.trim().to_ascii_lowercase())
+        .filter(|value| !value.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if resrefs.len() > MAX_MODELS_PER_BATCH {
+        return Err(AppError::new(
+            "SCENE_MODEL_BATCH_LIMIT_EXCEEDED",
+            "Le lot de modèles 3D demandé est trop grand.",
+            format!(
+                "{} models requested; limit is {MAX_MODELS_PER_BATCH}",
+                resrefs.len()
+            ),
+            aurora_core::ErrorSeverity::Warning,
+        )
+        .with_import_stage("scene_model_preparation")
+        .into());
+    }
+    let requested = resrefs.len();
+    let mut prepared = 0;
+    let mut failed = 0;
+    let mut pending = Vec::new();
+    {
+        let cache = prepared_model_previews
+            .lock()
+            .expect("prepared model cache poisoned");
+        for resref in resrefs {
+            match cache.get(&model_preview_key(&request.job_id, &resref)) {
+                Some(PreparedModelCacheEntry::Ready(path)) if path.is_file() => prepared += 1,
+                Some(PreparedModelCacheEntry::Failed(_)) => failed += 1,
+                _ => pending.push(resref),
+            }
+        }
+    }
+    let started = Instant::now();
+    let cancelled = AtomicBool::new(false);
+    let worker_count = std::thread::available_parallelism().map_or(4, |count| count.get().min(8));
+    let results = jobs.with_analysis(&request.job_id, |analysis| {
+        Ok(prepare_model_previews(
+            &analysis.resource_catalog,
+            &pending,
+            cache_root,
+            worker_count,
+            &cancelled,
+        ))
+    })?;
+    let mut cache_hits = 0;
+    let mut cache = prepared_model_previews
+        .lock()
+        .expect("prepared model cache poisoned");
+    for result in results {
+        let key = model_preview_key(&request.job_id, &result.resref);
+        if let Some(error) = result.error {
+            failed += 1;
+            cache.insert(key, PreparedModelCacheEntry::Failed(error));
+        } else if let Some(path) = result.cache_path {
+            prepared += 1;
+            cache_hits += usize::from(result.cache_hit);
+            cache.insert(key, PreparedModelCacheEntry::Ready(path));
+        }
+    }
+    Ok(PrepareSceneModelsReport {
+        requested,
+        prepared,
+        cache_hits,
+        failed,
+        duration_ms: started.elapsed().as_millis(),
+    })
+}
+
+#[tauri::command]
 pub fn model_preview_glb(
     state: State<'_, AppState>,
     request: ModelPreviewRequest,
 ) -> AppResult<Response> {
+    let key = model_preview_key(&request.job_id, &request.resref);
+    let prepared = state
+        .prepared_model_previews
+        .lock()
+        .expect("prepared model cache poisoned")
+        .get(&key)
+        .cloned();
+    match prepared {
+        Some(PreparedModelCacheEntry::Ready(path)) => match fs::read(&path) {
+            Ok(bytes) => return Ok(Response::new(bytes)),
+            Err(_) => {
+                state
+                    .prepared_model_previews
+                    .lock()
+                    .expect("prepared model cache poisoned")
+                    .remove(&key);
+            }
+        },
+        Some(PreparedModelCacheEntry::Failed(error)) => return Err(Box::new(error)),
+        None => {}
+    }
     let cancelled = AtomicBool::new(false);
     let entry = state.jobs.with_analysis(&request.job_id, |analysis| {
         cached_model_preview(
@@ -7452,7 +6645,16 @@ pub fn model_preview_glb(
         cache_path = %entry.cache_path.display(),
         "model preview ready"
     );
+    state
+        .prepared_model_previews
+        .lock()
+        .expect("prepared model cache poisoned")
+        .insert(key, PreparedModelCacheEntry::Ready(entry.cache_path));
     Ok(Response::new(entry.artifact.bytes))
+}
+
+fn model_preview_key(job_id: &str, resref: &str) -> (String, String) {
+    (job_id.to_owned(), resref.trim().to_ascii_lowercase())
 }
 
 #[tauri::command]
@@ -7539,6 +6741,19 @@ fn emit_snapshot(app: &AppHandle, snapshot: &JobSnapshot) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn analysis_source_accepts_modules_and_standalone_areas_only() {
+        assert_eq!(
+            source_kind(Path::new("campaign.mod")),
+            Some(AnalysisSourceKind::Module)
+        );
+        assert_eq!(
+            source_kind(Path::new("lonely.ARE")),
+            Some(AnalysisSourceKind::StandaloneArea)
+        );
+        assert_eq!(source_kind(Path::new("dialogue.dlg")), None);
+    }
 
     #[test]
     fn ai_endpoints_require_https_except_for_local_models() {

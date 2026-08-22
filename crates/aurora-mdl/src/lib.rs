@@ -7,7 +7,7 @@
 mod glb;
 mod parser;
 
-pub use glb::{GLB_CACHE_SCHEMA_VERSION, GlbArtifact, export_glb};
+pub use glb::{GLB_CACHE_SCHEMA_VERSION, GlbArtifact, export_glb, export_glb_with_texture_uris};
 pub use parser::{
     AnimationEvent, AnimationTrack, MdlAnimation, MdlDiagnostic, MdlError, MdlFormat, MdlMaterial,
     MdlMesh, MdlModel, MdlNode, MdlNodeKind, MdlSkin, TrackPath, parse_mdl,

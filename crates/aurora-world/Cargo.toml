@@ -1,5 +1,6 @@
 [package]
 name = "aurora-world"
+description = "Zones ARE/GIT/GIC, tuiles, textures et rapports monde."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -24,6 +24,7 @@ const MAX_RESOURCE_BYTES: u64 = 64 * 1024 * 1024;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum ResourceSourceKind {
+    Standalone,
     Development,
     Override,
     Module,
@@ -206,6 +207,7 @@ impl ResourceCatalog {
 #[derive(Debug, Clone, Default)]
 pub struct ResourceManagerConfig {
     pub module_path: PathBuf,
+    pub loose_source_directory: Option<PathBuf>,
     pub hak_paths: Vec<PathBuf>,
     pub game_install_path: Option<PathBuf>,
     pub user_data_path: Option<PathBuf>,
@@ -239,12 +241,17 @@ impl ResourceManager {
     ) -> AppResult<ResourceCatalogBuild> {
         let mut versions = BTreeMap::<ResourceKey, Vec<ResourceVersion>>::new();
         let mut diagnostics = Vec::new();
+        let development_priority = if config.loose_source_directory.is_some() {
+            1
+        } else {
+            0
+        };
 
         if let Some(user) = &config.user_data_path {
             scan_directory(
                 &user.join("development"),
                 ResourceSourceKind::Development,
-                0,
+                development_priority,
                 &mut versions,
                 &mut diagnostics,
                 cancelled,
@@ -259,18 +266,29 @@ impl ResourceManager {
             )?;
         }
 
-        scan_erf(
-            &config.module_path,
-            ErfScan {
-                kind: ResourceSourceKind::Module,
-                source_name: "module".into(),
-                priority: 20,
-                required: true,
-            },
-            &mut versions,
-            &mut diagnostics,
-            cancelled,
-        )?;
+        if let Some(directory) = &config.loose_source_directory {
+            scan_directory(
+                directory,
+                ResourceSourceKind::Standalone,
+                0,
+                &mut versions,
+                &mut diagnostics,
+                cancelled,
+            )?;
+        } else {
+            scan_erf(
+                &config.module_path,
+                ErfScan {
+                    kind: ResourceSourceKind::Module,
+                    source_name: "module".into(),
+                    priority: 20,
+                    required: true,
+                },
+                &mut versions,
+                &mut diagnostics,
+                cancelled,
+            )?;
+        }
         for (index, path) in config.hak_paths.iter().enumerate() {
             scan_erf(
                 path,
@@ -1033,6 +1051,44 @@ mod tests {
             .expect("shared resource");
         assert_eq!(candidates.len(), 2);
         assert_eq!(candidates[0].source_kind, ResourceSourceKind::Development);
+    }
+
+    #[test]
+    fn explicitly_selected_standalone_area_shadows_development() {
+        let root = tempdir().expect("temp");
+        let source = root.path().join("area-source");
+        let user = root.path().join("user");
+        fs::create_dir_all(&source).expect("source directory");
+        fs::create_dir_all(user.join("development")).expect("development directory");
+        fs::write(source.join("lonely.are"), b"selected").expect("selected ARE");
+        fs::write(user.join("development/lonely.are"), b"development").expect("development ARE");
+
+        let catalog = ResourceManager::build(
+            &ResourceManagerConfig {
+                module_path: source.join("lonely.are"),
+                loose_source_directory: Some(source.clone()),
+                user_data_path: Some(user),
+                ..ResourceManagerConfig::default()
+            },
+            &AtomicBool::new(false),
+        )
+        .expect("standalone catalog");
+        let resource = catalog
+            .get(&ResourceKey::new("lonely", 2012))
+            .expect("standalone ARE");
+
+        assert_eq!(
+            resource.selected.source_kind,
+            ResourceSourceKind::Standalone
+        );
+        assert_eq!(
+            resource.selected.source_path,
+            source.join("lonely.are").display().to_string()
+        );
+        assert_eq!(
+            resource.shadowed[0].source_kind,
+            ResourceSourceKind::Development
+        );
     }
 
     #[test]

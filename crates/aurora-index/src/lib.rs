@@ -448,6 +448,7 @@ fn insert_version(
 
 fn source_kind(kind: ResourceSourceKind) -> &'static str {
     match kind {
+        ResourceSourceKind::Standalone => "standalone",
         ResourceSourceKind::Development => "development",
         ResourceSourceKind::Override => "override",
         ResourceSourceKind::Module => "module",

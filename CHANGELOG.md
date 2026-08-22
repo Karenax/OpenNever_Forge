@@ -6,6 +6,72 @@ Tous les changements notables du projet sont consignés ici.
 
 ### Added
 
+- Plan d'amélioration transversal `docs/IMPROVEMENT_PLAN_2026-08-21.md` : CI/couverture,
+  remboursement des monolithes (`App.tsx`, `commands.rs`, `aurora-edit/lib.rs`, `tauri.ts`),
+  structure frontend alignée sur la refondation UX, qualité code et fixtures à volume réel.
+- Lot V — fixtures à volume réel : générateur déterministe `scripts/generate_volume_fixture.py`
+  (dialogue de 1 001 nœuds avec cycles, partage et nœuds isolés ; zone 16x15 de 444 instances ;
+  manifeste SHA-256, mode `--check`) et test d'intégration
+  `crates/aurora-dialogue/tests/volume_fixture.rs` qui reconstruit le DLG, vérifie cycles,
+  inaccessibles, partage, absence de liens cassés et bornes d'arbre, avec budget d'adaptation < 5 s.
+
+### Changed
+
+- Monolithes (fin) : `aurora-edit/lib.rs` descend à 6 583 lignes (9 876 au départ) après
+  extraction du cœur transactionnel `EditWorkspace` vers `workspace.rs` ; plafond abaissé à 7 000.
+- Structure frontend : composants regroupés par atelier sous `features/` (dialogues, exports,
+  map-creator, agent-studio, help, shared) avec barrels ; état UI extraits vers les stores Zustand
+  `store/uiStore.ts` (volets explorateur/inspecteur/diagnostics) et `store/workbenchStore.ts`
+  (élément courant, dernière vue, bref objectif agent). Le barrel `features/shared` n'expose plus
+  le composant global `UxEnhancements` afin d'éviter le chargement de son CSS dans l'entrée.
+- Monolithes (suite) : `aurora-edit/lib.rs` est réduit de 9 876 à 8 360 lignes par extraction de
+  `types.rs`, `walkmesh.rs` et `workspace_io.rs` (API publique inchangée via réexportations) ; les
+  trois ateliers d'export partagent désormais le socle `features/exports/ExportWorkshopShell.tsx`
+  (état verrouillé, en-tête, destination, consentement, métriques, avertissements) sans changement
+  de comportement ni de classes CSS.
+- Plafonds de budget sources abaissés pour verrouiller les gains : `App.tsx` 3 050 → 2 950,
+  `commands.rs` 7 700 → 7 200, `aurora-edit/lib.rs` 9 950 → 9 000.
+- Refactorisation : `lib/tauri.ts` (1 323 lignes) est découpé en modules par domaine derrière le
+  barrel `lib/tauri/index.ts` (erreurs, types, analyse, workspace, walkmesh, agent, cartographie,
+  exports, inspection, dialogues de fichiers) sans changer l'API importée par les composants.
+- Monolithes : les DTOs purs de `commands.rs` sont extraits vers `commands/dto.rs` (7 820 → 6 841
+  lignes) et l'atelier dialogue d'`App.tsx` vers `features/dialogues/DialogueWorkshop.tsx`
+  (3 090 → 2 825 lignes), ramenant les deux fichiers sous leurs plafonds de budget.
+- CI : `ci.yml` se déclenche désormais sur push (main) et pull_request avec groupe de concurrence ;
+  il ne restait plus limité aux exécutions manuelles.
+- Couverture frontend mesurée et bloquante : Vitest provider v8, rapport text-summary + LCOV,
+  seuils initiaux 45 % statements / 50 % branches / 38 % fonctions / 50 % lignes ; la CI Rust
+  produit un rapport LCOV via `cargo-llvm-cov`.
+- Descriptions ajoutées dans les 20 `Cargo.toml` du workspace.
+- Vue 3D : le plan technique est maintenant centré sous la grille de tuiles et la préparation des
+  modèles GLB s'effectue en une file parallèle adaptative en arrière-plan avant leur intégration
+  dans Babylon.js, afin d'éviter les attentes croisées entre modèles et textures ; les occurrences
+  d'un même modèle partagent désormais leurs matériaux au lieu de les cloner individuellement ;
+  les orientations de tuiles NWN compensent le demi-tour ajouté par la conversion automatique du
+  GLB droitier vers le repère gauche de Babylon.js avant d'appliquer les quarts de tour antihoraires.
+
+### Added — fonctionnalités produit
+
+- Nouvel atelier « Exporter des dialogues », troisième entrée du menu supérieur Export : sélection
+  de la révision analysée ou modifiée dans le workspace, prise en charge des DLG nouvellement créés,
+  copie exacte du DLG, JSON portable, transcript Markdown et manifeste SHA-256, avec conservation
+  explicite des cycles, liens cassés, scripts, références et diagnostics sans écriture dans les
+  sources NWN.
+
+- Nouvel atelier « Exporter des assets », deuxième entrée du menu supérieur Export : sélection d’un
+  modèle Aurora analysé, qualification statique ou animée fondée sur le GLB produit, résolution des
+  animations de supermodel et des textures, export local GLB + PNG + manifeste SHA-256 par
+  publication atomique dans une destination neuve, sans modification des sources NWN.
+
+- Réintégration de l’exportateur de cartes sous l’atelier « Exporter une carte » : audit d’une
+  zone analysée, bundle local `area-migration-bundle@1.0.0`, conversion bornée des modèles et
+  textures, préservation explicite des navigations WOK/PWK/DWK, diagnostics, annulation et
+  vérification atomique sans modification des sources NWN.
+
+- Ouverture directe d’une carte `.are` en lecture seule, avec chargement automatique des ressources
+  voisines `.git`/`.gic`, résolution des ressources NWN et accès immédiat aux vues de zone sans
+  exiger de conteneur `.mod`.
+
 - Création cartographique MCP complète : catalogue local MOD/HAK/NWN, aperçu et application
   déterministes, inspection avec empreintes, édition de l'environnement, de l'audio, des tuiles,
   instances, triggers, rencontres, transitions et inventaires dans l'overlay réversible.

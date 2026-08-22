@@ -10,6 +10,7 @@
     "lint": "pnpm --filter @opennever/desktop lint",
     "test": "pnpm --filter @opennever/desktop test",
     "test:run": "pnpm --filter @opennever/desktop test:run",
+    "coverage": "pnpm --filter @opennever/desktop coverage",
     "validate:glb": "node tools/validate-glb.mjs",
     "check:bundle": "node tools/check-bundle-budget.mjs",
     "check:graph": "python scripts/architecture_graph.py check",

@@ -1,5 +1,6 @@
 [package]
 name = "aurora-mdl"
+description = "Lecteur MDL binaire/ASCII indépendant et convertisseur GLB."
 version.workspace = true
 edition.workspace = true
 license.workspace = true

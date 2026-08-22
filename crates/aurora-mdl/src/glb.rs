@@ -23,6 +23,18 @@ pub struct GlbArtifact {
 }
 
 pub fn export_glb(model: &MdlModel) -> Result<GlbArtifact, MdlError> {
+    export_glb_with_texture_uris(model, &BTreeMap::new())
+}
+
+/// Exports a GLB while mapping NWN material texture names to bundle-relative URIs.
+///
+/// Keys are compared case-insensitively after trimming an optional file extension. The
+/// caller remains responsible for writing the referenced texture files. Keeping this as
+/// an opt-in path preserves the existing preview/cache output byte-for-byte.
+pub fn export_glb_with_texture_uris(
+    model: &MdlModel,
+    texture_uris: &BTreeMap<String, String>,
+) -> Result<GlbArtifact, MdlError> {
     let mut builder = GlbBuilder::default();
     let (safe_parents, safe_children) = safe_hierarchy(&model.nodes);
     let node_number_map = model
@@ -84,15 +96,20 @@ pub fn export_glb(model: &MdlModel) -> Result<GlbArtifact, MdlError> {
         } else {
             0.75
         };
+        let mut pbr = json!({
+            "baseColorFactor": [
+                mesh.material.diffuse[0], mesh.material.diffuse[1], mesh.material.diffuse[2], alpha
+            ],
+            "metallicFactor": 0.0,
+            "roughnessFactor": shininess_to_roughness(mesh.material.shininess)
+        });
+        if let Some(uri) = material_texture_uri(&mesh.material.textures, texture_uris) {
+            let texture_index = builder.push_texture_uri(uri);
+            pbr["baseColorTexture"] = json!({ "index": texture_index });
+        }
         builder.materials.push(json!({
             "name": format!("material:{}", node.name),
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [
-                    mesh.material.diffuse[0], mesh.material.diffuse[1], mesh.material.diffuse[2], alpha
-                ],
-                "metallicFactor": 0.0,
-                "roughnessFactor": shininess_to_roughness(mesh.material.shininess)
-            },
+            "pbrMetallicRoughness": pbr,
             "doubleSided": true,
             "alphaMode": if alpha < 1.0 { "BLEND" } else { "OPAQUE" },
             "extras": {
@@ -307,6 +324,8 @@ pub fn export_glb(model: &MdlModel) -> Result<GlbArtifact, MdlError> {
         "nodes": nodes_json,
         "meshes": builder.meshes,
         "materials": builder.materials,
+        "images": builder.images,
+        "textures": builder.textures,
         "skins": builder.skins,
         "animations": builder.animations,
         "accessors": builder.accessors,
@@ -321,6 +340,10 @@ pub fn export_glb(model: &MdlModel) -> Result<GlbArtifact, MdlError> {
     }
     if animation_count == 0 {
         object.remove("animations");
+    }
+    if builder.images.is_empty() {
+        object.remove("images");
+        object.remove("textures");
     }
     let bytes = encode_glb(&json_document, &builder.binary)?;
     let glb_sha256 = format!("{:x}", Sha256::digest(&bytes));
@@ -346,11 +369,27 @@ struct GlbBuilder {
     accessors: Vec<Value>,
     meshes: Vec<Value>,
     materials: Vec<Value>,
+    images: Vec<Value>,
+    textures: Vec<Value>,
     skins: Vec<Value>,
     animations: Vec<Value>,
 }
 
 impl GlbBuilder {
+    fn push_texture_uri(&mut self, uri: &str) -> usize {
+        if let Some(index) = self
+            .images
+            .iter()
+            .position(|image| image.get("uri").and_then(Value::as_str) == Some(uri))
+        {
+            return index;
+        }
+        let index = self.images.len();
+        self.images.push(json!({ "uri": uri }));
+        self.textures.push(json!({ "source": index }));
+        index
+    }
+
     fn push_vec2_f32(&mut self, values: &[[f32; 2]], target: u32) -> Result<usize, MdlError> {
         let bytes = values
             .iter()
@@ -684,6 +723,31 @@ fn shininess_to_roughness(value: f32) -> f32 {
     (1.0 - (value / 128.0).clamp(0.0, 1.0)).clamp(0.04, 1.0)
 }
 
+fn material_texture_uri<'a>(
+    textures: &[String],
+    texture_uris: &'a BTreeMap<String, String>,
+) -> Option<&'a str> {
+    textures.iter().find_map(|texture| {
+        let normalized = texture
+            .trim()
+            .replace('\\', "/")
+            .rsplit('/')
+            .next()
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        if normalized.is_empty() || normalized == "null" {
+            return None;
+        }
+        let stem = normalized
+            .rsplit_once('.')
+            .map_or(normalized.as_str(), |(stem, _)| stem);
+        texture_uris
+            .get(&normalized)
+            .or_else(|| texture_uris.get(stem))
+            .map(String::as_str)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -824,6 +888,27 @@ mod tests {
         assert_eq!(
             document["materials"][0]["extras"]["nwnTextures"],
             json!(["floor_stone"])
+        );
+    }
+
+    #[test]
+    fn texture_uri_export_adds_gltf_image_without_changing_default_path() {
+        let model = parse_mdl(
+            b"newmodel textured\nnode trimesh body\nbitmap Stone_A\nverts 3\n0 0 0\n1 0 0\n0 1 0\ntverts 3\n0 0\n1 0\n0 1\nfaces 1\n0 1 2 0 0 1 2 0\nendnode\n",
+        )
+        .expect("model");
+        let default = export_glb(&model).expect("default GLB");
+        let mapped = export_glb_with_texture_uris(
+            &model,
+            &BTreeMap::from([("stone_a".to_owned(), "../textures/stone_a.png".to_owned())]),
+        )
+        .expect("mapped GLB");
+        assert_ne!(default.bytes, mapped.bytes);
+        let (document, _) = glb_parts(&mapped.bytes);
+        assert_eq!(document["images"][0]["uri"], "../textures/stone_a.png");
+        assert_eq!(
+            document["materials"][0]["pbrMetallicRoughness"]["baseColorTexture"]["index"],
+            0
         );
     }
 

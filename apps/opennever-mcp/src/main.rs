@@ -645,6 +645,7 @@ impl McpServer {
         let build = ResourceManager::build_with_cache(
             &ResourceManagerConfig {
                 module_path: PathBuf::from(&snapshot.source.path),
+                loose_source_directory: None,
                 hak_paths,
                 game_install_path: roots.game_install_path,
                 user_data_path: roots.user_data_path,

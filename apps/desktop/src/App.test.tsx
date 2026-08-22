@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App, { isTileOccluder, JobProgress, sceneGroundElevation, WalkmeshWorkbench } from "./App";
+import App, { isTileOccluder, JobProgress, sceneGroundElevation, sceneGroundPosition, WalkmeshWorkbench } from "./App";
 import { applyAiChangeSet, applyAuroraWorkspaceSync, applyMapGeneration, buildWorkspaceModule, createEditWorkspace, createWorkspaceArea, deployWorkspaceDevelopment, draftMapWithAi, editAreaStructure, editBlueprintStructure, editDialogueField, editDialogueStructure, editFactionStructure, editWorkspaceModuleDependencies, inspectDialogue, moveAreaInstance, planAuroraWorkspaceSync, previewAiChangeSet, previewMapGeneration, requestAiChangeSet, restoreModuleSession, saveWorkspaceBuildProfile, saveWorkspaceWalkmesh, selectDirectory, selectModuleOutput, startModuleAnalysis, testAgentProvider, transformWalkmeshDraft, undoEditCommand } from "./lib/tauri";
 import type { DialogueGraph } from "./lib/tauri";
 import { LAST_EXPLORER_ITEM_STORAGE_KEY, PROJECT_PREFERENCES_STORAGE_KEY } from "./lib/projectPreferences";
+import { useWorkbenchStore } from "./store/workbenchStore";
 import { useUiStore } from "./store/uiStore";
 
 vi.mock("@monaco-editor/react", () => ({ default: ({ value }: { value: string }) => <pre data-testid="monaco-readonly">{value}</pre> }));
@@ -250,6 +251,7 @@ vi.mock("./lib/tauri", () => ({
     sourcePath: "C:/module.mod",
     progress: { bytesRead: 0, totalBytes: 0, percent: 0 },
   }),
+  prepareSceneModels: vi.fn().mockResolvedValue({ requested: 0, prepared: 0, cacheHits: 0, failed: 0, durationMs: 0 }),
   cancelJob: vi.fn(),
   inspectResource: vi.fn().mockResolvedValue({ kind: "gff", value: { fileType: "UTS ", fileVersion: "V3.2", source: "ambience.uts", structCount: 1, fieldCount: 3, root: { index: 0, structType: 4294967295, fields: [{ label: "Tag", fieldType: 10, value: { kind: "string", value: "Ambience" } }, { label: "TemplateResRef", fieldType: 11, value: { kind: "res_ref", value: "ambience" } }, { label: "Sounds", fieldType: 15, value: { kind: "list", value: [] } }] } } }),
   queryResources: vi.fn((request: { query?: string; resourceTypes?: number[]; offset?: number; limit?: number }) => {
@@ -407,6 +409,16 @@ vi.mock("./lib/tauri", () => ({
     workspace: { schemaVersion: 2, workspaceId: "workspace-1", root: "C:/cache/workspace-1", source: { path: "C:/module.mod", sha256: "ABC123", sizeBytes: 512 }, sourceIntact: true, commandCount: 2, cursor: 2, canUndo: true, canRedo: false, modifiedResources: [{ resource: { resref: request.resref, resourceType: 2016 }, sourceSha256: null, outputSha256: "WALK", sizeBytes: 256, relativePath: `resources/${request.resref}.${request.kind}` }], deletedResources: [], journalEvents: 4, values: {} },
     document: { resref: request.resref, kind: request.kind, sourceFormat: "ascii", draft: request.draft, sourceSha256: "WALK" },
   })),
+  listAreaMigrationCandidates: vi.fn().mockResolvedValue([{ resref: "startarea", name: "Zone de depart", width: 1, height: 1, tileCount: 1, instanceCount: 2, sourceDiagnosticCount: 0 }]),
+  previewAreaMigration: vi.fn().mockResolvedValue({ schemaVersion: "area-migration-bundle@1.0.0", areaResref: "startarea", areaName: "Zone de depart", suggestedDirectoryName: "startarea.area-migration-v1", ready: true, complete: true, counts: { tiles: 1, instances: 2, uniqueModels: 2, textures: 3, preservedNavigation: 1, missingItems: 0, fallbacks: 1, diagnostics: 1, warnings: 1, errors: 0, byStatus: {} }, diagnostics: [], classification: "local_only_proprietary", redistribution: "not_redistributable_without_separate_rights", navigationStatus: "preserved-not-converted" }),
+  getAreaMigrationJob: vi.fn().mockResolvedValue(null),
+  startAreaMigrationExport: vi.fn(),
+  listAssetExportCandidates: vi.fn().mockResolvedValue([{ resref: "hero", format: "mdl_binary", source: "module.mod", exportable: true, declaredAnimationCount: 1, declaredAnimations: ["walk"], meshCount: 2, triangleCount: 12, skinCount: 1, textureCount: 1, diagnosticCount: 0 }]),
+  previewAssetExport: vi.fn().mockResolvedValue({ schemaVersion: "opennever-asset-export@1.0.0", resref: "hero", mode: "animated", ready: true, suggestedDirectoryName: "hero.asset-export-v1", nodeCount: 4, meshCount: 2, primitiveCount: 2, skinCount: 1, animationCount: 1, animations: [{ name: "walk", lengthSeconds: 1, transitionSeconds: 0.2, rootNode: "root", trackCount: 2, eventCount: 0, exported: true }], textures: [{ resref: "hero_diff", resourceType: 2033, outputPath: null, status: "planned", diagnostic: null }], warnings: [], classification: "local_only_proprietary", redistribution: "not_redistributable_without_separate_rights" }),
+  exportAssetBundle: vi.fn(),
+  listDialogueExportCandidates: vi.fn().mockResolvedValue([{ resref: "guard", nodeCount: 2, linkCount: 1, cycleCount: 0, diagnosticCount: 0, preview: "Bienvenue" }]),
+  previewDialogueExport: vi.fn().mockResolvedValue({ schemaVersion: "opennever-dialogue-export@1.0.0", resref: "guard", revision: "analysis", ready: true, suggestedDirectoryName: "guard.dialogue-export-v1", sourceResourceSha256: "d".repeat(64), nodeCount: 2, entryCount: 1, replyCount: 1, linkCount: 1, rootCount: 1, sharedNodeCount: 0, unreachableNodeCount: 0, cycleCount: 0, brokenLinkCount: 0, diagnosticCount: 0, referenceCount: 1, scripts: ["open_gate"], transcriptPreview: ["- **Gardien** : Bienvenue `entry:0`"], warnings: [], classification: "local_only_proprietary", redistribution: "not_redistributable_without_separate_rights" }),
+  exportDialogueBundle: vi.fn(),
   selectDirectory: vi.fn(),
   selectModule: vi.fn(),
   normalizeAppError: vi.fn((error) => error),
@@ -456,10 +468,19 @@ describe("OpenNever Forge shell", () => {
     expect(sceneGroundElevation([{ kind: "placeable", y: -3 }])).toBeCloseTo(-0.05);
   });
 
+  it("centers the technical ground under the NWN tile grid", () => {
+    expect(sceneGroundPosition(8, 6, [{ kind: "tile", y: 0 }])).toEqual({
+      x: 40,
+      y: -0.05,
+      z: 30,
+    });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    useUiStore.setState({ activeExplorerItem: "module" });
+    useWorkbenchStore.setState({ activeExplorerItem: "module", lastContentView: "module", agentObjectiveDraft: "" });
+    useUiStore.setState({ explorerOpen: true, inspectorOpen: true, diagnosticsOpen: false });
   });
 
   it("keeps a running analysis visibly active instead of showing 100 percent", () => {
@@ -511,6 +532,42 @@ describe("OpenNever Forge shell", () => {
     expect(screen.getByLabelText("Inspecteur")).toBeInTheDocument();
     expect(screen.getByLabelText("Diagnostics")).toBeInTheDocument();
     expect(await screen.findByText("Cœur Rust · v0.1.0-test")).toBeInTheDocument();
+  });
+
+  it("exposes the area exporter after analysis", async () => {
+    renderApp();
+    expect(screen.getByRole("button", { name: "Exporter une carte" })).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(screen.getByRole("button", { name: "Exporter une carte" }));
+    expect(await screen.findByRole("region", { name: "Migration de zone" })).toBeInTheDocument();
+    expect(await screen.findByText("BUNDLE DE MIGRATION V1")).toBeInTheDocument();
+  });
+
+  it("places the asset exporter after the map exporter", async () => {
+    renderApp();
+    const mapExporter = screen.getByRole("button", { name: "Exporter une carte" });
+    const assetExporter = screen.getByRole("button", { name: "Exporter des assets" });
+    expect(mapExporter.compareDocumentPosition(assetExporter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(assetExporter);
+    expect(await screen.findByRole("region", { name: "Export d’assets" })).toBeInTheDocument();
+    expect(await screen.findByText("EXPORT ASSET V1")).toBeInTheDocument();
+    expect(await screen.findByText("Asset animé")).toBeInTheDocument();
+  });
+
+  it("places the dialogue exporter after the asset exporter", async () => {
+    renderApp();
+    const assetExporter = screen.getByRole("button", { name: "Exporter des assets" });
+    const dialogueExporter = screen.getByRole("button", { name: "Exporter des dialogues" });
+    expect(assetExporter.compareDocumentPosition(dialogueExporter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+    fireEvent.click(dialogueExporter);
+    expect(await screen.findByRole("region", { name: "Export de dialogues" })).toBeInTheDocument();
+    expect(await screen.findByText("DIALOGUE EXPORT V1")).toBeInTheDocument();
+    expect(await screen.findByText("Version analysée")).toBeInTheDocument();
   });
 
   it("opens contextual help and embeds the complete manual", async () => {
@@ -566,6 +623,26 @@ describe("OpenNever Forge shell", () => {
         userDataPath: null,
       }),
     );
+  });
+
+  it("opens a standalone ARE directly in the area workspace without enabling editing", async () => {
+    renderApp();
+    fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), {
+      target: { value: "C:/areas/lonely.are" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
+
+    await waitFor(() =>
+      expect(startModuleAnalysis).toHaveBeenCalledWith({
+        modulePath: "C:/areas/lonely.are",
+        gameInstallPath: null,
+        userDataPath: null,
+      }),
+    );
+    expect(await screen.findByText("ZONES DU MODULE")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Table de campagne/ }));
+    expect(await screen.findByText("Carte autonome en lecture seule")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Créer l’espace d’édition" })).not.toBeInTheDocument();
   });
 
   it("restores and automatically saves the three project paths", async () => {
@@ -663,7 +740,7 @@ describe("OpenNever Forge shell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guide et manuel" }));
     await waitFor(() => expect(localStorage.getItem(LAST_EXPLORER_ITEM_STORAGE_KEY)).toBe("help"));
     first.unmount();
-    useUiStore.setState({ activeExplorerItem: "module" });
+    useWorkbenchStore.setState({ activeExplorerItem: "module" });
 
     renderApp();
 
