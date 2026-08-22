@@ -820,6 +820,7 @@ describe("OpenNever Forge shell", () => {
     fireEvent.change(screen.getByPlaceholderText("Sélectionner un fichier .mod"), { target: { value: "C:/module.mod" } });
     fireEvent.click(screen.getByRole("button", { name: "Analyser la copie" }));
     fireEvent.click(await screen.findByRole("button", { name: "Créer l’espace d’édition" }));
+    await waitFor(() => expect(createEditWorkspace).toHaveBeenCalledWith({ jobId: "job-1" }));
     fireEvent.click(await screen.findByRole("button", { name: "Dialogues (1)" }));
     fireEvent.click(await screen.findByRole("button", { name: "Ouvrir le dialogue forge_dialogue" }));
 
@@ -828,7 +829,9 @@ describe("OpenNever Forge shell", () => {
     fireEvent.change(text, { target: { value: "Bienvenue, voyageur." } });
     const textEditor = text.closest(".localized-dialogue-field");
     expect(textEditor).not.toBeNull();
-    fireEvent.click(within(textEditor as HTMLElement).getByRole("button", { name: "Appliquer" }));
+    const applyText = within(textEditor as HTMLElement).getByRole("button", { name: "Appliquer" });
+    await waitFor(() => expect(applyText).toBeEnabled());
+    fireEvent.click(applyText);
     await waitFor(() => expect(editDialogueField).toHaveBeenCalledWith(expect.objectContaining({
       jobId: "job-1",
       workspaceId: "workspace-1",

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChevronRight, Code2, LoaderCircle, MessageSquareText, Search, X } from "lucide-react";
 import {
@@ -201,7 +201,7 @@ export function EditableLocalizedDialogueField({field,onCommit}:{field:{label:st
   const originalJson=JSON.stringify(original);
   const [draft,setDraft]=useState<DialogueLocalizedString>(original);
   const [busy,setBusy]=useState(false); const [message,setMessage]=useState("");
-  useEffect(()=>{setDraft(original);setMessage("")},[originalJson,field.path]);
+  useLayoutEffect(()=>{setDraft(original);setMessage("")},[originalJson,field.path]);
   const update=(index:number,text:string)=>setDraft(value=>({...value,values:value.values.map((entry,position)=>position===index?{...entry,text}:entry)}));
   const addVariant=()=>setDraft(value=>{const used=new Set(value.values.map(entry=>entry.languageId));let languageId=0;while(used.has(languageId))languageId+=2;return {...value,values:[...value.values,{languageId,text:""}]}});
   const commit=async()=>{setBusy(true);setMessage("Enregistrement…");try{await onCommit(field.path,field.value,{kind:"localized_string",value:draft});setMessage("Variantes localisées enregistrées dans l'overlay.")}catch(error){setMessage(normalizeAppError(error).technicalMessage)}finally{setBusy(false)}};
